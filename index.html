@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Parking GTR - Luxury Parking Experience. White-glove valet, vault-level security, and 24/7 concierge for your elite vehicle." />
+  <title>Parking GTR | Luxury Parking Experience</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body class="loading">
+  <canvas id="luxuryParticles" class="luxury-particles" aria-hidden="true"></canvas>
+
+  <!-- ═══════════ CINEMATIC LOADING EXPERIENCE ═══════════ -->
+  <div id="loader" class="loader-overlay" role="status" aria-live="polite">
+    <!-- Ambient background layers -->
+    <div class="loader-ambient">
+      <div class="loader-ambient-ring loader-ambient-ring--1"></div>
+      <div class="loader-ambient-ring loader-ambient-ring--2"></div>
+      <div class="loader-ambient-ring loader-ambient-ring--3"></div>
+    </div>
+
+    <!-- Corner ornaments -->
+    <div class="loader-ornament loader-ornament--tl" aria-hidden="true"></div>
+    <div class="loader-ornament loader-ornament--tr" aria-hidden="true"></div>
+    <div class="loader-ornament loader-ornament--bl" aria-hidden="true"></div>
+    <div class="loader-ornament loader-ornament--br" aria-hidden="true"></div>
+
+    <!-- Horizontal scan line -->
+    <div class="loader-scanline" aria-hidden="true"></div>
+
+    <div class="loader-content">
+      <!-- Phase 1: Intro kicker -->
+      <div class="loader-phase loader-phase--1" id="loaderPhase1">
+        <p class="loader-text-reveal">
+          <span class="loader-char-wrap"><span class="loader-char">E</span></span>
+          <span class="loader-char-wrap"><span class="loader-char">S</span></span>
+          <span class="loader-char-wrap"><span class="loader-char">T</span></span>
+          <span class="loader-char-wrap"><span class="loader-char">.</span></span>
+          <span class="loader-char-wrap loader-char-space"></span>
+          <span class="loader-char-wrap"><span class="loader-char">2</span></span>
+          <span class="loader-char-wrap"><span class="loader-char">0</span></span>
+          <span class="loader-char-wrap"><span class="loader-char">2</span></span>
+          <span class="loader-char-wrap"><span class="loader-char">6</span></span>
+        </p>
+      </div>
+
+      <!-- Phase 2: Brand name cinematic reveal -->
+      <div class="loader-phase loader-phase--2" id="loaderPhase2">
+        <div class="loader-brand-line">
+          <span class="loader-brand-word loader-brand-word--slide">
+            <span class="loader-brand-inner">PARKING</span>
+          </span>
+        </div>
+        <div class="loader-brand-line">
+          <span class="loader-brand-word loader-brand-word--slide loader-brand-word--accent">
+            <span class="loader-brand-inner">GTR</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Phase 3: Elegant tagline with typewriter -->
+      <div class="loader-phase loader-phase--3" id="loaderPhase3">
+        <div class="loader-divider-anim">
+          <span class="loader-divider-line"></span>
+          <span class="loader-divider-diamond">◆</span>
+          <span class="loader-divider-line"></span>
+        </div>
+        <p class="loader-tagline-anim">Luxury Parking Experience</p>
+      </div>
+
+      <!-- Phase 4: Progress -->
+      <div class="loader-phase loader-phase--4" id="loaderPhase4">
+        <div class="loader-progress-ring-wrap">
+          <svg class="loader-progress-svg" viewBox="0 0 120 120" aria-hidden="true">
+            <defs>
+              <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#8f7322" />
+                <stop offset="50%" stop-color="#d4af37" />
+                <stop offset="100%" stop-color="#f5df94" />
+              </linearGradient>
+            </defs>
+            <circle class="loader-progress-track" cx="60" cy="60" r="54" />
+            <circle class="loader-progress-fill" id="progressCircle" cx="60" cy="60" r="54" stroke="url(#goldGrad)" />
+          </svg>
+          <span class="loader-progress-pct" id="progressValue">0</span>
+        </div>
+        <p class="loader-status" id="loaderStatus">Initializing Elite Access</p>
+      </div>
+    </div>
+
+    <!-- Bottom scroll cue on loader -->
+    <div class="loader-cue" id="loaderCue">
+      <span class="loader-cue-line"></span>
+      <span class="loader-cue-text">ENTERING</span>
+    </div>
+  </div>
+
+  <!-- ═══════════ MAIN SITE ═══════════ -->
+  <div id="pageShell" class="page-shell">
+    <header class="site-header" id="siteHeader">
+      <div class="container header-inner">
+        <a href="#home" class="brand-mini" id="brandLink">Parking GTR</a>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+        <nav class="nav-links" id="navLinks" aria-label="Primary">
+          <a href="#home">Home</a>
+          <a href="#experience">Experience</a>
+          <a href="#services">Services</a>
+          <a href="#contact">Contact</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <!-- HERO -->
+      <section id="home" class="section hero">
+        <div class="hero-glow parallax-item" data-parallax="0.16"></div>
+        <div class="container hero-container">
+          <div class="hero-content reveal">
+            <p class="eyebrow scroll-text" data-scroll-speed="0.3">Private Valet | Chauffeur Priority | 24/7 Concierge
+            </p>
+            <h1 class="brand-logo scroll-text" data-scroll-speed="0.15">
+              Parking <span>GTR</span>
+            </h1>
+            <p class="subtitle scroll-text" data-scroll-speed="0.08">Luxury Parking Experience</p>
+            <div class="gold-divider" aria-hidden="true"></div>
+            <div class="hero-actions">
+              <a href="#experience" class="btn btn-gold" id="btnDiscover">Discover Experience</a>
+              <a href="#contact" class="btn btn-outline" id="btnReserve">Reserve Spot</a>
+            </div>
+          </div>
+        </div>
+        <div class="hero-scroll-indicator" aria-hidden="true">
+          <span class="scroll-arrow"></span>
+          <span class="scroll-label">Scroll</span>
+        </div>
+      </section>
+
+      <!-- EXPERIENCE -->
+      <section id="experience" class="section">
+        <div class="container">
+          <div class="section-head reveal">
+            <p class="section-kicker">Signature Standards</p>
+            <h2 class="section-title split-text">A Curated Arrival Ritual</h2>
+          </div>
+          <div class="feature-grid">
+            <article class="feature-card reveal" data-delay="1">
+              <div class="feature-icon">
+                <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M24 4v40M4 24h40M12 12l24 24M36 12L12 36" opacity="0.4" />
+                  <circle cx="24" cy="24" r="8" />
+                </svg>
+              </div>
+              <h3>White-Glove Valet</h3>
+              <p>
+                Trained attendants welcome every vehicle with precision handling,
+                secure key management, and immaculate presentation.
+              </p>
+            </article>
+            <article class="feature-card reveal" data-delay="2">
+              <div class="feature-icon">
+                <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="8" y="8" width="32" height="32" rx="4" />
+                  <path d="M18 20l4 4 8-8" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </div>
+              <h3>Vault-Level Security</h3>
+              <p>
+                Surveillance intelligence, controlled access zones, and premium
+                insurance protection keep your car fully safeguarded.
+              </p>
+            </article>
+            <article class="feature-card reveal" data-delay="3">
+              <div class="feature-icon">
+                <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="24" cy="24" r="18" />
+                  <path d="M24 12v12l8 8" stroke-linecap="round" />
+                </svg>
+              </div>
+              <h3>Seamless Priority Exit</h3>
+              <p>
+                On-demand retrieval with concierge timing ensures your vehicle is
+                prepared the moment you are ready to depart.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- SHOWCASE -->
+      <section id="services" class="section section-showcase">
+        <div class="container">
+          <div class="showcase-panel parallax-item" data-parallax="0.2">
+            <div class="showcase-copy reveal">
+              <p class="section-kicker">Designed For Prestige</p>
+              <h2 class="section-title split-text">Where Automotive Elegance Meets Absolute Convenience</h2>
+              <p class="showcase-text">
+                Parking GTR is crafted for owners who value discretion, speed,
+                and premium treatment. From supercars to executive fleets,
+                every arrival is elevated into a refined brand experience.
+              </p>
+              <a href="#contact" class="btn btn-gold" id="btnMembership">Request Membership</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- METRICS -->
+      <section class="section section-metrics">
+        <div class="container metrics-grid">
+          <article class="metric reveal" data-delay="1">
+            <h3 class="counter" data-target="24">0</h3>
+            <p>/ 7 Concierge Coverage</p>
+          </article>
+          <article class="metric reveal" data-delay="2">
+            <h3 class="counter" data-target="300">0</h3>
+            <p>+ Luxury Spots</p>
+          </article>
+          <article class="metric reveal" data-delay="3">
+            <h3>4.9<span class="metric-small">/5</span></h3>
+            <p>Client Satisfaction</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- CONTACT -->
+      <section id="contact" class="section section-contact">
+        <div class="container">
+          <div class="contact-card reveal">
+            <p class="section-kicker">Private Access</p>
+            <h2 class="section-title split-text">Reserve Your Space In Style</h2>
+            <p>
+              Join Parking GTR and transform every arrival into a premium,
+              worry-free luxury experience.
+            </p>
+            <a href="#home" class="btn btn-outline" id="btnBack">Back To Entrance</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>&copy; <span id="year"></span> Parking GTR. Luxury Parking Experience.</p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="./scrip.js"></script>
+</body>
+
+</html>
