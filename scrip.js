@@ -21,7 +21,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initCounterAnimations();
   initMobileNav();
   initHeaderScroll();
-
+  initCustomCursor(prefersReducedMotion);
+  initI18n();
   runCinematicLoading({
     loader,
     pageShell,
@@ -489,4 +490,185 @@ function initParticles(prefersReducedMotion) {
       animate();
     }
   });
+}
+
+/* ═══════════════════════════════════════════════════
+   CUSTOM CURSOR
+   ═══════════════════════════════════════════════════ */
+function initCustomCursor(prefersReducedMotion) {
+  const hasFinePinter = window.matchMedia("(pointer: fine)").matches;
+  if (!hasFinePinter || prefersReducedMotion) return;
+
+  const dot  = document.getElementById("cursorDot");
+  const ring = document.getElementById("cursorRing");
+  if (!dot || !ring) return;
+
+  let mouseX = -200, mouseY = -200;
+  let ringX  = -200, ringY  = -200;
+  let rafId;
+
+  function tick() {
+    ringX += (mouseX - ringX) * 0.12;
+    ringY += (mouseY - ringY) * 0.12;
+    dot.style.left  = mouseX + "px";
+    dot.style.top   = mouseY + "px";
+    ring.style.left = Math.round(ringX) + "px";
+    ring.style.top  = Math.round(ringY) + "px";
+    rafId = requestAnimationFrame(tick);
+  }
+  tick();
+
+  document.addEventListener("mousemove", (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    document.body.classList.remove("cursor-out");
+  });
+
+  document.addEventListener("mouseleave", () => document.body.classList.add("cursor-out"));
+  document.addEventListener("mouseenter", () => document.body.classList.remove("cursor-out"));
+
+  const interactiveSelector = "a, button, [role='button'], input, select, textarea, .feature-card, .metric, .btn, .lang-btn";
+
+  document.addEventListener("mouseover", (e) => {
+    if (e.target.closest(interactiveSelector)) document.body.classList.add("cursor-hover");
+  });
+  document.addEventListener("mouseout", (e) => {
+    if (e.target.closest(interactiveSelector)) document.body.classList.remove("cursor-hover");
+  });
+
+  document.addEventListener("mousedown", () => document.body.classList.add("cursor-click"));
+  document.addEventListener("mouseup",   () => document.body.classList.remove("cursor-click"));
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) cancelAnimationFrame(rafId);
+    else tick();
+  });
+}
+
+/* ═══════════════════════════════════════════════════
+   LANGUAGE SWITCHER — EN / ES
+   ═══════════════════════════════════════════════════ */
+function initI18n() {
+  const translations = {
+    en: {
+      "tagline":         "Luxury Parking Experience",
+      "loaderStatus":    "Initializing Elite Access",
+      "entering":        "ENTERING",
+      "scroll":          "Scroll",
+      "nav.home":        "Home",
+      "nav.experience":  "Experience",
+      "nav.services":    "Services",
+      "nav.contact":     "Contact",
+      "hero.eyebrow":    "Private Valet | Chauffeur Priority | 24/7 Concierge",
+      "hero.cta1":       "Discover Experience",
+      "hero.cta2":       "Reserve Spot",
+      "exp.kicker":      "Signature Standards",
+      "exp.title":       "A Curated Arrival Ritual",
+      "card1.title":     "White-Glove Valet",
+      "card1.desc":      "Trained attendants welcome every vehicle with precision handling, secure key management, and immaculate presentation.",
+      "card2.title":     "Vault-Level Security",
+      "card2.desc":      "Surveillance intelligence, controlled access zones, and premium insurance protection keep your car fully safeguarded.",
+      "card3.title":     "Seamless Priority Exit",
+      "card3.desc":      "On-demand retrieval with concierge timing ensures your vehicle is prepared the moment you are ready to depart.",
+      "showcase.kicker": "Designed For Prestige",
+      "showcase.title":  "Where Automotive Elegance Meets Absolute Convenience",
+      "showcase.desc":   "Parking GTR is crafted for owners who value discretion, speed, and premium treatment. From supercars to executive fleets, every arrival is elevated into a refined brand experience.",
+      "showcase.cta":    "Request Membership",
+      "metric1":         "/ 7 Concierge Coverage",
+      "metric2":         "+ Luxury Spots",
+      "metric3":         "Client Satisfaction",
+      "contact.kicker":  "Private Access",
+      "contact.title":   "Reserve Your Space In Style",
+      "contact.desc":    "Join Parking GTR and transform every arrival into a premium, worry-free luxury experience.",
+      "contact.cta":     "Back To Entrance",
+      "status0":         "Initializing Elite Access",
+      "status1":         "Preparing Luxury Environment",
+      "status2":         "Configuring Concierge Systems",
+      "status3":         "Finalizing Premium Experience"
+    },
+    es: {
+      "tagline":         "Experiencia de Estacionamiento de Lujo",
+      "loaderStatus":    "Inicializando Acceso Elite",
+      "entering":        "ACCEDIENDO",
+      "scroll":          "Desplazar",
+      "nav.home":        "Inicio",
+      "nav.experience":  "Experiencia",
+      "nav.services":    "Servicios",
+      "nav.contact":     "Contacto",
+      "hero.eyebrow":    "Valet Privado | Prioridad Chofer | Conserje 24/7",
+      "hero.cta1":       "Descubrir Experiencia",
+      "hero.cta2":       "Reservar Lugar",
+      "exp.kicker":      "Estándares de Firma",
+      "exp.title":       "Un Ritual de Llegada Curado",
+      "card1.title":     "Valet de Guante Blanco",
+      "card1.desc":      "Asistentes capacitados reciben cada vehículo con manejo de precisión, gestión segura de llaves y presentación impecable.",
+      "card2.title":     "Seguridad de Nivel Bóveda",
+      "card2.desc":      "Inteligencia de vigilancia, zonas de acceso controlado y protección de seguro premium mantienen su auto completamente resguardado.",
+      "card3.title":     "Salida Prioritaria Perfecta",
+      "card3.desc":      "Recuperación bajo demanda con tiempos de conserje asegura que su vehículo esté listo en el momento en que desee partir.",
+      "showcase.kicker": "Diseñado Para el Prestigio",
+      "showcase.title":  "Donde la Elegancia Automotriz se Une a la Conveniencia Absoluta",
+      "showcase.desc":   "Parking GTR está creado para propietarios que valoran la discreción, la velocidad y el trato premium. Desde superautos hasta flotas ejecutivas, cada llegada se eleva a una experiencia de marca refinada.",
+      "showcase.cta":    "Solicitar Membresía",
+      "metric1":         "/ 7 Cobertura de Conserje",
+      "metric2":         "+ Lugares de Lujo",
+      "metric3":         "Satisfacción del Cliente",
+      "contact.kicker":  "Acceso Privado",
+      "contact.title":   "Reserve Su Espacio con Estilo",
+      "contact.desc":    "Únase a Parking GTR y transforme cada llegada en una experiencia lujosa y sin preocupaciones.",
+      "contact.cta":     "Volver a la Entrada",
+      "status0":         "Inicializando Acceso Elite",
+      "status1":         "Preparando Ambiente de Lujo",
+      "status2":         "Configurando Sistemas de Conserje",
+      "status3":         "Finalizando Experiencia Premium"
+    }
+  };
+
+  window.gtrStatusMessages = (lang) => [
+    translations[lang]["status0"],
+    translations[lang]["status1"],
+    translations[lang]["status2"],
+    translations[lang]["status3"]
+  ];
+
+  const btnEN = document.getElementById("langEN");
+  const btnES = document.getElementById("langES");
+  if (!btnEN || !btnES) return;
+
+  function applyLang(lang) {
+    const dict = translations[lang];
+    if (!dict) return;
+
+    document.documentElement.lang = lang;
+
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const key = el.getAttribute("data-i18n");
+      if (dict[key] !== undefined) el.textContent = dict[key];
+    });
+
+    /* Re-initialise split-text word animations on section titles */
+    document.querySelectorAll(".split-text").forEach((el) => {
+      el.classList.remove("is-split", "is-split-ready");
+      const words = Array.from(el.querySelectorAll(".word"));
+      if (words.length) {
+        el.textContent = words.map((w) => w.querySelector(".word-inner").textContent).join(" ");
+      }
+    });
+    initSplitText(false);
+
+    btnEN.classList.toggle("lang-btn--active", lang === "en");
+    btnES.classList.toggle("lang-btn--active", lang === "es");
+    btnEN.setAttribute("aria-pressed", String(lang === "en"));
+    btnES.setAttribute("aria-pressed", String(lang === "es"));
+
+    try { localStorage.setItem("gtrLang", lang); } catch (_) {}
+  }
+
+  btnEN.addEventListener("click", () => applyLang("en"));
+  btnES.addEventListener("click", () => applyLang("es"));
+
+  let saved = "";
+  try { saved = localStorage.getItem("gtrLang") || ""; } catch (_) {}
+  if (!saved) saved = navigator.language && navigator.language.toLowerCase().startsWith("es") ? "es" : "en";
+  applyLang(saved);
 }

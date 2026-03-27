@@ -68,6 +68,81 @@ a {
 }
 
 /* ═══════════════════════════════════════════════════
+   CUSTOM CURSOR
+   ═══════════════════════════════════════════════════ */
+/* Hide default cursor on non-touch devices */
+@media (pointer: fine) {
+  *, *::before, *::after { cursor: none !important; }
+}
+
+.cursor-dot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--color-gold);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  transition: width 0.2s ease, height 0.2s ease, background 0.2s ease, opacity 0.25s ease;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.8), 0 0 20px rgba(212, 175, 55, 0.4);
+  will-change: transform;
+}
+
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid rgba(212, 175, 55, 0.65);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  transition: width 0.35s var(--ease-out-expo), height 0.35s var(--ease-out-expo),
+    border-color 0.35s ease, opacity 0.3s ease, background 0.35s ease;
+  will-change: transform;
+}
+
+/* Hover state: expand ring + shrink dot */
+body.cursor-hover .cursor-ring {
+  width: 52px;
+  height: 52px;
+  border-color: rgba(212, 175, 55, 0.9);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+body.cursor-hover .cursor-dot {
+  width: 5px;
+  height: 5px;
+  background: var(--color-gold-soft);
+}
+
+/* Click burst */
+body.cursor-click .cursor-ring {
+  width: 28px;
+  height: 28px;
+  border-color: var(--color-gold);
+  background: rgba(212, 175, 55, 0.15);
+}
+
+body.cursor-click .cursor-dot {
+  width: 12px;
+  height: 12px;
+  background: var(--color-gold-soft);
+  box-shadow: 0 0 18px rgba(212, 175, 55, 1), 0 0 36px rgba(212, 175, 55, 0.6);
+}
+
+/* Hide when mouse leaves window */
+body.cursor-out .cursor-dot,
+body.cursor-out .cursor-ring {
+  opacity: 0;
+}
+
+/* ═══════════════════════════════════════════════════
    CINEMATIC LOADING OVERLAY
    ═══════════════════════════════════════════════════ */
 .loader-overlay {
@@ -500,6 +575,63 @@ a {
 
 .brand-mini:hover {
   color: var(--color-gold);
+}
+
+/* Header right cluster (lang + hamburger) */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+/* Language switcher */
+.lang-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 999px;
+  padding: 0.22rem 0.6rem;
+  background: rgba(10, 10, 10, 0.5);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.3s ease;
+}
+
+.lang-switcher:hover {
+  border-color: rgba(212, 175, 55, 0.55);
+}
+
+.lang-sep {
+  color: rgba(212, 175, 55, 0.3);
+  font-size: 0.7rem;
+  line-height: 1;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.lang-btn {
+  background: none;
+  border: none;
+  padding: 0.18rem 0.32rem;
+  font-family: "Cinzel", serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  color: rgba(200, 188, 152, 0.6);
+  cursor: none;
+  border-radius: 999px;
+  transition: color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+  line-height: 1.2;
+}
+
+.lang-btn:hover {
+  color: var(--color-gold-soft);
+}
+
+.lang-btn--active {
+  color: #070707 !important;
+  background: linear-gradient(100deg, #9f7f25, #d4af37 55%, #f0d988);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
 }
 
 /* Hamburger toggle */
