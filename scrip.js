@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initHeaderScroll();
   initCustomCursor(prefersReducedMotion);
   initI18n();
+  initRealTimeClock();
   runCinematicLoading({
     loader,
     pageShell,
@@ -671,4 +672,42 @@ function initI18n() {
   try { saved = localStorage.getItem("gtrLang") || ""; } catch (_) {}
   if (!saved) saved = navigator.language && navigator.language.toLowerCase().startsWith("es") ? "es" : "en";
   applyLang(saved);
+}
+
+/* ═══════════════════════════════════════════════════
+   REAL-TIME CLOCK
+   ═══════════════════════════════════════════════════ */
+function initRealTimeClock() {
+  const hourHand = document.getElementById("clockHour");
+  const minuteHand = document.getElementById("clockMinute");
+  const secondHand = document.getElementById("clockSecond");
+  const digitalClock = document.getElementById("digitalClock");
+  
+  if (!hourHand || !minuteHand || !secondHand || !digitalClock) return;
+
+  function updateClock() {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+
+    // Smooth rotation
+    const secondsDeg = seconds * 6; // 360 / 60
+    const minutesDeg = (minutes + seconds / 60) * 6;
+    const hoursDeg = ((hours % 12) + minutes / 60) * 30; // 360 / 12
+
+    hourHand.style.transform = `rotate(${hoursDeg}deg)`;
+    minuteHand.style.transform = `rotate(${minutesDeg}deg)`;
+    secondHand.style.transform = `rotate(${secondsDeg}deg)`;
+
+    // Digital text
+    const hh = String(hours).padStart(2, '0');
+    const mm = String(minutes).padStart(2, '0');
+    const ss = String(seconds).padStart(2, '0');
+    digitalClock.textContent = `${hh}:${mm}:${ss}`;
+  }
+  
+  // Initial call and then every second
+  updateClock();
+  setInterval(updateClock, 1000);
 }

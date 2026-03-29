@@ -1,0 +1,52 @@
+name: Deploy to Orange Pi
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy using SSH
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          APP_DIR: ${{ secrets.ORANGE_PI_APP_DIR }}
+          SERVICE_NAME: ${{ secrets.ORANGE_PI_SERVICE_NAME }}
+        with:
+          host: ${{ secrets.ORANGE_PI_HOST }}
+          username: ${{ secrets.ORANGE_PI_USER }}
+          key: ${{ secrets.ORANGE_PI_SSH_KEY }}
+          port: ${{ secrets.ORANGE_PI_PORT }}
+          script_stop: true
+          envs: APP_DIR,SERVICE_NAME
+          script: |
+            set -e
+
+            if [ -z "$APP_DIR" ]; then
+              echo "ERROR: ORANGE_PI_APP_DIR no esta configurado."
+              exit 1
+            fi
+
+            if [ ! -d "$APP_DIR/.git" ]; then
+              mkdir -p "$APP_DIR"
+              git clone "https://github.com/${{ github.repository }}.git" "$APP_DIR"
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Si existe, ejecuta tareas extra (build/restart) definidas en el repo.
+            if [ -f "deploy.sh" ]; then
+              chmod +x deploy.sh
+              ./deploy.sh
+            fi
+
+            # Reinicio opcional de servicio systemd (si se define secreto).
+            if [ -n "$SERVICE_NAME" ]; then
+              sudo systemctl restart "$SERVICE_NAME"
+            fi
