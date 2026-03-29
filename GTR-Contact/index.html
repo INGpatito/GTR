@@ -829,6 +829,16 @@
       display: flex;
     }
 
+    .form-toast.error {
+      border-color: rgba(231, 76, 60, .5);
+      background: rgba(231, 76, 60, .08);
+      color: #f1998e;
+    }
+
+    .form-toast.error span:first-child {
+      color: #e74c3c;
+    }
+
     /* ── REVEAL ANIMATION ──────────────────────────────── */
     .reveal {
       opacity: 0;
@@ -1398,21 +1408,82 @@
       }, { threshold: 0.15, rootMargin: "0px 0px -6% 0px" });
       reveals.forEach(el => revObs.observe(el));
 
+      /* ── API config ── */
+      const API_URL = "http://localhost:3000/api/reservations";
+
       /* ── Form submit ── */
       const form = document.getElementById("contactForm");
       const toast = document.getElementById("formToast");
-      form.addEventListener("submit", e => {
+
+      form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const btn = document.getElementById("btnSubmit");
+
+        // Gather values
+        const name    = form.querySelector("#inputName").value.trim();
+        const email   = form.querySelector("#inputEmail").value.trim();
+        const phone   = form.querySelector("#inputPhone").value.trim();
+        const service = form.querySelector("#inputService").value;
+        const vehicle = form.querySelector("input[name='vehicle']:checked")?.value || "sports";
+        const date    = form.querySelector("#inputDate").value;
+        const time    = form.querySelector("#inputTime").value;
+        const message = form.querySelector("#inputMsg").value.trim();
+        const lang    = document.documentElement.lang || "en";
+
+        // Client-side validation
+        let valid = true;
+        [form.querySelector("#inputName"), form.querySelector("#inputEmail")].forEach(el => {
+          el.style.borderColor = "";
+        });
+        if (!name || name.length < 2) {
+          form.querySelector("#inputName").style.borderColor = "#e74c3c";
+          valid = false;
+        }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          form.querySelector("#inputEmail").style.borderColor = "#e74c3c";
+          valid = false;
+        }
+        if (!valid) return;
+
+        // Loading state
         btn.disabled = true;
+        const origText = btn.querySelector("span").textContent;
+        btn.querySelector("span").textContent = lang === "es" ? "Enviando…" : "Sending…";
         btn.style.opacity = "0.7";
-        setTimeout(() => {
-          toast.classList.add("visible");
+
+        try {
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, phone, service, vehicle, date, time, message, lang }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            toast.classList.remove("error");
+            toast.classList.add("visible");
+            form.reset();
+          } else {
+            toast.classList.add("error", "visible");
+            const errSpan = toast.querySelector("[data-i18n='form.success']");
+            errSpan.textContent = data.errors?.join(". ") || (lang === "es" ? "Error al enviar. Intente de nuevo." : "Error sending. Please try again.");
+          }
+
+          toast.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+        } catch (err) {
+          toast.classList.add("error", "visible");
+          const errSpan = toast.querySelector("[data-i18n='form.success']");
+          errSpan.textContent = lang === "es"
+            ? "No se pudo conectar al servidor. Intente más tarde."
+            : "Could not connect to server. Please try later.";
+          toast.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } finally {
           btn.disabled = false;
           btn.style.opacity = "1";
-          form.reset();
-          toast.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }, 900);
+          btn.querySelector("span").textContent = origText;
+        }
       });
 
       /* ── Custom cursor ── */
