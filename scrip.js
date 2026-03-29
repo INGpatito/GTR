@@ -680,10 +680,8 @@ function initI18n() {
 function initRealTimeClock() {
   const hourHand = document.getElementById("clockHour");
   const minuteHand = document.getElementById("clockMinute");
-  const secondHand = document.getElementById("clockSecond");
-  const digitalClock = document.getElementById("digitalClock");
   
-  if (!hourHand || !minuteHand || !secondHand || !digitalClock) return;
+  if (!hourHand || !minuteHand) return;
 
   function updateClock() {
     const now = new Date();
@@ -692,19 +690,11 @@ function initRealTimeClock() {
     const seconds = now.getSeconds();
 
     // Smooth rotation
-    const secondsDeg = seconds * 6; // 360 / 60
     const minutesDeg = (minutes + seconds / 60) * 6;
     const hoursDeg = ((hours % 12) + minutes / 60) * 30; // 360 / 12
 
     hourHand.style.transform = `rotate(${hoursDeg}deg)`;
     minuteHand.style.transform = `rotate(${minutesDeg}deg)`;
-    secondHand.style.transform = `rotate(${secondsDeg}deg)`;
-
-    // Digital text
-    const hh = String(hours).padStart(2, '0');
-    const mm = String(minutes).padStart(2, '0');
-    const ss = String(seconds).padStart(2, '0');
-    digitalClock.textContent = `${hh}:${mm}:${ss}`;
   }
   
   // Initial call and then every second
