@@ -1,49 +1,58 @@
-# Despliegue automatico a Orange Pi
+# Despliegue automatico a Orange Pi (self-hosted runner)
 
-Este repositorio ya incluye un workflow que despliega automaticamente cuando haces push a `main`.
+Este repositorio usa GitHub Actions con un runner instalado dentro de tu Orange Pi. Asi, cada push a `main` despliega sin depender de exponer tu red local.
 
 Archivo del workflow:
 - `.github/workflows/deploy-orange-pi.yml`
 
-## 1) Crea llave SSH (en tu PC)
+## 1) Instala el runner en Orange Pi
+
+En GitHub: Settings > Actions > Runners > New self-hosted runner > Linux > ARM64.
+
+Copia y ejecuta en la Orange Pi los comandos que te da GitHub (descarga, config y run).
+
+Recomendacion: instalar como servicio para que inicie solo.
 
 ```bash
-ssh-keygen -t ed25519 -C "github-actions-orange-pi"
+cd actions-runner
+sudo ./svc.sh install orangepi
+sudo ./svc.sh start
 ```
 
-## 2) Autoriza la llave publica en Orange Pi
+## 2) Secretos/variables que necesitas
 
-Copia tu llave publica al archivo `~/.ssh/authorized_keys` del usuario remoto.
+En tu repo: Settings > Secrets and variables > Actions.
 
-## 3) Agrega secretos en GitHub
+Obligatorio:
+- `ORANGE_PI_APP_DIR`: ruta destino local en la Orange Pi (ejemplo `/home/orangepi/GTR`)
 
-En tu repo: Settings > Secrets and variables > Actions > New repository secret
+Opcional:
+- `ORANGE_PI_SERVICE_NAME`: servicio systemd a reiniciar al final (ejemplo `nginx` o `gtr.service`)
 
-Crea estos secretos:
-- `ORANGE_PI_HOST`: IP o dominio de la Orange Pi (ejemplo `192.168.100.61`)
-- `ORANGE_PI_USER`: usuario SSH (ejemplo `orangepi`)
-- `ORANGE_PI_PORT`: puerto SSH (normalmente `22`)
-- `ORANGE_PI_SSH_KEY`: contenido completo de la llave privada (id_ed25519)
-- `ORANGE_PI_APP_DIR`: ruta destino en Orange Pi (ejemplo `/var/www/GTR`)
-- `ORANGE_PI_SERVICE_NAME` (opcional): servicio systemd a reiniciar (ejemplo `nginx` o `gtr.service`)
-
-## 4) Primer despliegue
+## 3) Primer despliegue
 
 Haz push a `main`:
 
 ```bash
 git add .
-git commit -m "Agregar deploy automatico a Orange Pi"
+git commit -m "Configurar deploy con self-hosted runner"
 git push origin main
 ```
 
-## 5) Verifica ejecucion
+## 4) Verifica ejecucion
 
 En GitHub: Actions > workflow "Deploy to Orange Pi".
 
+En la Orange Pi:
+
+```bash
+cd /home/orangepi/GTR
+ls -la
+```
+
 ## Opcional: script de post-despliegue
 
-Si agregas un archivo `deploy.sh` en la raiz del repo, el workflow lo ejecutara automaticamente en Orange Pi despues del `git reset --hard`.
+Si agregas un archivo `deploy.sh` en la raiz del repo, el workflow lo ejecuta automaticamente dentro de `ORANGE_PI_APP_DIR`.
 
 Ejemplo:
 
@@ -54,5 +63,4 @@ set -e
 # Aqui pones pasos de build/restart
 # npm ci
 # npm run build
-# sudo systemctl restart nginx
 ```

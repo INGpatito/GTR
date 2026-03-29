@@ -8,83 +8,47 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - linux
     env:
-      ORANGE_PI_HOST: ${{ secrets.ORANGE_PI_HOST || vars.ORANGE_PI_HOST }}
-      ORANGE_PI_USER: ${{ secrets.ORANGE_PI_USER || vars.ORANGE_PI_USER }}
-      ORANGE_PI_PORT: ${{ secrets.ORANGE_PI_PORT || vars.ORANGE_PI_PORT || '22' }}
-      ORANGE_PI_SSH_KEY: ${{ secrets.ORANGE_PI_SSH_KEY }}
       ORANGE_PI_APP_DIR: ${{ secrets.ORANGE_PI_APP_DIR || vars.ORANGE_PI_APP_DIR }}
       ORANGE_PI_SERVICE_NAME: ${{ secrets.ORANGE_PI_SERVICE_NAME || vars.ORANGE_PI_SERVICE_NAME }}
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Validate deployment configuration
         shell: bash
         run: |
           set -e
 
-          missing=0
-
-          if [ -z "$ORANGE_PI_HOST" ]; then
-            echo "ERROR: falta ORANGE_PI_HOST (secret o variable)."
-            missing=1
-          fi
-
-          if [ -z "$ORANGE_PI_USER" ]; then
-            echo "ERROR: falta ORANGE_PI_USER (secret o variable)."
-            missing=1
-          fi
-
-          if [ -z "$ORANGE_PI_SSH_KEY" ]; then
-            echo "ERROR: falta ORANGE_PI_SSH_KEY (solo secret)."
-            missing=1
-          fi
-
           if [ -z "$ORANGE_PI_APP_DIR" ]; then
             echo "ERROR: falta ORANGE_PI_APP_DIR (secret o variable)."
-            missing=1
-          fi
-
-          if [ "$missing" -eq 1 ]; then
             exit 1
           fi
 
-      - name: Deploy using SSH
-        uses: appleboy/ssh-action@v1.2.0
-        env:
-          APP_DIR: ${{ env.ORANGE_PI_APP_DIR }}
-          SERVICE_NAME: ${{ env.ORANGE_PI_SERVICE_NAME }}
-        with:
-          host: ${{ env.ORANGE_PI_HOST }}
-          username: ${{ env.ORANGE_PI_USER }}
-          key: ${{ env.ORANGE_PI_SSH_KEY }}
-          port: ${{ env.ORANGE_PI_PORT }}
-          script_stop: true
-          envs: APP_DIR,SERVICE_NAME
-          script: |
-            set -e
+      - name: Sync files to app directory
+        shell: bash
+        run: |
+          set -e
+          mkdir -p "$ORANGE_PI_APP_DIR"
+          rsync -av --delete --exclude ".git" ./ "$ORANGE_PI_APP_DIR/"
 
-            if [ -z "$APP_DIR" ]; then
-              echo "ERROR: ORANGE_PI_APP_DIR no esta configurado."
-              exit 1
-            fi
+      - name: Run post-deploy script (optional)
+        shell: bash
+        run: |
+          set -e
+          if [ -f "$ORANGE_PI_APP_DIR/deploy.sh" ]; then
+            chmod +x "$ORANGE_PI_APP_DIR/deploy.sh"
+            cd "$ORANGE_PI_APP_DIR"
+            ./deploy.sh
+          fi
 
-            if [ ! -d "$APP_DIR/.git" ]; then
-              mkdir -p "$APP_DIR"
-              git clone "https://github.com/${{ github.repository }}.git" "$APP_DIR"
-            fi
-
-            cd "$APP_DIR"
-            git fetch origin main
-            git reset --hard origin/main
-
-            # Si existe, ejecuta tareas extra (build/restart) definidas en el repo.
-            if [ -f "deploy.sh" ]; then
-              chmod +x deploy.sh
-              ./deploy.sh
-            fi
-
-            # Reinicio opcional de servicio systemd (si se define secreto).
-            if [ -n "$SERVICE_NAME" ]; then
-              sudo systemctl restart "$SERVICE_NAME"
-            fi
+      - name: Restart systemd service (optional)
+        if: env.ORANGE_PI_SERVICE_NAME != ''
+        shell: bash
+        run: |
+          set -e
+          sudo systemctl restart "$ORANGE_PI_SERVICE_NAME"
