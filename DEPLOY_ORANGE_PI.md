@@ -28,7 +28,7 @@ Obligatorio:
 
 Opcional:
 - `ORANGE_PI_SERVICE_NAME`: servicio systemd a reiniciar al final (ejemplo `nginx` o `gtr.service`)
-- `TELEGRAM_BOT_TOKEN`: token del bot de Telegram para alertas de fallo
+- `TELEGRAM_BOT_TOKEN`: token del bot de Telegram para alertas
 - `TELEGRAM_CHAT_ID`: chat id donde se enviaran alertas
 
 ## 3) Primer despliegue
@@ -52,7 +52,7 @@ cd /home/orangepi/GTR
 ls -la
 ```
 
-Si el deploy falla y configuraste Telegram, recibirás una notificacion con enlace directo al run.
+Si configuraste Telegram, recibirás notificacion de deploy exitoso y deploy fallido con enlace directo al run.
 
 ## Obtener datos de Telegram
 
