@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Parking GTR Experience — Discover our white-glove arrival ritual, step-by-step process and luxury amenities."/>
+  <title>Parking GTR | Experience</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--gold:#d4af37;--gold-soft:#f1d788;--gold-deep:#8f7322;--bg:#050505;--glass:rgba(18,18,18,.56);--text:#f8f5ed;--muted:#c8bc98;--line:rgba(212,175,55,.35);--r-lg:24px;--r-md:14px;--shadow:0 20px 50px rgba(0,0,0,.55);--sg:0 0 30px rgba(212,175,55,.25);--expo:cubic-bezier(.16,1,.3,1)}
+    *,*::before,*::after{box-sizing:border-box;margin:0}
+    html{scroll-behavior:smooth}
+    body{min-height:100vh;background:radial-gradient(circle at 18% 12%,rgba(212,175,55,.13),transparent 38%),radial-gradient(circle at 82% 82%,rgba(212,175,55,.08),transparent 36%),linear-gradient(170deg,#050505,#080808 50%,#050505);color:var(--text);font-family:"Montserrat",sans-serif;line-height:1.6;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    @media(pointer:fine){*,*::before,*::after{cursor:none!important}}
+    .cursor-dot{position:fixed;top:0;left:0;width:8px;height:8px;background:var(--gold);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);box-shadow:0 0 10px rgba(212,175,55,.8),0 0 22px rgba(212,175,55,.4);transition:width .2s,height .2s,background .2s,opacity .25s}
+    .cursor-ring{position:fixed;top:0;left:0;width:36px;height:36px;border:1.5px solid rgba(212,175,55,.6);border-radius:50%;pointer-events:none;z-index:9998;transform:translate(-50%,-50%);transition:width .35s var(--expo),height .35s var(--expo),border-color .35s,opacity .3s,background .35s}
+    body.c-hover .cursor-ring{width:52px;height:52px;border-color:rgba(212,175,55,.9);background:rgba(212,175,55,.06)}
+    body.c-hover .cursor-dot{width:5px;height:5px}
+    body.c-click .cursor-ring{width:26px;height:26px;background:rgba(212,175,55,.15)}
+    body.c-click .cursor-dot{width:12px;height:12px;box-shadow:0 0 18px rgba(212,175,55,1),0 0 36px rgba(212,175,55,.6)}
+    body.c-out .cursor-dot,body.c-out .cursor-ring{opacity:0}
+    .luxury-particles{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.4}
+    .container{width:min(1100px,92vw);margin:0 auto}
+
+    /* HEADER */
+    .site-header{position:fixed;top:0;width:100%;z-index:20;border-bottom:1px solid var(--line);background:rgba(4,4,4,.65);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);transition:background .4s}
+    .site-header.scrolled{background:rgba(4,4,4,.92)}
+    .header-inner{min-height:68px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .brand-mini{font-family:"Cinzel",serif;font-size:1.05rem;letter-spacing:.12em;color:var(--gold-soft);transition:color .3s}
+    .brand-mini:hover{color:var(--gold)}
+    .header-right{display:flex;align-items:center;gap:.85rem}
+    .lang-switcher{display:flex;align-items:center;gap:.35rem;border:1px solid rgba(212,175,55,.28);border-radius:999px;padding:.22rem .6rem;background:rgba(10,10,10,.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:border-color .3s}
+    .lang-switcher:hover{border-color:rgba(212,175,55,.55)}
+    .lang-sep{color:rgba(212,175,55,.3);font-size:.7rem;-webkit-user-select:none;user-select:none}
+    .lang-btn{background:none;border:none;padding:.18rem .32rem;font-family:"Cinzel",serif;font-size:.72rem;letter-spacing:.14em;color:rgba(200,188,152,.6);border-radius:999px;transition:color .25s,background .25s,box-shadow .25s;line-height:1.2}
+    .lang-btn:hover{color:var(--gold-soft)}
+    .lang-btn--active{color:#070707!important;background:linear-gradient(100deg,#9f7f25,#d4af37 55%,#f0d988);box-shadow:0 0 10px rgba(212,175,55,.35)}
+    .nav-toggle{display:none;flex-direction:column;gap:5px;background:none;border:none;padding:8px;z-index:22}
+    .nav-toggle span{display:block;width:24px;height:1.5px;background:var(--gold-soft);transition:transform .35s,opacity .25s;transform-origin:center}
+    .nav-toggle.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg)}
+    .nav-toggle.open span:nth-child(2){opacity:0}
+    .nav-toggle.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg)}
+    .nav-links{display:flex;align-items:center;gap:clamp(.8rem,2vw,1.6rem)}
+    .nav-links a{position:relative;font-size:.83rem;text-transform:uppercase;letter-spacing:.12em;color:rgba(248,245,237,.85);transition:color .32s,letter-spacing .32s}
+    .nav-links a::after{content:"";position:absolute;left:0;bottom:-8px;width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);transform:scaleX(0);transform-origin:center;transition:transform .35s}
+    .nav-links a:hover,.nav-links a.active{color:var(--gold-soft);letter-spacing:.15em}
+    .nav-links a:hover::after,.nav-links a.active::after{transform:scaleX(1)}
+
+    /* HERO */
+    .page-hero{position:relative;min-height:52vh;display:flex;align-items:flex-end;padding:120px 0 clamp(2.5rem,6vw,4rem);overflow:hidden}
+    .page-hero::before,.page-hero::after{content:"";position:absolute;top:18%;width:1px;height:38%;background:linear-gradient(to bottom,transparent,rgba(212,175,55,.7),transparent)}
+    .page-hero::before{left:clamp(18px,3vw,48px)}
+    .page-hero::after{right:clamp(18px,3vw,48px)}
+    .hero-glow-bg{position:absolute;inset:auto auto 8% 50%;width:min(700px,90vw);height:min(700px,90vw);border-radius:50%;transform:translate(-50%,40%);background:radial-gradient(circle,rgba(212,175,55,.12),transparent 65%);filter:blur(6px);pointer-events:none}
+    .page-hero-content{position:relative;z-index:2;text-align:center;width:100%}
+    .page-kicker{font-size:.76rem;letter-spacing:.35em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem}
+    .page-title{font-family:"Cinzel",serif;font-size:clamp(2rem,7vw,4.8rem);font-weight:700;letter-spacing:.1em;line-height:1;text-shadow:0 6px 28px rgba(0,0,0,.5)}
+    .page-title span{color:var(--gold-soft);text-shadow:var(--sg)}
+    .page-subtitle{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:clamp(1rem,2.5vw,1.5rem);font-weight:300;color:var(--muted);margin-top:.6rem;letter-spacing:.04em}
+    .gold-rule{width:min(180px,40vw);height:1px;margin:1.4rem auto 0;background:linear-gradient(to right,transparent,var(--gold),transparent);animation:pulseRule 3s ease-in-out infinite}
+    @keyframes pulseRule{0%,100%{opacity:.4}50%{opacity:1}}
+
+    /* SECTIONS */
+    .section{position:relative;padding:clamp(70px,10vw,110px) 0}
+    .section-head{text-align:center;max-width:740px;margin:0 auto 2.4rem}
+    .section-kicker{font-size:.76rem;text-transform:uppercase;letter-spacing:.32em;color:var(--muted);margin-bottom:.5rem}
+    .section-title{font-family:"Cinzel",serif;font-size:clamp(1.4rem,4vw,2.6rem);font-weight:600;line-height:1.15;letter-spacing:.05em}
+    .divider-ornament{display:flex;align-items:center;justify-content:center;gap:.8rem;margin:0 auto 2.8rem;max-width:300px}
+    .divider-ornament .line{flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+    .divider-ornament .diamond{color:var(--gold);font-size:.55rem}
+
+    /* FEATURE CARDS */
+    .feature-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.3rem}
+    .feature-card{background:var(--glass);border:1px solid rgba(212,175,55,.2);border-radius:var(--r-md);padding:2rem 1.6rem;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:var(--shadow);transition:transform .35s,border-color .35s,box-shadow .35s;position:relative;overflow:hidden}
+    .feature-card::before{content:"";position:absolute;top:0;left:0;width:100%;height:3px;background:linear-gradient(90deg,transparent,var(--gold),transparent);transform:scaleX(0);transition:transform .5s}
+    .feature-card:hover{transform:translateY(-8px);border-color:rgba(212,175,55,.6);box-shadow:var(--shadow),var(--sg)}
+    .feature-card:hover::before{transform:scaleX(1)}
+    .feature-icon{width:48px;height:48px;margin-bottom:1.1rem;color:var(--gold-soft);opacity:.8}
+    .feature-icon svg{width:100%;height:100%}
+    .feature-card h3{font-family:"Cinzel",serif;font-size:1.08rem;color:var(--gold-soft);margin-bottom:.65rem}
+    .feature-card p{color:rgba(248,245,237,.84);font-size:.9rem;line-height:1.68}
+
+    /* ARRIVAL STEPS TIMELINE */
+    .timeline{display:flex;flex-direction:column;gap:0;max-width:820px;margin:0 auto}
+    .timeline-step{display:grid;grid-template-columns:80px 1fr;gap:0 2rem;position:relative}
+    .timeline-step:not(:last-child) .step-track::after{content:"";position:absolute;left:39px;top:80px;width:1px;height:calc(100% - 40px);background:linear-gradient(to bottom,rgba(212,175,55,.4),rgba(212,175,55,.05))}
+    .step-track{position:relative;display:flex;flex-direction:column;align-items:center;padding-bottom:2.4rem}
+    .step-num{width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:rgba(14,14,14,.8);display:flex;align-items:center;justify-content:center;font-family:"Cinzel",serif;font-size:.85rem;color:var(--gold-soft);flex-shrink:0;box-shadow:0 0 18px rgba(212,175,55,.15);transition:background .4s,box-shadow .4s}
+    .timeline-step.is-visible .step-num{background:rgba(212,175,55,.12);box-shadow:0 0 24px rgba(212,175,55,.3)}
+    .step-body{padding:.1rem 0 2.4rem}
+    .step-tag{font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:.35rem}
+    .step-title{font-family:"Cinzel",serif;font-size:clamp(1rem,2.5vw,1.35rem);color:var(--gold-soft);margin-bottom:.55rem}
+    .step-desc{font-size:.9rem;color:rgba(248,245,237,.82);line-height:1.7;max-width:55ch}
+
+    /* AMENITIES GRID */
+    .amenities-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1rem}
+    .amenity{border:1px solid rgba(212,175,55,.18);border-radius:var(--r-md);padding:1.4rem 1rem;background:rgba(14,14,14,.6);text-align:center;transition:border-color .35s,transform .35s,box-shadow .35s}
+    .amenity:hover{border-color:rgba(212,175,55,.5);transform:translateY(-4px);box-shadow:var(--sg)}
+    .amenity-icon{font-size:1.6rem;margin-bottom:.65rem;display:block}
+    .amenity h4{font-family:"Cinzel",serif;font-size:.82rem;letter-spacing:.08em;color:var(--gold-soft);margin-bottom:.35rem}
+    .amenity p{font-size:.78rem;color:rgba(200,188,152,.7);line-height:1.5}
+
+    /* TESTIMONIALS */
+    .testimonials-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.3rem}
+    .testimonial{border:1px solid rgba(212,175,55,.18);border-radius:var(--r-lg);padding:1.8rem 1.6rem;background:linear-gradient(145deg,rgba(16,16,16,.88),rgba(8,8,8,.8));position:relative;overflow:hidden;transition:border-color .35s,transform .35s}
+    .testimonial:hover{border-color:rgba(212,175,55,.45);transform:translateY(-4px)}
+    .testimonial::before{content:"\201C";position:absolute;top:-.2rem;left:1rem;font-family:"Cormorant Garamond",serif;font-size:5rem;color:rgba(212,175,55,.12);line-height:1;pointer-events:none}
+    .testimonial-text{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:clamp(.95rem,2vw,1.1rem);font-weight:300;color:rgba(248,245,237,.88);line-height:1.65;margin-bottom:1.2rem;position:relative;z-index:1}
+    .testimonial-author{display:flex;align-items:center;gap:.8rem}
+    .author-avatar{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:linear-gradient(135deg,rgba(212,175,55,.2),rgba(212,175,55,.05));display:flex;align-items:center;justify-content:center;font-family:"Cinzel",serif;font-size:.8rem;color:var(--gold-soft);flex-shrink:0}
+    .author-name{font-family:"Cinzel",serif;font-size:.78rem;letter-spacing:.08em;color:var(--gold-soft)}
+    .author-role{font-size:.7rem;color:var(--muted);margin-top:.1rem}
+    .stars{color:var(--gold);font-size:.6rem;letter-spacing:.1em;margin-bottom:.1rem}
+
+    /* CTA BANNER */
+    .cta-banner{border:1px solid rgba(212,175,55,.3);border-radius:var(--r-lg);background:linear-gradient(145deg,rgba(16,16,16,.9),rgba(8,8,8,.82)),radial-gradient(circle at 50% 0%,rgba(212,175,55,.12),transparent 55%);padding:clamp(2rem,5vw,3.5rem);text-align:center;position:relative;overflow:hidden}
+    .cta-banner::before{content:"";position:absolute;inset:14px;border:1px solid rgba(212,175,55,.1);border-radius:calc(var(--r-lg) - 8px);pointer-events:none}
+    .cta-banner h2{font-family:"Cinzel",serif;font-size:clamp(1.4rem,4vw,2.4rem);font-weight:600;margin-bottom:.8rem}
+    .cta-banner p{color:rgba(248,245,237,.8);font-size:.95rem;max-width:52ch;margin:0 auto 1.8rem;line-height:1.7}
+    .btn-gold{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;min-height:50px;padding:.8rem 2rem;border-radius:999px;border:none;font-family:"Montserrat",sans-serif;font-weight:700;font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:#070707;background:linear-gradient(100deg,#9f7f25,#d4af37 50%,#f0d988);box-shadow:0 10px 22px rgba(0,0,0,.4),0 0 18px rgba(212,175,55,.24);transition:transform .3s,box-shadow .3s;position:relative;overflow:hidden}
+    .btn-gold::before{content:"";position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.18) 50%,transparent 70%);transform:translateX(-100%);transition:transform .6s}
+    .btn-gold:hover{transform:translateY(-2px);box-shadow:0 14px 28px rgba(0,0,0,.45),0 0 26px rgba(212,175,55,.42)}
+    .btn-gold:hover::before{transform:translateX(100%)}
+
+    /* REVEAL */
+    .reveal{opacity:0;transform:translateY(32px);transition:opacity .9s var(--expo),transform .9s var(--expo)}
+    .reveal.is-visible{opacity:1;transform:translateY(0)}
+    .reveal[data-delay="1"]{transition-delay:.12s}
+    .reveal[data-delay="2"]{transition-delay:.24s}
+    .reveal[data-delay="3"]{transition-delay:.36s}
+    .reveal[data-delay="4"]{transition-delay:.48s}
+
+    /* FOOTER / BACK */
+    .site-footer{border-top:1px solid rgba(212,175,55,.16);padding:1.1rem 0 1.3rem;text-align:center}
+    .site-footer p{font-size:.8rem;letter-spacing:.07em;color:rgba(248,245,237,.55)}
+    .back-link{position:fixed;bottom:clamp(16px,3vw,28px);right:clamp(16px,3vw,28px);z-index:15;display:flex;align-items:center;gap:.5rem;font-family:"Cinzel",serif;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);border:1px solid rgba(212,175,55,.22);border-radius:999px;padding:.5rem 1rem;background:rgba(5,5,5,.7);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:color .3s,border-color .3s,transform .3s}
+    .back-link:hover{color:var(--gold-soft);border-color:rgba(212,175,55,.55);transform:translateY(-2px)}
+    .back-link svg{width:12px;height:12px}
+
+    /* RESPONSIVE */
+    @media(max-width:960px){.feature-grid,.testimonials-grid{grid-template-columns:1fr}.amenities-grid{grid-template-columns:repeat(2,1fr)}.timeline-step{grid-template-columns:56px 1fr;gap:0 1.2rem}}
+    @media(max-width:680px){.amenities-grid{grid-template-columns:1fr}.page-hero::before,.page-hero::after{display:none}.nav-toggle{display:flex}.nav-links{position:fixed;top:0;right:0;width:min(300px,78vw);height:100vh;flex-direction:column;justify-content:center;gap:1.8rem;background:rgba(5,5,5,.97);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-left:1px solid var(--line);transform:translateX(100%);transition:transform .5s var(--expo);z-index:21}.nav-links.open{transform:translateX(0)}.nav-links a{font-size:1rem}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition-duration:.01ms!important}.reveal{opacity:1;transform:none}}
+  </style>
+</head>
+<body>
+  <div id="cursorDot" class="cursor-dot" aria-hidden="true"></div>
+  <div id="cursorRing" class="cursor-ring" aria-hidden="true"></div>
+  <canvas id="luxuryParticles" class="luxury-particles" aria-hidden="true"></canvas>
+
+  <!-- HEADER -->
+  <header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand-mini">Parking GTR</a>
+      <div class="header-right">
+        <div class="lang-switcher" id="langSwitcher" role="group" aria-label="Language">
+          <button class="lang-btn lang-btn--active" id="langEN" data-lang="en" aria-pressed="true">EN</button>
+          <span class="lang-sep" aria-hidden="true">|</span>
+          <button class="lang-btn" id="langES" data-lang="es" aria-pressed="false">ES</button>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <nav class="nav-links" id="navLinks" aria-label="Primary">
+        <a href="../index.html#home"        data-i18n="nav.home">Home</a>
+        <a href="#exp-top" class="active"   data-i18n="nav.experience">Experience</a>
+        <a href="../GTR-Services/index.html" data-i18n="nav.services">Services</a>
+        <a href="../GTR-Contact/index.html"  data-i18n="nav.contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- PAGE HERO -->
+  <section class="page-hero" id="exp-top" aria-label="Page header">
+    <div class="hero-glow-bg" aria-hidden="true"></div>
+    <div class="container page-hero-content reveal">
+      <p class="page-kicker" data-i18n="exp.hero.kicker">Signature Standards</p>
+      <h1 class="page-title">The GTR <span data-i18n="nav.experience">Experience</span></h1>
+      <p class="page-subtitle" data-i18n="exp.hero.sub">Where every arrival becomes a masterpiece of precision and care</p>
+      <div class="gold-rule" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <main>
+    <!-- CORE PILLARS -->
+    <section class="section" aria-labelledby="pillarsTitle">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="section-kicker" data-i18n="exp.kicker">Signature Standards</p>
+          <h2 class="section-title" id="pillarsTitle" data-i18n="exp.title">A Curated Arrival Ritual</h2>
+        </div>
+        <div class="divider-ornament" aria-hidden="true">
+          <span class="line"></span><span class="diamond">◆</span><span class="line"></span>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card reveal" data-delay="1">
+            <div class="feature-icon">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M8 36 Q12 28 24 26 Q36 24 40 16" stroke-linecap="round"/>
+                <circle cx="24" cy="26" r="5"/>
+                <path d="M6 40h36" opacity=".3"/><path d="M14 40v-5M24 40v-7M34 40v-4" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3 data-i18n="card1.title">White-Glove Valet</h3>
+            <p data-i18n="card1.desc">Trained attendants welcome every vehicle with precision handling, secure key management, and immaculate presentation.</p>
+          </article>
+          <article class="feature-card reveal" data-delay="2">
+            <div class="feature-icon">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M24 6L8 14v10c0 10 7 18 16 20 9-2 16-10 16-20V14L24 6z"/>
+                <path d="M18 24l4 4 8-8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3 data-i18n="card2.title">Vault-Level Security</h3>
+            <p data-i18n="card2.desc">Surveillance intelligence, controlled access zones, and premium insurance protection keep your car fully safeguarded.</p>
+          </article>
+          <article class="feature-card reveal" data-delay="3">
+            <div class="feature-icon">
+              <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="24" cy="24" r="18"/>
+                <path d="M24 12v12l8 8" stroke-linecap="round"/>
+                <circle cx="24" cy="24" r="2" fill="currentColor"/>
+              </svg>
+            </div>
+            <h3 data-i18n="card3.title">Seamless Priority Exit</h3>
+            <p data-i18n="card3.desc">On-demand retrieval with concierge timing ensures your vehicle is prepared the moment you are ready to depart.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ARRIVAL PROCESS TIMELINE -->
+    <section class="section" style="padding-top:0" aria-labelledby="timelineTitle">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="section-kicker" data-i18n="tl.kicker">Step by Step</p>
+          <h2 class="section-title" id="timelineTitle" data-i18n="tl.title">Your Arrival, Perfected</h2>
+        </div>
+        <div class="divider-ornament" aria-hidden="true">
+          <span class="line"></span><span class="diamond">◆</span><span class="line"></span>
+        </div>
+        <div class="timeline">
+          <div class="timeline-step reveal" data-delay="1">
+            <div class="step-track"><div class="step-num">01</div></div>
+            <div class="step-body">
+              <p class="step-tag" data-i18n="tl.s1.tag">Arrival</p>
+              <h3 class="step-title" data-i18n="tl.s1.title">Grand Welcome</h3>
+              <p class="step-desc" data-i18n="tl.s1.desc">You pull up at our signature entrance — no tickets, no confusion. Our uniformed attendant greets you by name, handles your door, and confirms your reservation in seconds.</p>
+            </div>
+          </div>
+          <div class="timeline-step reveal" data-delay="2">
+            <div class="step-track"><div class="step-num">02</div></div>
+            <div class="step-body">
+              <p class="step-tag" data-i18n="tl.s2.tag">Vehicle Intake</p>
+              <h3 class="step-title" data-i18n="tl.s2.title">Precision Handoff</h3>
+              <p class="step-desc" data-i18n="tl.s2.desc">A certified attendant performs a 30-point exterior inspection, photographs the vehicle, and places it under secure key custody. Every detail is logged in our concierge system.</p>
+            </div>
+          </div>
+          <div class="timeline-step reveal" data-delay="3">
+            <div class="step-track"><div class="step-num">03</div></div>
+            <div class="step-body">
+              <p class="step-tag" data-i18n="tl.s3.tag">Secure Storage</p>
+              <h3 class="step-title" data-i18n="tl.s3.title">Vault Placement</h3>
+              <p class="step-desc" data-i18n="tl.s3.desc">Your vehicle is parked in a designated bay within our climate-controlled facility, monitored by 360° CCTV, motion sensors, and overnight security personnel.</p>
+            </div>
+          </div>
+          <div class="timeline-step reveal" data-delay="1">
+            <div class="step-track"><div class="step-num">04</div></div>
+            <div class="step-body">
+              <p class="step-tag" data-i18n="tl.s4.tag">On-Demand Retrieval</p>
+              <h3 class="step-title" data-i18n="tl.s4.title">Instant Request</h3>
+              <p class="step-desc" data-i18n="tl.s4.desc">Text, call, or tap the GTR app. We receive your request and immediately dispatch a technician. Average retrieval time: under 4 minutes from request to engine start.</p>
+            </div>
+          </div>
+          <div class="timeline-step reveal" data-delay="2">
+            <div class="step-track"><div class="step-num">05</div></div>
+            <div class="step-body">
+              <p class="step-tag" data-i18n="tl.s5.tag">Departure</p>
+              <h3 class="step-title" data-i18n="tl.s5.title">Flawless Exit</h3>
+              <p class="step-desc" data-i18n="tl.s5.desc">Your car awaits at the priority exit lane — engine running at the ideal temperature, exterior wiped, and seat adjusted to your profile. Leave as you arrived: in total luxury.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AMENITIES -->
+    <section class="section" aria-labelledby="amenTitle">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="section-kicker" data-i18n="amen.kicker">Exclusive Inclusions</p>
+          <h2 class="section-title" id="amenTitle" data-i18n="amen.title">Every Detail Considered</h2>
+        </div>
+        <div class="divider-ornament" aria-hidden="true">
+          <span class="line"></span><span class="diamond">◆</span><span class="line"></span>
+        </div>
+        <div class="amenities-grid">
+          <div class="amenity reveal" data-delay="1"><span class="amenity-icon">🌡️</span><h4 data-i18n="a1.title">Climate Control</h4><p data-i18n="a1.desc">Temperature-regulated bays protect paint and interiors year-round</p></div>
+          <div class="amenity reveal" data-delay="2"><span class="amenity-icon">⚡</span><h4 data-i18n="a2.title">EV Fast Charging</h4><p data-i18n="a2.desc">Level 2 & DC rapid chargers in premium designated bays</p></div>
+          <div class="amenity reveal" data-delay="3"><span class="amenity-icon">🫧</span><h4 data-i18n="a3.title">Exterior Detail</h4><p data-i18n="a3.desc">Complimentary quick-detail wipe on every retrieval</p></div>
+          <div class="amenity reveal" data-delay="4"><span class="amenity-icon">📱</span><h4 data-i18n="a4.title">GTR App</h4><p data-i18n="a4.desc">Request, track, and schedule your vehicle from anywhere</p></div>
+          <div class="amenity reveal" data-delay="1"><span class="amenity-icon">🛡️</span><h4 data-i18n="a5.title">Full Insurance</h4><p data-i18n="a5.desc">Comprehensive coverage while your vehicle is in our custody</p></div>
+          <div class="amenity reveal" data-delay="2"><span class="amenity-icon">📹</span><h4 data-i18n="a6.title">Live Monitoring</h4><p data-i18n="a6.desc">360° CCTV with 30-day encrypted cloud recording</p></div>
+          <div class="amenity reveal" data-delay="3"><span class="amenity-icon">🅿️</span><h4 data-i18n="a7.title">Reserved Bay</h4><p data-i18n="a7.desc">Your personal bay, always ready — never shared, never occupied</p></div>
+          <div class="amenity reveal" data-delay="4"><span class="amenity-icon">👔</span><h4 data-i18n="a8.title">Personal Concierge</h4><p data-i18n="a8.desc">A dedicated agent manages your account preferences and requests</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TESTIMONIALS -->
+    <section class="section" aria-labelledby="testTitle">
+      <div class="container">
+        <div class="section-head reveal">
+          <p class="section-kicker" data-i18n="test.kicker">Client Voices</p>
+          <h2 class="section-title" id="testTitle" data-i18n="test.title">Words From Our Members</h2>
+        </div>
+        <div class="divider-ornament" aria-hidden="true">
+          <span class="line"></span><span class="diamond">◆</span><span class="line"></span>
+        </div>
+        <div class="testimonials-grid">
+          <article class="testimonial reveal" data-delay="1">
+            <p class="stars">★★★★★</p>
+            <p class="testimonial-text" data-i18n="t1.text">"GTR transformed how I think about parking. It's not a chore anymore — it's the best part of arriving anywhere."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">A</div>
+              <div><p class="author-name">Alexander M.</p><p class="author-role" data-i18n="t1.role">CEO, Meridian Capital</p></div>
+            </div>
+          </article>
+          <article class="testimonial reveal" data-delay="2">
+            <p class="stars">★★★★★</p>
+            <p class="testimonial-text" data-i18n="t2.text">"The 4-minute retrieval promise is real. I've tested it dozens of times and they've never missed. Absolutely world-class."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">S</div>
+              <div><p class="author-name">Sofia R.</p><p class="author-role" data-i18n="t2.role">Supercar Collector</p></div>
+            </div>
+          </article>
+          <article class="testimonial reveal" data-delay="3">
+            <p class="stars">★★★★★</p>
+            <p class="testimonial-text" data-i18n="t3.text">"My Lamborghini has never looked better maintained. The attention to detail from every single attendant is extraordinary."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">D</div>
+              <div><p class="author-name">David K.</p><p class="author-role" data-i18n="t3.role">Platinum Member</p></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA BANNER -->
+    <section class="section" style="padding-top:0" aria-label="Call to action">
+      <div class="container">
+        <div class="cta-banner reveal">
+          <p class="section-kicker" data-i18n="cta.kicker">Ready to Elevate?</p>
+          <h2 data-i18n="cta.title">Begin Your GTR Experience Today</h2>
+          <p data-i18n="cta.desc">Join over 300 discerning members who have already elevated their daily arrival into an unforgettable luxury ritual.</p>
+          <a href="../GTR-Contact/index.html" class="btn-gold">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span data-i18n="cta.btn">Reserve Your Space</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span id="year"></span> Parking GTR. <span data-i18n="tagline">Luxury Parking Experience</span>.</p>
+    </div>
+  </footer>
+
+  <a href="../index.html" class="back-link" aria-label="Back to home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span data-i18n="back">Home</span>
+  </a>
+
+  <script>
+  (function(){
+    "use strict";
+    const T={
+      en:{
+        tagline:"Luxury Parking Experience",back:"Home",
+        "nav.home":"Home","nav.experience":"Experience","nav.services":"Services","nav.contact":"Contact",
+        "exp.hero.kicker":"Signature Standards",
+        "exp.hero.sub":"Where every arrival becomes a masterpiece of precision and care",
+        "exp.kicker":"Signature Standards","exp.title":"A Curated Arrival Ritual",
+        "card1.title":"White-Glove Valet","card1.desc":"Trained attendants welcome every vehicle with precision handling, secure key management, and immaculate presentation.",
+        "card2.title":"Vault-Level Security","card2.desc":"Surveillance intelligence, controlled access zones, and premium insurance protection keep your car fully safeguarded.",
+        "card3.title":"Seamless Priority Exit","card3.desc":"On-demand retrieval with concierge timing ensures your vehicle is prepared the moment you are ready to depart.",
+        "tl.kicker":"Step by Step","tl.title":"Your Arrival, Perfected",
+        "tl.s1.tag":"Arrival","tl.s1.title":"Grand Welcome","tl.s1.desc":"You pull up at our signature entrance — no tickets, no confusion. Our uniformed attendant greets you by name, handles your door, and confirms your reservation in seconds.",
+        "tl.s2.tag":"Vehicle Intake","tl.s2.title":"Precision Handoff","tl.s2.desc":"A certified attendant performs a 30-point exterior inspection, photographs the vehicle, and places it under secure key custody. Every detail is logged in our concierge system.",
+        "tl.s3.tag":"Secure Storage","tl.s3.title":"Vault Placement","tl.s3.desc":"Your vehicle is parked in a designated bay within our climate-controlled facility, monitored by 360° CCTV, motion sensors, and overnight security personnel.",
+        "tl.s4.tag":"On-Demand Retrieval","tl.s4.title":"Instant Request","tl.s4.desc":"Text, call, or tap the GTR app. We receive your request and immediately dispatch a technician. Average retrieval time: under 4 minutes from request to engine start.",
+        "tl.s5.tag":"Departure","tl.s5.title":"Flawless Exit","tl.s5.desc":"Your car awaits at the priority exit lane — engine running at the ideal temperature, exterior wiped, and seat adjusted to your profile. Leave as you arrived: in total luxury.",
+        "amen.kicker":"Exclusive Inclusions","amen.title":"Every Detail Considered",
+        "a1.title":"Climate Control","a1.desc":"Temperature-regulated bays protect paint and interiors year-round",
+        "a2.title":"EV Fast Charging","a2.desc":"Level 2 & DC rapid chargers in premium designated bays",
+        "a3.title":"Exterior Detail","a3.desc":"Complimentary quick-detail wipe on every retrieval",
+        "a4.title":"GTR App","a4.desc":"Request, track, and schedule your vehicle from anywhere",
+        "a5.title":"Full Insurance","a5.desc":"Comprehensive coverage while your vehicle is in our custody",
+        "a6.title":"Live Monitoring","a6.desc":"360° CCTV with 30-day encrypted cloud recording",
+        "a7.title":"Reserved Bay","a7.desc":"Your personal bay, always ready — never shared, never occupied",
+        "a8.title":"Personal Concierge","a8.desc":"A dedicated agent manages your account preferences and requests",
+        "test.kicker":"Client Voices","test.title":"Words From Our Members",
+        "t1.text":"\"GTR transformed how I think about parking. It's not a chore anymore — it's the best part of arriving anywhere.\"","t1.role":"CEO, Meridian Capital",
+        "t2.text":"\"The 4-minute retrieval promise is real. I've tested it dozens of times and they've never missed. Absolutely world-class.\"","t2.role":"Supercar Collector",
+        "t3.text":"\"My Lamborghini has never looked better maintained. The attention to detail from every single attendant is extraordinary.\"","t3.role":"Platinum Member",
+        "cta.kicker":"Ready to Elevate?","cta.title":"Begin Your GTR Experience Today",
+        "cta.desc":"Join over 300 discerning members who have already elevated their daily arrival into an unforgettable luxury ritual.",
+        "cta.btn":"Reserve Your Space"
+      },
+      es:{
+        tagline:"Experiencia de Estacionamiento de Lujo",back:"Inicio",
+        "nav.home":"Inicio","nav.experience":"Experiencia","nav.services":"Servicios","nav.contact":"Contacto",
+        "exp.hero.kicker":"Estándares de Firma",
+        "exp.hero.sub":"Donde cada llegada se convierte en una obra maestra de precisión y cuidado",
+        "exp.kicker":"Estándares de Firma","exp.title":"Un Ritual de Llegada Curado",
+        "card1.title":"Valet de Guante Blanco","card1.desc":"Asistentes capacitados reciben cada vehículo con manejo de precisión, gestión segura de llaves y presentación impecable.",
+        "card2.title":"Seguridad de Nivel Bóveda","card2.desc":"Inteligencia de vigilancia, zonas de acceso controlado y protección de seguro premium mantienen su auto completamente resguardado.",
+        "card3.title":"Salida Prioritaria Perfecta","card3.desc":"Recuperación bajo demanda garantiza que su vehículo esté listo en el momento en que desee partir.",
+        "tl.kicker":"Paso a Paso","tl.title":"Su Llegada, Perfeccionada",
+        "tl.s1.tag":"Llegada","tl.s1.title":"Bienvenida de Gala","tl.s1.desc":"Llega a nuestra entrada insignia — sin boletos, sin confusión. Nuestro asistente uniformado lo saluda por su nombre, abre su puerta y confirma su reserva en segundos.",
+        "tl.s2.tag":"Recepción del Vehículo","tl.s2.title":"Entrega de Precisión","tl.s2.desc":"Un asistente certificado realiza una inspección exterior de 30 puntos, fotografía el vehículo y lo coloca bajo custodia segura de llaves. Cada detalle queda registrado.",
+        "tl.s3.tag":"Almacenamiento Seguro","tl.s3.title":"Ubicación en Bóveda","tl.s3.desc":"Su vehículo se estaciona en una bahía designada dentro de nuestra instalación climatizada, vigilada por CCTV 360°, sensores de movimiento y personal de seguridad nocturno.",
+        "tl.s4.tag":"Recuperación Bajo Demanda","tl.s4.title":"Solicitud Instantánea","tl.s4.desc":"Mensaje, llamada o toque en la app GTR. Recibimos su solicitud y despachamos un técnico de inmediato. Tiempo promedio de recuperación: menos de 4 minutos.",
+        "tl.s5.tag":"Partida","tl.s5.title":"Salida Impecable","tl.s5.desc":"Su auto le espera en el carril de salida prioritaria — motor en temperatura ideal, exterior limpiado y asiento ajustado a su perfil. Parta como llegó: en total lujo.",
+        "amen.kicker":"Inclusiones Exclusivas","amen.title":"Cada Detalle Considerado",
+        "a1.title":"Control de Clima","a1.desc":"Bahías con temperatura regulada protegen pintura e interiores todo el año",
+        "a2.title":"Carga EV Rápida","a2.desc":"Cargadores Nivel 2 y DC rápidos en bahías premium designadas",
+        "a3.title":"Detallado Exterior","a3.desc":"Limpieza rápida de cortesía en cada recuperación del vehículo",
+        "a4.title":"App GTR","a4.desc":"Solicite, rastree y programe su vehículo desde cualquier lugar",
+        "a5.title":"Seguro Completo","a5.desc":"Cobertura integral mientras su vehículo está bajo nuestra custodia",
+        "a6.title":"Monitoreo en Vivo","a6.desc":"CCTV 360° con grabación cifrada en nube por 30 días",
+        "a7.title":"Bahía Reservada","a7.desc":"Su bahía personal, siempre lista — nunca compartida, nunca ocupada",
+        "a8.title":"Conserje Personal","a8.desc":"Un agente dedicado gestiona sus preferencias y solicitudes de cuenta",
+        "test.kicker":"Voces de Clientes","test.title":"Palabras de Nuestros Miembros",
+        "t1.text":"\"GTR transformó mi perspectiva del estacionamiento. Ya no es una molestia — es la mejor parte de llegar a cualquier lugar.\"","t1.role":"CEO, Meridian Capital",
+        "t2.text":"\"La promesa de recuperación en 4 minutos es real. La he probado docenas de veces y nunca han fallado. Absolutamente de clase mundial.\"","t2.role":"Coleccionista de Superautos",
+        "t3.text":"\"Mi Lamborghini nunca ha lucido mejor mantenido. La atención al detalle de cada asistente es extraordinaria.\"","t3.role":"Miembro Platinum",
+        "cta.kicker":"¿Listo para Elevarse?","cta.title":"Comienza Tu Experiencia GTR Hoy",
+        "cta.desc":"Únete a más de 300 miembros exigentes que ya han elevado su llegada diaria a un ritual de lujo inolvidable.",
+        "cta.btn":"Reservar Su Espacio"
+      }
+    };
+
+    const yr=document.getElementById("year");
+    if(yr) yr.textContent=new Date().getFullYear();
+
+    const btnEN=document.getElementById("langEN"),btnES=document.getElementById("langES");
+    function applyLang(lang){
+      const d=T[lang];if(!d)return;
+      document.documentElement.lang=lang;
+      document.querySelectorAll("[data-i18n]").forEach(el=>{const k=el.getAttribute("data-i18n");if(d[k]!==undefined)el.textContent=d[k];});
+      btnEN.classList.toggle("lang-btn--active",lang==="en");btnES.classList.toggle("lang-btn--active",lang==="es");
+      btnEN.setAttribute("aria-pressed",String(lang==="en"));btnES.setAttribute("aria-pressed",String(lang==="es"));
+      try{localStorage.setItem("gtrLang",lang);}catch(_){}
+    }
+    btnEN.addEventListener("click",()=>applyLang("en"));
+    btnES.addEventListener("click",()=>applyLang("es"));
+    let saved="";try{saved=localStorage.getItem("gtrLang")||"";}catch(_){}
+    if(!saved)saved=navigator.language&&navigator.language.toLowerCase().startsWith("es")?"es":"en";
+    applyLang(saved);
+
+    const hdr=document.getElementById("siteHeader");
+    window.addEventListener("scroll",()=>hdr.classList.toggle("scrolled",window.scrollY>60),{passive:true});
+
+    const tog=document.getElementById("navToggle"),nav=document.getElementById("navLinks");
+    tog.addEventListener("click",()=>{const o=tog.classList.toggle("open");nav.classList.toggle("open");tog.setAttribute("aria-expanded",String(o));});
+    nav.querySelectorAll("a").forEach(a=>a.addEventListener("click",()=>{tog.classList.remove("open");nav.classList.remove("open");tog.setAttribute("aria-expanded","false");}));
+
+    const obs=new IntersectionObserver((entries,o)=>{entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add("is-visible");o.unobserve(e.target);}});},{threshold:.14,rootMargin:"0px 0px -6% 0px"});
+    document.querySelectorAll(".reveal").forEach(el=>obs.observe(el));
+
+    /* Cursor */
+    const dot=document.getElementById("cursorDot"),ring=document.getElementById("cursorRing");
+    if(window.matchMedia("(pointer:fine)").matches&&dot&&ring){
+      let mx=-200,my=-200,rx=-200,ry=-200,raf;
+      const tick=()=>{rx+=(mx-rx)*.12;ry+=(my-ry)*.12;dot.style.left=mx+"px";dot.style.top=my+"px";ring.style.left=Math.round(rx)+"px";ring.style.top=Math.round(ry)+"px";raf=requestAnimationFrame(tick);};
+      tick();
+      document.addEventListener("mousemove",e=>{mx=e.clientX;my=e.clientY;document.body.classList.remove("c-out");});
+      document.addEventListener("mouseleave",()=>document.body.classList.add("c-out"));
+      document.addEventListener("mouseenter",()=>document.body.classList.remove("c-out"));
+      const iSel="a,button,[role='button'],.feature-card,.amenity,.testimonial,.lang-btn";
+      document.addEventListener("mouseover",e=>{if(e.target.closest(iSel))document.body.classList.add("c-hover");});
+      document.addEventListener("mouseout",e=>{if(e.target.closest(iSel))document.body.classList.remove("c-hover");});
+      document.addEventListener("mousedown",()=>document.body.classList.add("c-click"));
+      document.addEventListener("mouseup",()=>document.body.classList.remove("c-click"));
+      document.addEventListener("visibilitychange",()=>{if(document.hidden)cancelAnimationFrame(raf);else tick();});
+    }
+
+    /* Particles */
+    const canvas=document.getElementById("luxuryParticles");
+    if(canvas&&!window.matchMedia("(prefers-reduced-motion:reduce)").matches){
+      const ctx=canvas.getContext("2d"),dpr=window.devicePixelRatio||1;
+      let W=0,H=0,pts=[],aid;
+      class P{constructor(){this.reset();this.x=Math.random()*W;this.y=Math.random()*H;}reset(){this.r=.4+Math.random()*1.6;this.a=.07+Math.random()*.32;this.vx=(Math.random()-.5)*.26;this.vy=(Math.random()-.5)*.26;}update(){this.x+=this.vx;this.y+=this.vy;if(this.x<-5)this.x=W+5;if(this.x>W+5)this.x=-5;if(this.y<-5)this.y=H+5;if(this.y>H+5)this.y=-5;}draw(c){c.beginPath();c.arc(this.x,this.y,this.r,0,Math.PI*2);c.fillStyle=`rgba(212,175,55,${this.a})`;c.fill();}}
+      function resize(){W=window.innerWidth;H=window.innerHeight;canvas.width=Math.floor(W*dpr);canvas.height=Math.floor(H*dpr);canvas.style.width=W+"px";canvas.style.height=H+"px";ctx.setTransform(dpr,0,0,dpr,0,0);pts=Array.from({length:Math.min(80,Math.max(30,Math.floor(W/22)))},()=>new P());}
+      function frame(){ctx.clearRect(0,0,W,H);pts.forEach(p=>{p.update();p.draw(ctx);});for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<85){ctx.strokeStyle=`rgba(212,175,55,${(1-d/85)*.09})`;ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.stroke();}}aid=requestAnimationFrame(frame);}
+      resize();frame();window.addEventListener("resize",resize);document.addEventListener("visibilitychange",()=>{if(document.hidden)cancelAnimationFrame(aid);else frame();});
+    }
+  })();
+  </script>
+</body>
+</html>
