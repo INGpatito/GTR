@@ -28,6 +28,8 @@ Obligatorio:
 
 Opcional:
 - `ORANGE_PI_SERVICE_NAME`: servicio systemd a reiniciar al final (ejemplo `nginx` o `gtr.service`)
+- `TELEGRAM_BOT_TOKEN`: token del bot de Telegram para alertas de fallo
+- `TELEGRAM_CHAT_ID`: chat id donde se enviaran alertas
 
 ## 3) Primer despliegue
 
@@ -49,6 +51,20 @@ En la Orange Pi:
 cd /home/orangepi/GTR
 ls -la
 ```
+
+Si el deploy falla y configuraste Telegram, recibirás una notificacion con enlace directo al run.
+
+## Obtener datos de Telegram
+
+1. Crea un bot con BotFather y copia el token.
+2. Escribe al bot al menos una vez desde tu cuenta o grupo.
+3. Obtén el chat id con:
+
+```bash
+curl -s "https://api.telegram.org/bot<TU_TOKEN>/getUpdates"
+```
+
+Busca el valor `chat.id` y guardalo como `TELEGRAM_CHAT_ID`.
 
 ## Opcional: script de post-despliegue
 

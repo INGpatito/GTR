@@ -14,6 +14,8 @@ jobs:
     env:
       ORANGE_PI_APP_DIR: ${{ secrets.ORANGE_PI_APP_DIR || vars.ORANGE_PI_APP_DIR }}
       ORANGE_PI_SERVICE_NAME: ${{ secrets.ORANGE_PI_SERVICE_NAME || vars.ORANGE_PI_SERVICE_NAME }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
     steps:
       - name: Validate deployment configuration
@@ -55,3 +57,15 @@ jobs:
         run: |
           set -e
           sudo systemctl restart "$ORANGE_PI_SERVICE_NAME"
+
+      - name: Notify Telegram on failure
+        if: ${{ failure() && env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_CHAT_ID != '' }}
+        shell: bash
+        run: |
+          set -e
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MSG="Deploy fallido en ${{ github.repository }}%0ABranch: ${{ github.ref_name }}%0ACommit: ${{ github.sha }}%0AActor: ${{ github.actor }}%0ARun: $RUN_URL"
+
+          curl -sS -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+            -d "chat_id=$TELEGRAM_CHAT_ID" \
+            -d "text=$MSG"
