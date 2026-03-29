@@ -9,18 +9,56 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      ORANGE_PI_HOST: ${{ secrets.ORANGE_PI_HOST || vars.ORANGE_PI_HOST }}
+      ORANGE_PI_USER: ${{ secrets.ORANGE_PI_USER || vars.ORANGE_PI_USER }}
+      ORANGE_PI_PORT: ${{ secrets.ORANGE_PI_PORT || vars.ORANGE_PI_PORT || '22' }}
+      ORANGE_PI_SSH_KEY: ${{ secrets.ORANGE_PI_SSH_KEY }}
+      ORANGE_PI_APP_DIR: ${{ secrets.ORANGE_PI_APP_DIR || vars.ORANGE_PI_APP_DIR }}
+      ORANGE_PI_SERVICE_NAME: ${{ secrets.ORANGE_PI_SERVICE_NAME || vars.ORANGE_PI_SERVICE_NAME }}
 
     steps:
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          set -e
+
+          missing=0
+
+          if [ -z "$ORANGE_PI_HOST" ]; then
+            echo "ERROR: falta ORANGE_PI_HOST (secret o variable)."
+            missing=1
+          fi
+
+          if [ -z "$ORANGE_PI_USER" ]; then
+            echo "ERROR: falta ORANGE_PI_USER (secret o variable)."
+            missing=1
+          fi
+
+          if [ -z "$ORANGE_PI_SSH_KEY" ]; then
+            echo "ERROR: falta ORANGE_PI_SSH_KEY (solo secret)."
+            missing=1
+          fi
+
+          if [ -z "$ORANGE_PI_APP_DIR" ]; then
+            echo "ERROR: falta ORANGE_PI_APP_DIR (secret o variable)."
+            missing=1
+          fi
+
+          if [ "$missing" -eq 1 ]; then
+            exit 1
+          fi
+
       - name: Deploy using SSH
         uses: appleboy/ssh-action@v1.2.0
         env:
-          APP_DIR: ${{ secrets.ORANGE_PI_APP_DIR }}
-          SERVICE_NAME: ${{ secrets.ORANGE_PI_SERVICE_NAME }}
+          APP_DIR: ${{ env.ORANGE_PI_APP_DIR }}
+          SERVICE_NAME: ${{ env.ORANGE_PI_SERVICE_NAME }}
         with:
-          host: ${{ secrets.ORANGE_PI_HOST }}
-          username: ${{ secrets.ORANGE_PI_USER }}
-          key: ${{ secrets.ORANGE_PI_SSH_KEY }}
-          port: ${{ secrets.ORANGE_PI_PORT }}
+          host: ${{ env.ORANGE_PI_HOST }}
+          username: ${{ env.ORANGE_PI_USER }}
+          key: ${{ env.ORANGE_PI_SSH_KEY }}
+          port: ${{ env.ORANGE_PI_PORT }}
           script_stop: true
           envs: APP_DIR,SERVICE_NAME
           script: |
