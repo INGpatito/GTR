@@ -16,9 +16,6 @@ jobs:
       ORANGE_PI_SERVICE_NAME: ${{ secrets.ORANGE_PI_SERVICE_NAME || vars.ORANGE_PI_SERVICE_NAME }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
       - name: Validate deployment configuration
         shell: bash
         run: |
@@ -29,12 +26,18 @@ jobs:
             exit 1
           fi
 
-      - name: Sync files to app directory
+      - name: Update repository in app directory
         shell: bash
         run: |
           set -e
-          mkdir -p "$ORANGE_PI_APP_DIR"
-          rsync -av --delete --exclude ".git" ./ "$ORANGE_PI_APP_DIR/"
+          if [ ! -d "$ORANGE_PI_APP_DIR/.git" ]; then
+            mkdir -p "$ORANGE_PI_APP_DIR"
+            git clone "https://github.com/${{ github.repository }}.git" "$ORANGE_PI_APP_DIR"
+          fi
+
+          cd "$ORANGE_PI_APP_DIR"
+          git fetch origin main
+          git reset --hard origin/main
 
       - name: Run post-deploy script (optional)
         shell: bash
