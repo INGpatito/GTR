@@ -96,8 +96,8 @@ app.post("/api/reservations", async (req, res) => {
     date, time, message, lang
   } = req.body;
 
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || null;
-
+  const ips = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "";
+  const ip = ips.split(",")[0].trim().substring(0, 45) || null;
   try {
     const result = await pool.query(
       `INSERT INTO reservations
