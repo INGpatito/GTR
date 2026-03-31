@@ -1117,7 +1117,7 @@
                 </div>
                 <div>
                   <p class="info-label" data-i18n="info.phoneLabel">Phone</p>
-                  <p class="info-value">+1 (555) 000-GTR</p>
+                  <p class="info-value">+52 722 202 6833</p>
                 </div>
               </div>
               <div class="info-item">
@@ -1129,7 +1129,7 @@
                 </div>
                 <div>
                   <p class="info-label" data-i18n="info.emailLabel">Email</p>
-                  <p class="info-value">concierge@parkinggtr.com</p>
+                  <p class="info-value">patoing301@gmail.com</p>
                 </div>
               </div>
               <div class="info-item">
@@ -1141,7 +1141,7 @@
                 </div>
                 <div>
                   <p class="info-label" data-i18n="info.addressLabel">Location</p>
-                  <p class="info-value" data-i18n="info.address">Elite District, Premium Avenue, Suite 1</p>
+                  <p class="info-value" data-i18n="info.address">Al chile no se we</p>
                 </div>
               </div>
               <div class="info-item">
@@ -1169,7 +1169,7 @@
                 <!-- Name -->
                 <div class="form-group">
                   <label for="inputName" data-i18n="form.name">Full Name</label>
-                  <input type="text" id="inputName" name="name" autocomplete="name" placeholder="John Doe" required />
+                  <input type="text" id="inputName" name="name" autocomplete="name" placeholder="Tu nombre" required />
                 </div>
 
                 <!-- Email -->
@@ -1182,7 +1182,7 @@
                 <!-- Phone -->
                 <div class="form-group">
                   <label for="inputPhone" data-i18n="form.phone">Phone</label>
-                  <input type="tel" id="inputPhone" name="phone" autocomplete="tel" placeholder="+1 (555) 000-0000" />
+                  <input type="tel" id="inputPhone" name="phone" autocomplete="tel" placeholder="+52 (555) 000-0000" />
                 </div>
 
                 <!-- Service -->
@@ -1420,15 +1420,15 @@
         const btn = document.getElementById("btnSubmit");
 
         // Gather values
-        const name    = form.querySelector("#inputName").value.trim();
-        const email   = form.querySelector("#inputEmail").value.trim();
-        const phone   = form.querySelector("#inputPhone").value.trim();
+        const name = form.querySelector("#inputName").value.trim();
+        const email = form.querySelector("#inputEmail").value.trim();
+        const phone = form.querySelector("#inputPhone").value.trim();
         const service = form.querySelector("#inputService").value;
         const vehicle = form.querySelector("input[name='vehicle']:checked")?.value || "sports";
-        const date    = form.querySelector("#inputDate").value;
-        const time    = form.querySelector("#inputTime").value;
+        const date = form.querySelector("#inputDate").value;
+        const time = form.querySelector("#inputTime").value;
         const message = form.querySelector("#inputMsg").value.trim();
-        const lang    = document.documentElement.lang || "en";
+        const lang = document.documentElement.lang || "en";
 
         // Client-side validation
         let valid = true;
