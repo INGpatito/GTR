@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Parking GTR - Member Portal. Sign in or apply for your exclusive luxury parking membership." />
+  <title>Parking GTR | Member Login & Registration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ── DESIGN TOKENS ─────────────────────────────────── */
+    :root {
+      --gold: #d4af37;
+      --gold-soft: #f1d788;
+      --gold-deep: #8f7322;
+      --bg: #050505;
+      --surface: rgba(14, 14, 14, 0.72);
+      --glass: rgba(18, 18, 18, 0.56);
+      --text: #f8f5ed;
+      --muted: #c8bc98;
+      --line: rgba(212, 175, 55, 0.35);
+      --radius-lg: 24px;
+      --radius-md: 14px;
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+      --shadow-gold: 0 0 30px rgba(212, 175, 55, 0.25);
+      --expo: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ── RESET ─────────────────────────────────────────── */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(212, 175, 55, 0.13), transparent 38%),
+        radial-gradient(circle at 80% 80%, rgba(212, 175, 55, 0.08), transparent 36%),
+        linear-gradient(170deg, #050505 0%, #080808 50%, #050505 100%);
+      color: var(--text);
+      font-family: "Montserrat", sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* ── CUSTOM CURSOR (fine pointer only) ─────────────── */
+    @media (pointer: fine) {
+
+      *,
+      *::before,
+      *::after {
+        cursor: none !important;
+      }
+    }
+
+    .cursor-dot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 8px;
+      height: 8px;
+      background: var(--gold);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.8), 0 0 22px rgba(212, 175, 55, 0.4);
+      transition: width .2s, height .2s, background .2s, opacity .25s;
+    }
+
+    .cursor-ring {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 36px;
+      height: 36px;
+      border: 1.5px solid rgba(212, 175, 55, 0.6);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: width .35s var(--expo), height .35s var(--expo),
+        border-color .35s, opacity .3s, background .35s;
+    }
+
+    body.c-hover .cursor-ring {
+      width: 52px;
+      height: 52px;
+      border-color: rgba(212, 175, 55, .9);
+      background: rgba(212, 175, 55, .06);
+    }
+
+    body.c-hover .cursor-dot {
+      width: 5px;
+      height: 5px;
+    }
+
+    body.c-click .cursor-ring {
+      width: 26px;
+      height: 26px;
+      border-color: var(--gold);
+      background: rgba(212, 175, 55, .15);
+    }
+
+    body.c-click .cursor-dot {
+      width: 12px;
+      height: 12px;
+      box-shadow: 0 0 18px rgba(212, 175, 55, 1), 0 0 36px rgba(212, 175, 55, .6);
+    }
+
+    body.c-out .cursor-dot,
+    body.c-out .cursor-ring {
+      opacity: 0;
+    }
+
+    /* ── PARTICLES ─────────────────────────────────────── */
+    .luxury-particles {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.4;
+    }
+
+    /* ── CONTAINER ─────────────────────────────────────── */
+    .container {
+      width: min(1100px, 92vw);
+      margin: 0 auto;
+    }
+
+    /* ── HEADER ────────────────────────────────────────── */
+    .site-header {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(4, 4, 4, 0.65);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      transition: background .4s;
+    }
+
+    .site-header.scrolled {
+      background: rgba(4, 4, 4, 0.92);
+    }
+
+    .header-inner {
+      min-height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand-mini {
+      font-family: "Cinzel", serif;
+      font-size: 1.05rem;
+      letter-spacing: .12em;
+      color: var(--gold-soft);
+      transition: color .3s;
+    }
+
+    .brand-mini:hover {
+      color: var(--gold);
+    }
+
+    /* Header right */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+    }
+
+    /* Lang switcher */
+    .lang-switcher {
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      border: 1px solid rgba(212, 175, 55, 0.28);
+      border-radius: 999px;
+      padding: .22rem .6rem;
+      background: rgba(10, 10, 10, 0.5);
+      -webkit-backdrop-filter: blur(6px);
+      backdrop-filter: blur(6px);
+      transition: border-color .3s;
+    }
+
+    .lang-switcher:hover {
+      border-color: rgba(212, 175, 55, 0.55);
+    }
+
+    .lang-sep {
+      color: rgba(212, 175, 55, 0.3);
+      font-size: .7rem;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .lang-btn {
+      background: none;
+      border: none;
+      padding: .18rem .32rem;
+      font-family: "Cinzel", serif;
+      font-size: .72rem;
+      letter-spacing: .14em;
+      color: rgba(200, 188, 152, 0.6);
+      cursor: none;
+      border-radius: 999px;
+      transition: color .25s, background .25s, box-shadow .25s;
+      line-height: 1.2;
+    }
+
+    .lang-btn:hover {
+      color: var(--gold-soft);
+    }
+
+    .lang-btn--active {
+      color: #070707 !important;
+      background: linear-gradient(100deg, #9f7f25, #d4af37 55%, #f0d988);
+      box-shadow: 0 0 10px rgba(212, 175, 55, .35);
+    }
+
+    /* Nav toggle */
+    .nav-toggle {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: none;
+      padding: 8px;
+      z-index: 22;
+    }
+
+    .nav-toggle span {
+      display: block;
+      width: 24px;
+      height: 1.5px;
+      background: var(--gold-soft);
+      transition: transform .35s, opacity .25s;
+      transform-origin: center;
+    }
+
+    .nav-toggle.open span:nth-child(1) {
+      transform: translateY(6.5px) rotate(45deg);
+    }
+
+    .nav-toggle.open span:nth-child(2) {
+      opacity: 0;
+    }
+
+    .nav-toggle.open span:nth-child(3) {
+      transform: translateY(-6.5px) rotate(-45deg);
+    }
+
+    /* Nav links */
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: clamp(.8rem, 2vw, 1.6rem);
+    }
+
+    .nav-links a {
+      position: relative;
+      font-size: .83rem;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(248, 245, 237, 0.85);
+      transition: color .32s, letter-spacing .32s;
+    }
+
+    .nav-links a::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -8px;
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      transform: scaleX(0);
+      transform-origin: center;
+      transition: transform .35s;
+    }
+
+    .nav-links a:hover {
+      color: var(--gold-soft);
+      letter-spacing: .15em;
+    }
+
+    .nav-links a:hover::after {
+      transform: scaleX(1);
+    }
+
+    .nav-links a.active {
+      color: var(--gold-soft);
+    }
+
+    .nav-links a.active::after {
+      transform: scaleX(1);
+    }
+
+    /* ── PAGE HERO ─────────────────────────────────────── */
+    .page-hero {
+      position: relative;
+      min-height: 52vh;
+      display: flex;
+      align-items: flex-end;
+      padding: 120px 0 clamp(2.5rem, 6vw, 4rem);
+      overflow: hidden;
+    }
+
+    .page-hero::before,
+    .page-hero::after {
+      content: "";
+      position: absolute;
+      top: 18%;
+      width: 1px;
+      height: 38%;
+      background: linear-gradient(to bottom, transparent, rgba(212, 175, 55, .7), transparent);
+    }
+
+    .page-hero::before {
+      left: clamp(18px, 3vw, 48px);
+    }
+
+    .page-hero::after {
+      right: clamp(18px, 3vw, 48px);
+    }
+
+    .hero-glow-bg {
+      position: absolute;
+      inset: auto auto 10% 50%;
+      width: min(700px, 90vw);
+      height: min(700px, 90vw);
+      border-radius: 50%;
+      transform: translate(-50%, 40%);
+      background: radial-gradient(circle, rgba(212, 175, 55, .12), transparent 65%);
+      filter: blur(6px);
+      pointer-events: none;
+    }
+
+    .page-hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      width: 100%;
+    }
+
+    .page-kicker {
+      font-size: .76rem;
+      letter-spacing: .35em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .6rem;
+    }
+
+    .page-title {
+      font-family: "Cinzel", serif;
+      font-size: clamp(2rem, 7vw, 4.8rem);
+      font-weight: 700;
+      letter-spacing: .1em;
+      line-height: 1;
+      color: var(--text);
+      text-shadow: 0 6px 28px rgba(0, 0, 0, 0.5);
+    }
+
+    .page-title span {
+      color: var(--gold-soft);
+      text-shadow: var(--shadow-gold);
+    }
+
+    .page-subtitle {
+      font-family: "Cormorant Garamond", serif;
+      font-style: italic;
+      font-size: clamp(1rem, 2.5vw, 1.5rem);
+      font-weight: 300;
+      color: var(--muted);
+      margin-top: .6rem;
+      letter-spacing: .04em;
+    }
+
+    .gold-rule {
+      width: min(180px, 40vw);
+      height: 1px;
+      margin: 1.4rem auto 0;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+      animation: pulseRule 3s ease-in-out infinite;
+    }
+
+    @keyframes pulseRule {
+
+      0%,
+      100% {
+        opacity: .4
+      }
+
+      50% {
+        opacity: 1
+      }
+    }
+
+    /* ── SECTIONS ──────────────────────────────────────── */
+    .section {
+      position: relative;
+      padding: clamp(70px, 10vw, 110px) 0;
+    }
+
+    .section-head {
+      text-align: center;
+      max-width: 740px;
+      margin: 0 auto 2.6rem;
+    }
+
+    .section-kicker {
+      font-size: .76rem;
+      text-transform: uppercase;
+      letter-spacing: .32em;
+      color: var(--muted);
+      margin-bottom: .5rem;
+    }
+
+    .section-title {
+      font-family: "Cinzel", serif;
+      font-size: clamp(1.4rem, 4vw, 2.6rem);
+      font-weight: 600;
+      line-height: 1.15;
+      letter-spacing: .05em;
+    }
+
+    /* Divider ornament */
+    .divider-ornament {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: .8rem;
+      margin: 0 auto 2.8rem;
+      max-width: 300px;
+    }
+
+    .divider-ornament span.line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+
+    .divider-ornament span.diamond {
+      color: var(--gold);
+      font-size: .55rem;
+    }
+
+    /* ── EXPERIENCE / FEATURE CARDS ────────────────────── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.2rem;
+    }
+
+    .feature-card {
+      background: var(--glass);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: var(--radius-md);
+      padding: 1.8rem 1.4rem;
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow);
+      transition: transform .35s, border-color .35s, box-shadow .35s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      transform: scaleX(0);
+      transition: transform .5s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(212, 175, 55, .6);
+      box-shadow: var(--shadow), var(--shadow-gold);
+    }
+
+    .feature-card:hover::before {
+      transform: scaleX(1);
+    }
+
+    .feature-icon {
+      width: 42px;
+      height: 42px;
+      margin-bottom: 1rem;
+      color: var(--gold-soft);
+      opacity: .75;
+    }
+
+    .feature-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .feature-card h3 {
+      font-family: "Cinzel", serif;
+      font-size: 1.08rem;
+      color: var(--gold-soft);
+      margin-bottom: .7rem;
+    }
+
+    .feature-card p {
+      color: rgba(248, 245, 237, .85);
+      font-size: .91rem;
+      line-height: 1.65;
+    }
+
+    /* ── CONTACT FORM ──────────────────────────────────── */
+    .contact-section {
+      padding-top: clamp(60px, 8vw, 90px);
+    }
+
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: clamp(2rem, 4vw, 4rem);
+      align-items: start;
+    }
+
+    /* Left info panel */
+    .contact-info {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(145deg, rgba(16, 16, 16, .9), rgba(8, 8, 8, .8));
+      padding: clamp(1.8rem, 4vw, 2.8rem);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .contact-info::before {
+      content: "";
+      position: absolute;
+      inset: 14px;
+      border: 1px solid rgba(212, 175, 55, .12);
+      border-radius: calc(var(--radius-lg) - 8px);
+      pointer-events: none;
+    }
+
+    .contact-info-kicker {
+      font-size: .74rem;
+      letter-spacing: .34em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .5rem;
+    }
+
+    .contact-info-title {
+      font-family: "Cinzel", serif;
+      font-size: clamp(1.25rem, 3vw, 1.9rem);
+      font-weight: 600;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    .contact-info-desc {
+      color: rgba(248, 245, 237, .8);
+      font-size: .92rem;
+      line-height: 1.7;
+      margin-bottom: 1.8rem;
+    }
+
+    .info-items {
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: .9rem;
+    }
+
+    .info-icon {
+      width: 36px;
+      height: 36px;
+      flex-shrink: 0;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold);
+      margin-top: .05rem;
+    }
+
+    .info-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .info-label {
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .18em;
+      color: var(--muted);
+      margin-bottom: .2rem;
+    }
+
+    .info-value {
+      font-size: .9rem;
+      color: var(--text);
+    }
+
+    /* Right: form */
+    .contact-form-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(145deg, rgba(14, 14, 14, .88), rgba(6, 6, 6, .82));
+      padding: clamp(1.8rem, 4vw, 2.8rem);
+      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+
+    .form-title {
+      font-family: "Cinzel", serif;
+      font-size: clamp(1.1rem, 2.5vw, 1.55rem);
+      font-weight: 600;
+      margin-bottom: 1.6rem;
+      letter-spacing: .06em;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: .45rem;
+    }
+
+    .form-group.full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .2em;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    input,
+    select,
+    textarea {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(212, 175, 55, 0.2);
+      border-radius: 10px;
+      padding: .75rem 1rem;
+      color: var(--text);
+      font-family: "Montserrat", sans-serif;
+      font-size: .88rem;
+      width: 100%;
+      transition: border-color .3s, box-shadow .3s, background .3s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+      color: rgba(200, 188, 152, 0.35);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: rgba(212, 175, 55, 0.7);
+      background: rgba(212, 175, 55, 0.04);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+    }
+
+    select {
+      cursor: none;
+    }
+
+    select option {
+      background: #0d0d0d;
+      color: var(--text);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 110px;
+    }
+
+    /* Vehicle type radio group */
+    .radio-group {
+      display: flex;
+      gap: .6rem;
+      flex-wrap: wrap;
+    }
+
+    .radio-chip {
+      position: relative;
+    }
+
+    .radio-chip input[type="radio"] {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .radio-chip label {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      font-size: .72rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: rgba(200, 188, 152, 0.65);
+      border: 1px solid rgba(212, 175, 55, 0.22);
+      border-radius: 999px;
+      padding: .38rem .85rem;
+      transition: all .28s;
+      cursor: none;
+    }
+
+    .radio-chip input:checked+label {
+      color: #070707;
+      background: linear-gradient(100deg, #9f7f25, #d4af37 55%, #f0d988);
+      border-color: var(--gold);
+      box-shadow: 0 0 12px rgba(212, 175, 55, .3);
+    }
+
+    .radio-chip label:hover {
+      border-color: rgba(212, 175, 55, .5);
+      color: var(--gold-soft);
+    }
+
+    /* Submit button */
+    .btn-submit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .55rem;
+      width: 100%;
+      min-height: 52px;
+      margin-top: .4rem;
+      background: linear-gradient(100deg, #9f7f25 0%, #d4af37 50%, #f0d988 100%);
+      color: #070707;
+      font-family: "Montserrat", sans-serif;
+      font-weight: 700;
+      font-size: .82rem;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 999px;
+      box-shadow: 0 10px 22px rgba(0, 0, 0, .4), 0 0 18px rgba(212, 175, 55, .24);
+      transition: transform .3s, box-shadow .3s;
+      cursor: none;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-submit::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, .18) 50%, transparent 70%);
+      transform: translateX(-100%);
+      transition: transform .6s;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, .45), 0 0 26px rgba(212, 175, 55, .42);
+    }
+
+    .btn-submit:hover::before {
+      transform: translateX(100%);
+    }
+
+    .btn-submit svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Success toast */
+    .form-toast {
+      display: none;
+      align-items: center;
+      gap: .7rem;
+      margin-top: 1rem;
+      padding: .9rem 1.1rem;
+      border: 1px solid rgba(212, 175, 55, .35);
+      border-radius: var(--radius-md);
+      background: rgba(212, 175, 55, .07);
+      font-size: .85rem;
+      color: var(--gold-soft);
+    }
+
+    .form-toast.visible {
+      display: flex;
+    }
+
+    .form-toast.error {
+      border-color: rgba(231, 76, 60, .5);
+      background: rgba(231, 76, 60, .08);
+      color: #f1998e;
+    }
+
+    .form-toast.error span:first-child {
+      color: #e74c3c;
+    }
+
+    /* ── REVEAL ANIMATION ──────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity .9s var(--expo), transform .9s var(--expo);
+    }
+
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal[data-delay="1"] {
+      transition-delay: .12s;
+    }
+
+    .reveal[data-delay="2"] {
+      transition-delay: .24s;
+    }
+
+    .reveal[data-delay="3"] {
+      transition-delay: .36s;
+    }
+
+    /* ── BACK LINK ─────────────────────────────────────── */
+    .back-link {
+      position: fixed;
+      bottom: clamp(16px, 3vw, 28px);
+      right: clamp(16px, 3vw, 28px);
+      z-index: 15;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-family: "Cinzel", serif;
+      font-size: .7rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid rgba(212, 175, 55, .22);
+      border-radius: 999px;
+      padding: .5rem 1rem;
+      background: rgba(5, 5, 5, .7);
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      transition: color .3s, border-color .3s, background .3s, transform .3s;
+    }
+
+    .back-link:hover {
+      color: var(--gold-soft);
+      border-color: rgba(212, 175, 55, .55);
+      transform: translateY(-2px);
+    }
+
+    .back-link svg {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* ── FOOTER ────────────────────────────────────────── */
+    .site-footer {
+      border-top: 1px solid rgba(212, 175, 55, .16);
+      padding: 1.1rem 0 1.3rem;
+      text-align: center;
+    }
+
+    .site-footer p {
+      font-size: .8rem;
+      letter-spacing: .07em;
+      color: rgba(248, 245, 237, .55);
+    }
+
+    /* ── RESPONSIVE ────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .contact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .nav-toggle {
+        display: flex;
+      }
+
+      .nav-links {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: min(300px, 78vw);
+        height: 100vh;
+        flex-direction: column;
+        justify-content: center;
+        gap: 1.8rem;
+        background: rgba(5, 5, 5, .97);
+        -webkit-backdrop-filter: blur(20px);
+        backdrop-filter: blur(20px);
+        border-left: 1px solid var(--line);
+        transform: translateX(100%);
+        transition: transform .5s var(--expo);
+        z-index: 21;
+      }
+
+      .nav-links.open {
+        transform: translateX(0);
+      }
+
+      .nav-links a {
+        font-size: 1rem;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .page-hero::before,
+      .page-hero::after {
+        display: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation: none !important;
+        transition-duration: .01ms !important;
+      }
+
+      .reveal {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    
+    /* ── TABS & AUTH UI ────────────────────────────────── */
+    .auth-container {
+      max-width: 600px;
+      margin: 0 auto 4rem auto;
+      background: var(--surface);
+      border: 1px solid rgba(212, 175, 55, 0.15);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+    }
+
+    .auth-tabs {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+      border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+    }
+
+    .auth-tab {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-family: "Cinzel", serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.1em;
+      cursor: none;
+      padding: 0.5rem 0;
+      transition: color 0.3s;
+      position: relative;
+    }
+
+    .auth-tab:hover {
+      color: var(--gold-soft);
+    }
+
+    .auth-tab.active {
+      color: var(--gold);
+    }
+
+    .auth-tab.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--gold);
+      box-shadow: 0 -2px 10px rgba(212, 175, 55, 0.5);
+    }
+
+    .auth-panel {
+      display: none;
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    .auth-panel.active {
+      display: block;
+      animation: tabFadeIn 0.5s var(--expo) forwards;
+    }
+
+    @keyframes tabFadeIn {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Adjust page-hero for auth */
+    .auth-hero {
+      padding: 9rem 0 3rem;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Custom cursor -->
+  <div id="cursorDot" class="cursor-dot" aria-hidden="true"></div>
+  <div id="cursorRing" class="cursor-ring" aria-hidden="true"></div>
+
+  <!-- Particles -->
+  <canvas id="luxuryParticles" class="luxury-particles" aria-hidden="true"></canvas>
+
+  <!-- ── HEADER ─────────────────────────────────────────── -->
+  <header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand-mini">Parking GTR</a>
+      <div class="header-right">
+        <div class="lang-switcher" id="langSwitcher" role="group" aria-label="Language">
+          <button class="lang-btn lang-btn--active" id="langEN" data-lang="en" aria-pressed="true">EN</button>
+          <span class="lang-sep" aria-hidden="true">|</span>
+          <button class="lang-btn" id="langES" data-lang="es" aria-pressed="false">ES</button>
+        </div>
+        <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+      <nav class="nav-links" id="navLinks" aria-label="Primary">
+        <a href="../index.html#home" data-i18n="nav.home">Home</a>
+        <a href="../index.html#experience" data-i18n="nav.experience">Experience</a>
+        <a href="../index.html#services" data-i18n="nav.services">Services</a>
+        <a href="#contact-form" class="active" data-i18n="nav.contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── PAGE HERO ──────────────────────────────────────── -->
+  <section class="auth-hero" aria-label="Page header">
+    <div class="container page-hero-content reveal">
+      <p class="page-kicker" data-i18n="login.kicker">Private Access</p>
+      <h1 class="page-title">Member <span>Portal</span></h1>
+      <div class="gold-rule" aria-hidden="true"></div>
+    </div>
+  </section>
+
+  <main>
+    <section class="section" id="auth-section">
+      <div class="container">
+        
+        <div class="auth-container reveal" data-delay="1">
+          <!-- TABS -->
+          <div class="auth-tabs" role="tablist">
+            <button class="auth-tab active" id="tab-login" role="tab" data-i18n="tab.login">Sign In</button>
+            <button class="auth-tab" id="tab-register" role="tab" data-i18n="tab.register">Apply for Membership</button>
+          </div>
+
+          <!-- LOGIN PANEL -->
+          <div class="auth-panel active" id="panel-login" role="tabpanel">
+            <h3 class="form-title" style="margin-bottom:1.5rem;" data-i18n="login.title">Access Your Dashboard</h3>
+            <form id="loginForm" novalidate>
+              <div class="form-grid" style="grid-template-columns: 1fr;">
+                <div class="form-group full">
+                  <label for="loginEmail" data-i18n="form.email">Email Address</label>
+                  <input type="email" id="loginEmail" name="email" autocomplete="email" placeholder="you@example.com" required />
+                </div>
+                <div class="form-group full">
+                  <label for="loginPass" data-i18n="form.password">Password</label>
+                  <input type="password" id="loginPass" name="password" placeholder="••••••••" required />
+                </div>
+                <div class="form-group full">
+                  <button type="button" class="btn-submit" id="btnLoginSubmit" onclick="alert('Client Portal coming soon. Please wait for membership approval.')">
+                    <span data-i18n="login.submit">Enter Vault</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- REGISTER PANEL -->
+          <div class="auth-panel" id="panel-register" role="tabpanel">
+            <h3 class="form-title" style="margin-bottom:1.5rem;" data-i18n="register.title">Membership Application</h3>
+            <form id="contactForm" novalidate>
+              <div class="form-grid">
+                <!-- Name -->
+                <div class="form-group">
+                  <label for="inputName" data-i18n="form.name">Full Name</label>
+                  <input type="text" id="inputName" name="name" autocomplete="name" required />
+                </div>
+                <!-- Email -->
+                <div class="form-group">
+                  <label for="inputEmail" data-i18n="form.email">Email Address</label>
+                  <input type="email" id="inputEmail" name="email" autocomplete="email" required />
+                </div>
+                <!-- Phone -->
+                <div class="form-group">
+                  <label for="inputPhone" data-i18n="form.phone">Phone</label>
+                  <input type="tel" id="inputPhone" name="phone" autocomplete="tel" />
+                </div>
+                <!-- Service / Subscription -->
+                <div class="form-group">
+                  <label for="inputService" data-i18n="form.service">Subscription Tier</label>
+                  <select id="inputService" name="service" required>
+                    <option value="" data-i18n="form.selectTier">Select a tier…</option>
+                    <option value="monthly" data-i18n="form.opt.monthly">Monthly Membership</option>
+                    <option value="concierge" data-i18n="form.opt.concierge">Concierge Priority (Annual)</option>
+                    <option value="fleet" data-i18n="form.opt.fleet">Corporate Fleet</option>
+                    <option value="event" data-i18n="form.opt.event">Event VIP Pass</option>
+                    <option value="valet" data-i18n="form.opt.valet">Standard Valet (Pay per Use)</option>
+                  </select>
+                </div>
+
+                <!-- Vehicle type -->
+                <div class="form-group full">
+                  <label data-i18n="form.vehicle">Vehicle Classification</label>
+                  <div class="radio-group" role="radiogroup">
+                    <div class="radio-chip">
+                      <input type="radio" id="vExotic" name="vehicle" value="exotic" checked />
+                      <label for="vExotic" data-i18n="form.veh.exotic">✨ Exotic/Hypercar</label>
+                    </div>
+                    <div class="radio-chip">
+                      <input type="radio" id="vSports" name="vehicle" value="sports" />
+                      <label for="vSports" data-i18n="form.veh.sports">🏎 Sports</label>
+                    </div>
+                    <div class="radio-chip">
+                      <input type="radio" id="vSUV" name="vehicle" value="suv" />
+                      <label for="vSUV" data-i18n="form.veh.suv">🚙 Luxury SUV</label>
+                    </div>
+                    <div class="radio-chip">
+                      <input type="radio" id="vSedan" name="vehicle" value="sedan" />
+                      <label for="vSedan" data-i18n="form.veh.sedan">🚗 Premium Sedan</label>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Hidden Date/Time/Msg since it's just membership -->
+                <input type="hidden" id="inputDate" value="" />
+                <input type="hidden" id="inputTime" value="" />
+                <input type="hidden" id="inputMsg" value="Membership Application from Portal" />
+
+                <!-- Submit -->
+                <div class="form-group full">
+                  <button type="submit" class="btn-submit" id="btnSubmit" style="margin-top: 1rem;">
+                    <span data-i18n="register.submit">Request Approval</span>
+                  </button>
+                  <div class="form-toast" id="formToast" role="status" aria-live="polite">
+                    <span>◆</span>
+                    <span data-i18n="form.success">Your membership application is under review. Please wait for our concierge to contact you.</span>
+                  </div>
+                </div>
+
+              </div>
+            </form>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- ── FOOTER ─────────────────────────────────────────── -->
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span id="year"></span> Parking GTR. <span data-i18n="tagline">Luxury Parking Experience</span>.</p>
+    </div>
+  </footer>
+
+  <!-- Back to home floating button -->
+  <a href="../index.html" class="back-link" aria-label="Back to home">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M19 12H5M12 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <span data-i18n="back">Home</span>
+  </a>
+
+  <script>
+    /* ── INLINE SCRIPT FOR SELF-CONTAINED PAGE ─────────── */
+    (function () {
+      "use strict";
+
+      /*  Translations */
+      const T = {
+        en: {
+          tagline: "Luxury Parking Experience",
+          "nav.home": "Home", "nav.experience": "Experience", "nav.services": "Services", "nav.contact": "Contact",
+          "contact.kicker": "Private Access",
+          "page.subtitle": "Every journey begins with a single reservation",
+          "exp.kicker": "Signature Standards", "exp.title": "A Curated Arrival Ritual",
+          "card1.title": "White-Glove Valet",
+          "card1.desc": "Trained attendants welcome every vehicle with precision handling, secure key management, and immaculate presentation.",
+          "card2.title": "Vault-Level Security",
+          "card2.desc": "Surveillance intelligence, controlled access zones, and premium insurance protection keep your car fully safeguarded.",
+          "card3.title": "Seamless Priority Exit",
+          "card3.desc": "On-demand retrieval with concierge timing ensures your vehicle is prepared the moment you are ready to depart.",
+          "login.kicker": "Private Access", "login.title": "Access Your Dashboard", "login.submit": "Enter Vault",
+          "tab.login": "Sign In", "tab.register": "Apply for Membership", 
+          "register.title": "Membership Application", "register.submit": "Request Approval",
+          "form.kicker": "Reserve Your Space", "form.title": "Get In Touch", "form.heading": "Make a Reservation",
+          "info.kicker": "Contact Information", "info.title": "Let Us Elevate Your Arrival",
+          "info.desc": "Our concierge team is available around the clock to assist with reservations, memberships, and any special requirements for your vehicle.",
+          "info.phoneLabel": "Phone", "info.emailLabel": "Email", "info.addressLabel": "Location",
+          "info.address": "Elite District, Premium Avenue, Suite 1",
+          "info.hoursLabel": "Hours", "info.hours": "24 / 7 — 365 days",
+          "form.name": "Full Name", "form.email": "Email Address", "form.phone": "Phone",
+          "form.password": "Password",
+          "form.service": "Subscription Tier", "form.selectTier": "Select a tier…",
+          "form.opt.valet": "Standard Valet (Pay per Use)", "form.opt.monthly": "Monthly Membership",
+          "form.opt.event": "Event VIP Pass", "form.opt.concierge": "Concierge Priority (Annual)", "form.opt.fleet": "Corporate Fleet",
+          "form.vehicle": "Vehicle Classification",
+          "form.veh.sports": "🏎 Sports", "form.veh.suv": "🚙 Luxury SUV", "form.veh.sedan": "🚗 Premium Sedan",
+          "form.veh.convertible": "🚘 Convertible", "form.veh.exotic": "✨ Exotic/Hypercar",
+          "form.date": "Arrival Date", "form.time": "Arrival Time", "form.message": "Special Requests",
+          "form.submit": "Send Reservation Request",
+          "form.success": "Your membership application is under review. Please wait for our concierge to contact you.",
+          "back": "Home"
+        },
+        es: {
+          tagline: "Experiencia de Estacionamiento de Lujo",
+          "nav.home": "Inicio", "nav.experience": "Experiencia", "nav.services": "Servicios", "nav.contact": "Contacto",
+          "contact.kicker": "Acceso Privado",
+          "page.subtitle": "Todo viaje comienza con una sola reserva",
+          "exp.kicker": "Estándares de Firma", "exp.title": "Un Ritual de Llegada Curado",
+          "card1.title": "Valet de Guante Blanco",
+          "card1.desc": "Asistentes capacitados reciben cada vehículo con manejo de precisión, gestión segura de llaves y presentación impecable.",
+          "card2.title": "Seguridad de Nivel Bóveda",
+          "card2.desc": "Inteligencia de vigilancia, zonas de acceso controlado y protección de seguro premium mantienen su auto completamente resguardado.",
+          "card3.title": "Salida Prioritaria Perfecta",
+          "card3.desc": "Recuperación bajo demanda con tiempos de conserje garantiza que su vehículo esté listo en el momento en que desee partir.",
+          "login.kicker": "Acceso Privado", "login.title": "Accede a tu Panel", "login.submit": "Entrar a Bóveda",
+          "tab.login": "Iniciar Sesión", "tab.register": "Aplicar a Membresía",
+          "register.title": "Solicitud de Membresía", "register.submit": "Solicitar Aprobación",
+          "form.kicker": "Reserve Su Espacio", "form.title": "Contáctenos", "form.heading": "Hacer una Reserva",
+          "info.kicker": "Información de Contacto", "info.title": "Permítanos Elevar Su Llegada",
+          "info.desc": "Nuestro equipo de conserje está disponible las 24 horas para asistirle con reservas, membresías y cualquier requisito especial para su vehículo.",
+          "info.phoneLabel": "Teléfono", "info.emailLabel": "Correo", "info.addressLabel": "Ubicación",
+          "info.address": "Distrito Elite, Avenida Premium, Suite 1",
+          "info.hoursLabel": "Horario", "info.hours": "24 / 7 — 365 días",
+          "form.name": "Nombre Completo", "form.email": "Correo Electrónico", "form.phone": "Teléfono",
+          "form.password": "Contraseña",
+          "form.service": "Nivel de Suscripción", "form.selectTier": "Seleccione un nivel…",
+          "form.opt.valet": "Valet Estándar (Pago por Uso)", "form.opt.monthly": "Membresía Mensual",
+          "form.opt.event": "Pase VIP para Eventos", "form.opt.concierge": "Prioridad Conserje (Anual)", "form.opt.fleet": "Flota / Corporativo",
+          "form.vehicle": "Clasificación de Vehículo",
+          "form.veh.sports": "🏎 Deportivo", "form.veh.suv": "🚙 SUV de Lujo", "form.veh.sedan": "🚗 Sedán Premium",
+          "form.veh.convertible": "🚘 Convertible", "form.veh.exotic": "✨ Exótico / Hipercoche",
+          "form.date": "Fecha de Llegada", "form.time": "Hora de Llegada", "form.message": "Solicitudes Especiales",
+          "form.submit": "Enviar Solicitud de Reserva",
+          "form.success": "Su solicitud de membresía está bajo revisión. Por favor, espere a que nuestro conserje lo contacte.",
+          "back": "Inicio"
+        }
+      };
+
+      /* ── Year ── */
+      const yearEl = document.getElementById("year");
+      if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+      /* ── i18n ── */
+      const btnEN = document.getElementById("langEN");
+      const btnES = document.getElementById("langES");
+
+      function applyLang(lang) {
+        const dict = T[lang]; if (!dict) return;
+        document.documentElement.lang = lang;
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const k = el.getAttribute("data-i18n");
+          if (dict[k] !== undefined) el.textContent = dict[k];
+        });
+        btnEN.classList.toggle("lang-btn--active", lang === "en");
+        btnES.classList.toggle("lang-btn--active", lang === "es");
+        btnEN.setAttribute("aria-pressed", String(lang === "en"));
+        btnES.setAttribute("aria-pressed", String(lang === "es"));
+        try { localStorage.setItem("gtrLang", lang); } catch (_) { }
+      }
+
+      btnEN.addEventListener("click", () => applyLang("en"));
+      btnES.addEventListener("click", () => applyLang("es"));
+
+      let saved = "";
+      try { saved = localStorage.getItem("gtrLang") || ""; } catch (_) { }
+      if (!saved) saved = navigator.language && navigator.language.toLowerCase().startsWith("es") ? "es" : "en";
+      applyLang(saved);
+
+      /* ── Header scroll ── */
+      const header = document.getElementById("siteHeader");
+      window.addEventListener("scroll", () => {
+        header.classList.toggle("scrolled", window.scrollY > 60);
+      }, { passive: true });
+
+      /* ── Mobile nav ── */
+      const toggle = document.getElementById("navToggle");
+      const nav = document.getElementById("navLinks");
+      toggle.addEventListener("click", () => {
+        const open = toggle.classList.toggle("open");
+        nav.classList.toggle("open");
+        toggle.setAttribute("aria-expanded", String(open));
+      });
+      nav.querySelectorAll("a").forEach(a => a.addEventListener("click", () => {
+        toggle.classList.remove("open"); nav.classList.remove("open");
+        toggle.setAttribute("aria-expanded", "false");
+      }));
+
+      /* ── Scroll reveal ── */
+      const reveals = Array.from(document.querySelectorAll(".reveal"));
+      const revObs = new IntersectionObserver((entries, obs) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) { e.target.classList.add("is-visible"); obs.unobserve(e.target); }
+        });
+      }, { threshold: 0.15, rootMargin: "0px 0px -6% 0px" });
+      reveals.forEach(el => revObs.observe(el));
+
+      /* ── Tabs JS ── */
+      const btnTabLogin = document.getElementById("tab-login");
+      const btnTabRegister = document.getElementById("tab-register");
+      const panelLogin = document.getElementById("panel-login");
+      const panelRegister = document.getElementById("panel-register");
+
+      btnTabLogin.addEventListener("click", () => {
+        btnTabLogin.classList.add("active");
+        btnTabRegister.classList.remove("active");
+        panelLogin.classList.add("active");
+        panelRegister.classList.remove("active");
+      });
+
+      btnTabRegister.addEventListener("click", () => {
+        btnTabRegister.classList.add("active");
+        btnTabLogin.classList.remove("active");
+        panelRegister.classList.add("active");
+        panelLogin.classList.remove("active");
+      });
+
+      /* ── API config ── */
+      const API_URL = "/api/reservations";
+
+      /* ── Form submit ── */
+      const form = document.getElementById("contactForm");
+      const toast = document.getElementById("formToast");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById("btnSubmit");
+
+        // Gather values
+        const name = form.querySelector("#inputName").value.trim();
+        const email = form.querySelector("#inputEmail").value.trim();
+        const phone = form.querySelector("#inputPhone").value.trim();
+        const service = form.querySelector("#inputService").value;
+        const vehicle = form.querySelector("input[name='vehicle']:checked")?.value || "sports";
+        const date = form.querySelector("#inputDate").value;
+        const time = form.querySelector("#inputTime").value;
+        const message = form.querySelector("#inputMsg").value.trim();
+        const lang = document.documentElement.lang || "en";
+
+        // Client-side validation
+        let valid = true;
+        [form.querySelector("#inputName"), form.querySelector("#inputEmail")].forEach(el => {
+          el.style.borderColor = "";
+        });
+        if (!name || name.length < 2) {
+          form.querySelector("#inputName").style.borderColor = "#e74c3c";
+          valid = false;
+        }
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          form.querySelector("#inputEmail").style.borderColor = "#e74c3c";
+          valid = false;
+        }
+        if (!valid) return;
+
+        // Loading state
+        btn.disabled = true;
+        const origText = btn.querySelector("span").textContent;
+        btn.querySelector("span").textContent = lang === "es" ? "Enviando…" : "Sending…";
+        btn.style.opacity = "0.7";
+
+        try {
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, phone, service, vehicle, date, time, message, lang }),
+          });
+
+          const data = await res.json();
+
+          if (res.ok && data.success) {
+            toast.classList.remove("error");
+            toast.classList.add("visible");
+            form.reset();
+          } else {
+            toast.classList.add("error", "visible");
+            const errSpan = toast.querySelector("[data-i18n='form.success']");
+            errSpan.textContent = data.errors?.join(". ") || (lang === "es" ? "Error al enviar. Intente de nuevo." : "Error sending. Please try again.");
+          }
+
+          toast.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+        } catch (err) {
+          toast.classList.add("error", "visible");
+          const errSpan = toast.querySelector("[data-i18n='form.success']");
+          errSpan.textContent = lang === "es"
+            ? "No se pudo conectar al servidor. Intente más tarde."
+            : "Could not connect to server. Please try later.";
+          toast.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        } finally {
+          btn.disabled = false;
+          btn.style.opacity = "1";
+          btn.querySelector("span").textContent = origText;
+        }
+      });
+
+      /* ── Custom cursor ── */
+      const dot = document.getElementById("cursorDot");
+      const ring = document.getElementById("cursorRing");
+      const hasFine = window.matchMedia("(pointer: fine)").matches;
+      if (hasFine && dot && ring) {
+        let mx = -200, my = -200, rx = -200, ry = -200, raf;
+        const tick = () => {
+          rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+          dot.style.left = mx + "px"; dot.style.top = my + "px";
+          ring.style.left = Math.round(rx) + "px"; ring.style.top = Math.round(ry) + "px";
+          raf = requestAnimationFrame(tick);
+        };
+        tick();
+        document.addEventListener("mousemove", e => { mx = e.clientX; my = e.clientY; document.body.classList.remove("c-out"); });
+        document.addEventListener("mouseleave", () => document.body.classList.add("c-out"));
+        document.addEventListener("mouseenter", () => document.body.classList.remove("c-out"));
+        const iSel = "a,button,[role='button'],input,select,textarea,.feature-card,.lang-btn";
+        document.addEventListener("mouseover", e => { if (e.target.closest(iSel)) document.body.classList.add("c-hover"); });
+        document.addEventListener("mouseout", e => { if (e.target.closest(iSel)) document.body.classList.remove("c-hover"); });
+        document.addEventListener("mousedown", () => document.body.classList.add("c-click"));
+        document.addEventListener("mouseup", () => document.body.classList.remove("c-click"));
+        document.addEventListener("visibilitychange", () => { if (document.hidden) cancelAnimationFrame(raf); else tick(); });
+      }
+
+      /* ── Particles ── */
+      const canvas = document.getElementById("luxuryParticles");
+      if (canvas && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        const ctx = canvas.getContext("2d");
+        const dpr = window.devicePixelRatio || 1;
+        let W = 0, H = 0, pts = [], animId;
+        class Pt {
+          constructor() { this.reset(); this.x = Math.random() * W; this.y = Math.random() * H; }
+          reset() { this.r = 0.4 + Math.random() * 1.6; this.a = 0.07 + Math.random() * 0.32; this.vx = (Math.random() - .5) * .26; this.vy = (Math.random() - .5) * .26; }
+          update() {
+            this.x += this.vx; this.y += this.vy;
+            if (this.x < -5) this.x = W + 5; if (this.x > W + 5) this.x = -5;
+            if (this.y < -5) this.y = H + 5; if (this.y > H + 5) this.y = -5;
+          }
+          draw(c) { c.beginPath(); c.arc(this.x, this.y, this.r, 0, Math.PI * 2); c.fillStyle = `rgba(212,175,55,${this.a})`; c.fill(); }
+        }
+        function resize() {
+          W = window.innerWidth; H = window.innerHeight;
+          canvas.width = Math.floor(W * dpr); canvas.height = Math.floor(H * dpr);
+          canvas.style.width = W + "px"; canvas.style.height = H + "px";
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          pts = Array.from({ length: Math.min(80, Math.max(32, Math.floor(W / 22))) }, () => new Pt());
+        }
+        function frame() {
+          ctx.clearRect(0, 0, W, H);
+          pts.forEach(p => { p.update(); p.draw(ctx); });
+          for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
+            const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y, d = Math.sqrt(dx * dx + dy * dy);
+            if (d < 85) { ctx.strokeStyle = `rgba(212,175,55,${(1 - d / 85) * .09})`; ctx.lineWidth = .5; ctx.beginPath(); ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke(); }
+          }
+          animId = requestAnimationFrame(frame);
+        }
+        resize(); frame();
+        window.addEventListener("resize", resize);
+        document.addEventListener("visibilitychange", () => { if (document.hidden) cancelAnimationFrame(animId); else frame(); });
+      }
+
+    })();
+  </script>
+</body>
+
+</html>
