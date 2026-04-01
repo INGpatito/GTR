@@ -1102,7 +1102,7 @@
           <!-- TABS -->
           <div class="auth-tabs" role="tablist">
             <button class="auth-tab active" id="tab-login" role="tab" data-i18n="tab.login">Sign In</button>
-            <button class="auth-tab" id="tab-register" role="tab" data-i18n="tab.register">Apply for Membership</button>
+            <button class="auth-tab" id="tab-register" role="tab" data-i18n="tab.register">Register</button>
           </div>
 
           <!-- LOGIN PANEL -->
@@ -1129,7 +1129,7 @@
 
           <!-- REGISTER PANEL -->
           <div class="auth-panel" id="panel-register" role="tabpanel">
-            <h3 class="form-title" style="margin-bottom:1.5rem;" data-i18n="register.title">Membership Application</h3>
+            <h3 class="form-title" style="margin-bottom:1.5rem;" data-i18n="register.title">Create an Account</h3>
             <form id="contactForm" novalidate>
               <div class="form-grid">
                 <!-- Name -->
@@ -1146,6 +1146,11 @@
                 <div class="form-group">
                   <label for="inputPhone" data-i18n="form.phone">Phone</label>
                   <input type="tel" id="inputPhone" name="phone" autocomplete="tel" />
+                </div>
+                <!-- Password -->
+                <div class="form-group full">
+                  <label for="inputRegisterPass" data-i18n="form.newpassword">Create Password</label>
+                  <input type="password" id="inputRegisterPass" name="newpassword" placeholder="••••••••" required />
                 </div>
                 <!-- Service / Subscription -->
                 <div class="form-group">
@@ -1244,8 +1249,8 @@
           "card3.title": "Seamless Priority Exit",
           "card3.desc": "On-demand retrieval with concierge timing ensures your vehicle is prepared the moment you are ready to depart.",
           "login.kicker": "Private Access", "login.title": "Access Your Dashboard", "login.submit": "Enter Vault",
-          "tab.login": "Sign In", "tab.register": "Apply for Membership", 
-          "register.title": "Membership Application", "register.submit": "Request Approval",
+          "tab.login": "Sign In", "tab.register": "Register", 
+          "register.title": "Create an Account", "register.submit": "Complete Registration",
           "form.kicker": "Reserve Your Space", "form.title": "Get In Touch", "form.heading": "Make a Reservation",
           "info.kicker": "Contact Information", "info.title": "Let Us Elevate Your Arrival",
           "info.desc": "Our concierge team is available around the clock to assist with reservations, memberships, and any special requirements for your vehicle.",
@@ -1253,7 +1258,7 @@
           "info.address": "Elite District, Premium Avenue, Suite 1",
           "info.hoursLabel": "Hours", "info.hours": "24 / 7 — 365 days",
           "form.name": "Full Name", "form.email": "Email Address", "form.phone": "Phone",
-          "form.password": "Password",
+          "form.password": "Password", "form.newpassword": "Create Password",
           "form.service": "Subscription Tier", "form.selectTier": "Select a tier…",
           "form.opt.valet": "Standard Valet (Pay per Use)", "form.opt.monthly": "Monthly Membership",
           "form.opt.event": "Event VIP Pass", "form.opt.concierge": "Concierge Priority (Annual)", "form.opt.fleet": "Corporate Fleet",
@@ -1278,8 +1283,8 @@
           "card3.title": "Salida Prioritaria Perfecta",
           "card3.desc": "Recuperación bajo demanda con tiempos de conserje garantiza que su vehículo esté listo en el momento en que desee partir.",
           "login.kicker": "Acceso Privado", "login.title": "Accede a tu Panel", "login.submit": "Entrar a Bóveda",
-          "tab.login": "Iniciar Sesión", "tab.register": "Aplicar a Membresía",
-          "register.title": "Solicitud de Membresía", "register.submit": "Solicitar Aprobación",
+          "tab.login": "Iniciar Sesión", "tab.register": "Registro",
+          "register.title": "Crear una Cuenta", "register.submit": "Completar Registro",
           "form.kicker": "Reserve Su Espacio", "form.title": "Contáctenos", "form.heading": "Hacer una Reserva",
           "info.kicker": "Información de Contacto", "info.title": "Permítanos Elevar Su Llegada",
           "info.desc": "Nuestro equipo de conserje está disponible las 24 horas para asistirle con reservas, membresías y cualquier requisito especial para su vehículo.",
@@ -1287,7 +1292,7 @@
           "info.address": "Distrito Elite, Avenida Premium, Suite 1",
           "info.hoursLabel": "Horario", "info.hours": "24 / 7 — 365 días",
           "form.name": "Nombre Completo", "form.email": "Correo Electrónico", "form.phone": "Teléfono",
-          "form.password": "Contraseña",
+          "form.password": "Contraseña", "form.newpassword": "Crear Contraseña",
           "form.service": "Nivel de Suscripción", "form.selectTier": "Seleccione un nivel…",
           "form.opt.valet": "Valet Estándar (Pago por Uso)", "form.opt.monthly": "Membresía Mensual",
           "form.opt.event": "Pase VIP para Eventos", "form.opt.concierge": "Prioridad Conserje (Anual)", "form.opt.fleet": "Flota / Corporativo",
