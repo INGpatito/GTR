@@ -938,12 +938,15 @@
         backdrop-filter: blur(20px);
         border-left: 1px solid var(--line);
         transform: translateX(100%);
-        transition: transform .5s var(--expo);
+        transition: transform .5s var(--expo), visibility 0s linear .5s;
+        visibility: hidden;
         z-index: 21;
       }
 
       .nav-links.open {
         transform: translateX(0);
+        visibility: visible;
+        transition: transform .5s var(--expo), visibility 0s linear 0s;
       }
 
       .nav-links a {

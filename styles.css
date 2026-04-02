@@ -153,10 +153,14 @@ body.cursor-out .cursor-ring {
    ═══════════════════════════════════════════════════ */
 .loader-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   z-index: 30;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(3, 3, 3, 0.99);
   transition: opacity 1.2s var(--ease-out-expo), visibility 1.2s var(--ease-out-expo);
   overflow: hidden;
@@ -276,9 +280,9 @@ body.cursor-out .cursor-ring {
   z-index: 2;
   text-align: center;
   width: min(640px, 90vw);
+  height: 40vh;
   box-sizing: border-box;
   padding: 0 1rem;
-  margin: 0 auto;
 }
 
 /* ─── Phases ─── */
@@ -1253,12 +1257,15 @@ body.cursor-out .cursor-ring {
     backdrop-filter: blur(20px);
     border-left: 1px solid rgba(212, 175, 55, 0.2);
     transform: translateX(100%);
-    transition: transform 0.5s var(--ease-out-expo);
+    transition: transform 0.5s var(--ease-out-expo), visibility 0s linear 0.5s;
+    visibility: hidden;
     z-index: 11;
   }
 
   .nav-links.open {
     transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.5s var(--ease-out-expo), visibility 0s linear 0s;
   }
 
   .nav-links a {
