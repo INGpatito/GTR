@@ -28,6 +28,10 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  width: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -41,6 +45,8 @@ body {
   font-family: "Montserrat", sans-serif;
   line-height: 1.55;
   overflow-x: hidden;
+  width: 100%;
+  position: relative;
 }
 
 body.loading {
