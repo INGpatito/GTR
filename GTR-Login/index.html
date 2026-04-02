@@ -960,6 +960,36 @@
       .page-hero::after {
         display: none;
       }
+      
+      /* Mobile fixes for Member Portal layout */
+      .auth-container {
+        padding: 1.5rem !important;
+        margin: 0 1rem 3rem 1rem !important;
+        width: calc(100% - 2rem);
+        box-sizing: border-box;
+      }
+
+      .auth-tabs {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .auth-tab {
+        font-size: 0.9rem !important;
+      }
+
+      .form-title {
+        font-size: 1.25rem !important;
+        white-space: normal;
+      }
+
+      input, select, textarea {
+        font-size: 16px !important; /* Prevents auto-zoom on iOS */
+      }
+      
+      .btn-submit {
+        padding: 1rem !important;
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {

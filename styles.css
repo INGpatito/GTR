@@ -1303,6 +1303,8 @@ body.cursor-out .cursor-ring {
   .hero-actions {
     width: min(370px, 100%);
     margin: 0 auto;
+    flex-direction: column;
+    gap: 1rem;
   }
 
   .loader-ornament {
