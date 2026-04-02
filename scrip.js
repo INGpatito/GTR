@@ -50,13 +50,18 @@ function runCinematicLoading({
     return;
   }
 
-  if (prefersReducedMotion) {
+  const hasSeenIntro = sessionStorage.getItem("gtrIntroSeen");
+
+  if (prefersReducedMotion || hasSeenIntro === "true") {
     /* Instant reveal */
-    loader.classList.add("fade-out");
+    loader.style.display = "none";
     body.classList.remove("loading");
     pageShell.classList.add("ready");
     return;
   }
+
+  // Marcar como vista para futuras navegaciones
+  sessionStorage.setItem("gtrIntroSeen", "true");
 
   const phases = [
     document.getElementById("loaderPhase1"),

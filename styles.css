@@ -270,6 +270,9 @@ body.cursor-out .cursor-ring {
   z-index: 2;
   text-align: center;
   width: min(640px, 90vw);
+  box-sizing: border-box;
+  padding: 0 1rem;
+  margin: 0 auto;
 }
 
 /* ─── Phases ─── */
