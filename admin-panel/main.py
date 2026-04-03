@@ -50,8 +50,14 @@ class ParkingAdmin(ctk.CTk):
         self.btn_delete = ctk.CTkButton(self.sidebar_frame, text="🗑 Eliminar Registro", fg_color="#e74c3c", hover_color="#c0392b", command=self.delete_record)
         self.btn_delete.grid(row=3, column=0, padx=20, pady=10)
         
+        # Auto-refresh toggle
+        self.auto_refresh = False
+        self.auto_refresh_id = None
+        self.btn_auto = ctk.CTkButton(self.sidebar_frame, text="🔄 Auto-Refresh: OFF", fg_color="#555555", hover_color="#666666", command=self.toggle_auto_refresh)
+        self.btn_auto.grid(row=4, column=0, padx=20, pady=10)
+        
         self.status_label = ctk.CTkLabel(self.sidebar_frame, text="Estado: Conectando...", text_color="gray")
-        self.status_label.grid(row=5, column=0, padx=20, pady=20, sticky="s")
+        self.status_label.grid(row=6, column=0, padx=20, pady=20, sticky="s")
         
         # ---- MAIN CONTENT ----
         self.main_frame = ctk.CTkFrame(self)
@@ -141,6 +147,23 @@ class ParkingAdmin(ctk.CTk):
         
         # Cargar datos por primera vez
         self.load_data()
+
+    def toggle_auto_refresh(self):
+        self.auto_refresh = not self.auto_refresh
+        if self.auto_refresh:
+            self.btn_auto.configure(text="🔄 Auto-Refresh: ON", fg_color="#1f538d", hover_color="#1a4570")
+            self._auto_refresh_tick()
+        else:
+            self.btn_auto.configure(text="🔄 Auto-Refresh: OFF", fg_color="#555555", hover_color="#666666")
+            if self.auto_refresh_id:
+                self.after_cancel(self.auto_refresh_id)
+                self.auto_refresh_id = None
+
+    def _auto_refresh_tick(self):
+        if not self.auto_refresh:
+            return
+        self.load_data()
+        self.auto_refresh_id = self.after(30000, self._auto_refresh_tick)  # 30 seconds
 
     def get_connection(self):
         try:

@@ -30,6 +30,9 @@ const pool = new Pool({
   user:     process.env.DB_USER     || "postgres",
   password: process.env.DB_PASSWORD || "",
   database: process.env.DB_NAME     || "parking_gtr",
+  max:      5,                       // Max connections (optimized for Orange Pi RAM)
+  idleTimeoutMillis: 30000,          // Close idle connections after 30s
+  connectionTimeoutMillis: 5000,     // Fail fast if DB is unreachable
 });
 
 const app = express();
@@ -62,6 +65,17 @@ app.use(cors({
 
 // Body parser with size limit (reject payloads > 16 KB)
 app.use(express.json({ limit: "16kb" }));
+
+// ── Request Logger ─────────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const ms = Date.now() - start;
+    const ts = new Date().toISOString().slice(11, 19);
+    console.log(`[${ts}] ${req.method} ${req.originalUrl} → ${res.statusCode} (${ms}ms)`);
+  });
+  next();
+});
 
 // Rate limiter for public POST endpoint (15 requests per minute per IP)
 const createLimiter = rateLimit({
@@ -292,10 +306,35 @@ app.use((err, _req, res, _next) => {
 });
 
 // ── Start ──────────────────────────────────────────
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`\n🚗 Parking GTR API running on http://localhost:${PORT}`);
   console.log(`   🔒 Helmet:      enabled`);
   console.log(`   🔒 Rate Limit:  15 req/min on POST`);
   console.log(`   🔒 Admin Key:   ${ADMIN_API_KEY ? "configured" : "⚠ NOT SET (dev mode)"}`);
-  console.log(`   🔒 Bcrypt:      ${BCRYPT_ROUNDS} rounds\n`);
+  console.log(`   🔒 Bcrypt:      ${BCRYPT_ROUNDS} rounds`);
+  console.log(`   🔧 Pool:        max=${pool.options.max}, idle=${pool.options.idleTimeoutMillis}ms\n`);
 });
+
+// ── Graceful Shutdown ──────────────────────────────
+function shutdown(signal) {
+  console.log(`\n⚠ ${signal} received — shutting down gracefully...`);
+  server.close(async () => {
+    console.log("   HTTP server closed.");
+    try {
+      await pool.end();
+      console.log("   DB pool drained. Goodbye.\n");
+    } catch (err) {
+      console.error("   Error closing DB pool:", err.message);
+    }
+    process.exit(0);
+  });
+
+  // Force exit after 10s if graceful shutdown fails
+  setTimeout(() => {
+    console.error("   Forced shutdown after timeout.");
+    process.exit(1);
+  }, 10000);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT",  () => shutdown("SIGINT"));

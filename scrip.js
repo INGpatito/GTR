@@ -53,8 +53,8 @@ function runCinematicLoading({
   const hasSeenIntro = sessionStorage.getItem("gtrIntroSeen");
 
   if (prefersReducedMotion || hasSeenIntro === "true") {
-    /* Instant reveal */
-    loader.style.display = "none";
+    /* Instant reveal — remove loader entirely from DOM */
+    loader.remove();
     body.classList.remove("loading");
     pageShell.classList.add("ready");
     return;
@@ -152,6 +152,8 @@ function runCinematicLoading({
           setTimeout(() => {
             body.classList.remove("loading");
             pageShell.classList.add("ready");
+            /* Remove loader from DOM to free ~50 nodes of memory */
+            loader.remove();
           }, 900);
         }, 600);
       }
@@ -440,6 +442,9 @@ function initParticles(prefersReducedMotion) {
     }
   }
 
+  /* Reduce particles on mobile for battery saving */
+  const isMobile = window.innerWidth < 768;
+
   function resize() {
     width = window.innerWidth;
     height = window.innerHeight;
@@ -449,7 +454,9 @@ function initParticles(prefersReducedMotion) {
     canvas.style.height = `${height}px`;
     context.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const count = Math.min(95, Math.max(38, Math.floor(width / 20)));
+    const count = isMobile
+      ? Math.min(15, Math.max(8, Math.floor(width / 30)))
+      : Math.min(95, Math.max(38, Math.floor(width / 20)));
     particles = Array.from({ length: count }, () => new Particle());
   }
 
@@ -481,7 +488,8 @@ function initParticles(prefersReducedMotion) {
       particle.update();
       particle.draw(context);
     });
-    drawConnections();
+    /* Skip expensive O(n²) connections on mobile */
+    if (!isMobile) drawConnections();
     animationId = requestAnimationFrame(animate);
   }
 
