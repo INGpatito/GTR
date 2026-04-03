@@ -3,6 +3,11 @@ import psycopg2
 from psycopg2 import Error
 from tkinter import messagebox
 from tkinter import ttk
+import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde .env
+load_dotenv()
 
 # Configuración Base de Tema
 ctk.set_appearance_mode("dark")
@@ -15,13 +20,13 @@ class ParkingAdmin(ctk.CTk):
         self.title("Parking GTR - Admin Panel")
         self.geometry("1000x600")
         
-        # Configurar conexión a la BD
+        # Configurar conexión a la BD (desde variables de entorno)
         self.db_params = {
-            "host": "192.168.100.61",
-            "database": "parking_gtr",
-            "user": "postgres",
-            "password": "your_password_here",
-            "port": "5432"
+            "host": os.getenv("DB_HOST", "192.168.100.61"),
+            "database": os.getenv("DB_NAME", "parking_gtr"),
+            "user": os.getenv("DB_USER", "postgres"),
+            "password": os.getenv("DB_PASSWORD", ""),
+            "port": os.getenv("DB_PORT", "5432")
         }
         
         # Grid Layout
@@ -71,10 +76,17 @@ class ParkingAdmin(ctk.CTk):
         # Estilos aplicados de manera general al Treeview
         style = ttk.Style()
         style.theme_use("default")
-        style.configure("Treeview", background="#2b2b2b", foreground="white", rowheight=30, fieldbackground="#2b2b2b", bordercolor="#343638", borderwidth=0)
-        style.map('Treeview', background=[('selected', '#1f538d')])
-        style.configure("Treeview.Heading", background="#414141", foreground="white", relief="flat")
-        style.map("Treeview.Heading", background=[('active', '#505050')])
+        style.configure("Treeview", 
+                        background="#1a1a1a", 
+                        foreground="#e0e0e0", 
+                        rowheight=35, 
+                        fieldbackground="#1a1a1a", 
+                        bordercolor="#2b2b2b", 
+                        borderwidth=0,
+                        font=("Helvetica", 10))
+        style.map('Treeview', background=[('selected', '#d4af37')], foreground=[('selected', '#000000')])
+        style.configure("Treeview.Heading", background="#2a2a2a", foreground="#d4af37", relief="flat", font=("Helvetica", 10, "bold"))
+        style.map("Treeview.Heading", background=[('active', '#3a3a3a')])
         
         self.tree = ttk.Treeview(self.tab1, columns=("ID", "Nombre", "Servicio", "Vehículo", "Fecha y Hora", "Estado"), show="headings")
         self.tree.heading("ID", text="ID")
@@ -122,14 +134,10 @@ class ParkingAdmin(ctk.CTk):
         self.tree_users.bind("<<TreeviewSelect>>", self.show_user_details)
 
         # Detail Panel
-        self.user_detail_frame = ctk.CTkScrollableFrame(self.users_split, corner_radius=10)
-        self.user_detail_frame.grid(row=0, column=1, sticky="nsew")
+        self.user_detail_frame = ctk.CTkScrollableFrame(self.users_split, corner_radius=10, fg_color="#1e1e1e")
+        self.user_detail_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
         
-        self.ud_title = ctk.CTkLabel(self.user_detail_frame, text="Detalles del Socio", font=ctk.CTkFont(size=18, weight="bold"))
-        self.ud_title.pack(pady=15, padx=10)
-        
-        self.ud_info = ctk.CTkLabel(self.user_detail_frame, text="Selecciona un correo en la\ntabla para ver información.", justify="left", wraplength=250)
-        self.ud_info.pack(pady=10, fill="x", padx=15)
+        self.show_empty_details()
         
         # Cargar datos por primera vez
         self.load_data()
@@ -184,6 +192,15 @@ class ParkingAdmin(ctk.CTk):
                 if cursor: cursor.close()
                 if conn: conn.close()
                 
+    def show_empty_details(self):
+        for w in self.user_detail_frame.winfo_children():
+            w.destroy()
+        
+        lbl_icon = ctk.CTkLabel(self.user_detail_frame, text="👤", font=ctk.CTkFont(size=40))
+        lbl_icon.pack(pady=(40, 10))
+        lbl_text = ctk.CTkLabel(self.user_detail_frame, text="Selecciona un socio\nen la tabla para ver\nsu información.", font=ctk.CTkFont(size=14), text_color="gray")
+        lbl_text.pack()
+                
     def show_user_details(self, event):
         selected = self.tree_users.selection()
         if not selected:
@@ -205,27 +222,69 @@ class ParkingAdmin(ctk.CTk):
                 historial = cursor.fetchall()
                 
                 if not historial:
-                    self.ud_info.configure(text="No hay datos para este usuario.")
+                    self.show_empty_details()
                     return
+                
+                # Limpiar el frame derecho (borrar todo antes de renderizar info nueva)
+                for w in self.user_detail_frame.winfo_children():
+                    w.destroy()
                 
                 # Datos principales del perfil (del registro más reciente)
                 latest = historial[0]
                 total_coches = len(historial)
+                nombre = latest[0] if latest[0] else "Socio Sin Nombre"
+                telefono = latest[1] if latest[1] else "No provisto"
+                sub_nivel = latest[2].upper() if latest[2] else "NINGUNO"
                 
-                info_text = (
-                    f"👤 Socio: {latest[0]}\n"
-                    f"✉️ Email: {email}\n"
-                    f"📞 Teléfono: {latest[1] if latest[1] else 'No provisto'}\n"
-                    f"⭐ Nivel Principal: {latest[2].upper()}\n"
-                    f"🚗 Total Vehículos: {total_coches}\n"
-                    f"{'-'*30}\n"
-                    f"📋 Historico de Registro:\n"
-                )
+                # Header del Socio
+                hdr_frame = ctk.CTkFrame(self.user_detail_frame, fg_color="transparent")
+                hdr_frame.pack(fill="x", pady=(10, 20), padx=10)
                 
-                for idx, r in enumerate(historial):
-                    info_text += f"\n  [{idx+1}] {r[3].upper()} ({r[4]})\n      Servicio: {r[2]}"
+                name_lbl = ctk.CTkLabel(hdr_frame, text=nombre, font=ctk.CTkFont(size=22, weight="bold"), text_color="#d4af37")
+                name_lbl.pack(anchor="w")
+                email_lbl = ctk.CTkLabel(hdr_frame, text=email, font=ctk.CTkFont(size=13), text_color="#a0a0a0")
+                email_lbl.pack(anchor="w")
+                
+                # Stats grid
+                stats_frame = ctk.CTkFrame(self.user_detail_frame, fg_color="#2b2b2b", corner_radius=8)
+                stats_frame.pack(fill="x", padx=10, pady=(0, 20))
+                
+                ctk.CTkLabel(stats_frame, text="Suscripción:", font=ctk.CTkFont(size=12, weight="bold"), text_color="#d4af37").grid(row=0, column=0, padx=10, pady=(10, 0), sticky="w")
+                ctk.CTkLabel(stats_frame, text=sub_nivel, font=ctk.CTkFont(size=14)).grid(row=1, column=0, padx=10, pady=(0, 10), sticky="w")
+                
+                ctk.CTkLabel(stats_frame, text="Teléfono:", font=ctk.CTkFont(size=12, weight="bold"), text_color="#d4af37").grid(row=0, column=1, padx=10, pady=(10, 0), sticky="w")
+                ctk.CTkLabel(stats_frame, text=telefono, font=ctk.CTkFont(size=14)).grid(row=1, column=1, padx=10, pady=(0, 10), sticky="w")
+                
+                ctk.CTkLabel(stats_frame, text="Vehículos:", font=ctk.CTkFont(size=12, weight="bold"), text_color="#d4af37").grid(row=0, column=2, padx=10, pady=(10, 0), sticky="w")
+                ctk.CTkLabel(stats_frame, text=str(total_coches), font=ctk.CTkFont(size=14)).grid(row=1, column=2, padx=10, pady=(0, 10), sticky="w")
+                
+                # Historial de Vehículos Registrados (Tarjetas)
+                title_veh = ctk.CTkLabel(self.user_detail_frame, text="Historial de Vehículos", font=ctk.CTkFont(size=16, weight="bold"))
+                title_veh.pack(anchor="w", padx=10, pady=(0, 10))
+                
+                for r in historial:
+                    v_type = r[3].upper() if r[3] else "DESCONOCIDO"
+                    v_status = r[4] if r[4] else "pending"
+                    v_service = r[2] if r[2] else "N/A"
+                    date_str = r[5].strftime("%Y-%m-%d") if r[5] else ""
                     
-                self.ud_info.configure(text=info_text)
+                    card = ctk.CTkFrame(self.user_detail_frame, fg_color="#242424", corner_radius=8, border_width=1, border_color="#3a3a3a")
+                    card.pack(fill="x", padx=10, pady=5)
+                    
+                    header = ctk.CTkFrame(card, fg_color="transparent")
+                    header.pack(fill="x", padx=10, pady=(10, 5))
+                    
+                    lbl_ti = ctk.CTkLabel(header, text=f"🚘 {v_type}", font=ctk.CTkFont(size=14, weight="bold"))
+                    lbl_ti.pack(side="left")
+                    
+                    # Status badge
+                    color_status = "#2ecc71" if v_status == "completed" else "#f39c12"
+                    lbl_st = ctk.CTkLabel(header, text=v_status.upper(), text_color=color_status, font=ctk.CTkFont(size=10, weight="bold"))
+                    lbl_st.pack(side="right")
+                    
+                    # Info sub-label
+                    lbl_sub = ctk.CTkLabel(card, text=f"Servicio Registrado: {v_service}", text_color="#b0b0b0", font=ctk.CTkFont(size=12))
+                    lbl_sub.pack(anchor="w", padx=15, pady=(0, 10))
                 
             except Error as e:
                 messagebox.showerror("Error SQL", f"No se pudo cargar detalles del socio.\n{e}")
