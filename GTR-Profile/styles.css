@@ -1,0 +1,221 @@
+/* ── PROFILE & DASHBOARD STYLES ─────────────────────── */
+body {
+  padding-top: 80px; 
+}
+
+.auth-hero {
+  display: none; 
+}
+
+.profile-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 4rem;
+  align-items: start;
+  margin-top: 2rem;
+}
+
+@media (max-width: 900px) {
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── INTERACTIVE VIP CARD ──────────────────────────── */
+.vip-panel {
+  perspective: 1000px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.vip-card-wrapper {
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 1.586;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.1s ease-out;
+  cursor: pointer;
+}
+
+.vip-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #111 0%, #1a1a1a 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 0 0 1px rgba(255,255,255,0.05);
+  overflow: hidden;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Dynamic Holographic Glow */
+.vip-card-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--gx, 50%) var(--gy, 50%),
+    rgba(212, 175, 55, 0.3) 0%,
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  mix-blend-mode: color-dodge;
+  z-index: 1;
+}
+
+.vip-card-wrapper:hover .vip-card-glow {
+  opacity: 1;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.card-logo {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  color: var(--gold);
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+.card-tier {
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(100deg, #9f7f25 0%, #d4af37 50%, #f0d988 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 600;
+}
+
+.card-chip {
+  width: 42px;
+  height: 32px;
+  background: linear-gradient(135deg, #d4af37, #8f7322);
+  border-radius: 4px;
+  opacity: 0.85;
+  box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+  position: relative;
+  z-index: 2;
+  margin-top: auto;
+  margin-bottom: 15px;
+}
+.card-chip::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 2px;
+}
+
+.card-body {
+  position: relative;
+  z-index: 2;
+}
+
+.card-num {
+  font-family: monospace;
+  font-size: 1.1rem;
+  letter-spacing: 0.25em;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 12px;
+  text-shadow: 0 1px 2px #000;
+}
+
+.card-details {
+  display: flex;
+  justify-content: space-between;
+}
+
+.card-detail {
+  display: flex;
+  flex-direction: column;
+}
+.card-detail.right {
+  text-align: right;
+}
+
+.lbl {
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  color: rgba(212, 175, 55, 0.7);
+  margin-bottom: 2px;
+}
+
+.val {
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: #fff;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.vip-tip {
+  margin-top: 1.5rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  opacity: 0.6;
+}
+
+/* ── PROFILE FORM ──────────────────────────────────── */
+.profile-form-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(145deg, rgba(14, 14, 14, .88), rgba(6, 6, 6, .82));
+  padding: clamp(1.8rem, 4vw, 2.8rem);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.form-title {
+  font-family: 'Cinzel', serif;
+  font-size: 1.6rem;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+
+.form-desc {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+/* Logout Button */
+.btn-logout {
+  background: none;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: var(--gold-soft);
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-logout:hover {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: var(--gold);
+}

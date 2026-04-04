@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#d4af37" />
+  <title>Parking GTR | Member Profile</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23050505' width='100' height='100' rx='18'/%3E%3Ctext x='50' y='62' text-anchor='middle' font-family='serif' font-weight='700' font-size='36' fill='%23d4af37'%3EGTR%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="../GTR-Login/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <!-- Custom cursor -->
+  <div id="cursorDot" class="cursor-dot" aria-hidden="true"></div>
+  <div id="cursorRing" class="cursor-ring" aria-hidden="true"></div>
+
+  <!-- Header -->
+  <header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand-mini">Parking GTR</a>
+      <div class="header-right">
+        <button class="btn-logout" id="btnLogout">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="section" id="profile-section">
+      <div class="container profile-layout">
+        
+        <!-- Left: Interactive VIP Card -->
+        <div class="vip-panel reveal" data-delay="1">
+          <div class="vip-card-wrapper" id="vipCard">
+            <div class="vip-card">
+              <div class="vip-card-glow"></div>
+              <div class="card-header">
+                <span class="card-logo">GTR</span>
+                <span class="card-tier" id="cardTier">MEMBER</span>
+              </div>
+              <div class="card-chip"></div>
+              <div class="card-body">
+                <div class="card-num" id="cardNum">**** **** **** 0000</div>
+                <div class="card-details">
+                  <div class="card-detail">
+                    <span class="lbl">MEMBER</span>
+                    <span class="val" id="cardName">Loading...</span>
+                  </div>
+                  <div class="card-detail right">
+                    <span class="lbl">VEHICLE</span>
+                    <span class="val" id="cardVehicle">--</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="vip-tip">Hover over the card to interact</p>
+        </div>
+
+        <!-- Right: Editable Profile Form -->
+        <div class="profile-form-wrap reveal" data-delay="2">
+          <h3 class="form-title">Dashboard Settings</h3>
+          <p class="form-desc">Update your personal information and reservation details. These changes are saved securely to your Vault profile.</p>
+
+          <form id="profileForm" novalidate>
+            <div class="form-grid">
+              <div class="form-group full">
+                <label for="inputName">Full Name</label>
+                <input type="text" id="inputName" name="name" required />
+              </div>
+              <div class="form-group">
+                <label for="inputEmail">Email (Read Only)</label>
+                <input type="email" id="inputEmail" name="email" disabled />
+              </div>
+              <div class="form-group">
+                <label for="inputPhone">Phone</label>
+                <input type="tel" id="inputPhone" name="phone" />
+              </div>
+              <div class="form-group">
+                <label for="inputService">Subscription Tier</label>
+                <select id="inputService" name="service">
+                  <option value="monthly">Monthly Membership</option>
+                  <option value="concierge">Concierge Priority (Annual)</option>
+                  <option value="fleet">Corporate Fleet</option>
+                  <option value="event">Event VIP Pass</option>
+                  <option value="valet">Standard Valet (Pay per Use)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="inputVehicle">Vehicle Primary</label>
+                <select id="inputVehicle" name="vehicle">
+                  <option value="exotic">✨ Exotic/Hypercar</option>
+                  <option value="sports">🏎 Sports</option>
+                  <option value="suv">🚙 Luxury SUV</option>
+                  <option value="sedan">🚗 Premium Sedan</option>
+                  <option value="convertible">🚘 Convertible</option>
+                </select>
+              </div>
+              
+              <div class="form-group full">
+                <button type="submit" class="btn-submit" id="btnUpdateProfile">
+                  <span>Save Profile</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="form-toast" id="profileToast" role="status" aria-live="polite">
+              <span>◆</span>
+              <span id="toastMsg">Profile updated successfully.</span>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

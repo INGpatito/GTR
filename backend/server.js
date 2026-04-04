@@ -219,6 +219,72 @@ app.post("/api/reservations", createLimiter, async (req, res) => {
   }
 });
 
+// LOGIN (public, rate-limited)
+app.post("/api/login", createLimiter, async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ success: false, errors: ["Email and password required."] });
+  try {
+    const result = await pool.query("SELECT id, full_name, password_hash FROM reservations WHERE email = $1", [email.toLowerCase()]);
+    if (result.rowCount === 0) return res.status(401).json({ success: false, errors: ["Invalid credentials."] });
+    
+    const user = result.rows[0];
+    if (!user.password_hash) return res.status(401).json({ success: false, errors: ["Account not configured for login."] });
+    
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(401).json({ success: false, errors: ["Invalid credentials."] });
+    
+    res.json({ success: true, id: user.id, name: user.full_name });
+  } catch (err) {
+    console.error("Login error: ", err);
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
+// GET USER INFO (for profile page)
+app.get("/api/user/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+  try {
+    const result = await pool.query(
+      "SELECT id, full_name, email, phone, service, vehicle, arrival_date, arrival_time, message, status, created_at FROM reservations WHERE id = $1", 
+      [id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
+    res.json({ success: true, user: result.rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
+// UPDATE USER INFO (for profile page)
+app.put("/api/user/:id", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+  
+  const { name, phone, service, vehicle, date, time, message } = req.body;
+  try {
+    const safeName = sanitizeString(name);
+    const safePhone = sanitizeString(phone);
+    const safeMessage = sanitizeString(message);
+    
+    const result = await pool.query(
+      `UPDATE reservations 
+       SET full_name=$1, phone=$2, service=$3, vehicle=$4, arrival_date=$5, arrival_time=$6, message=$7
+       WHERE id=$8 
+       RETURNING id, full_name, email, phone, service, vehicle, arrival_date, arrival_time, message, status`,
+      [
+        safeName, safePhone, service, vehicle, 
+        date || null, time || null, safeMessage, id
+      ]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
+    res.json({ success: true, user: result.rows[0] });
+  } catch (err) {
+    console.error("Update error: ", err);
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
 // LIST reservations (admin — protected)
 app.get("/api/reservations", requireAdminKey, async (req, res) => {
   const { status, limit = 50, offset = 0 } = req.query;
