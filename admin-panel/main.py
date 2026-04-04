@@ -6,8 +6,10 @@ from tkinter import ttk
 import os
 from dotenv import load_dotenv
 
-# Cargar variables de entorno desde .env
-load_dotenv()
+# Cargar variables de entorno desde backend/.env
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_env_path = os.path.join(_script_dir, "..", "backend", ".env")
+load_dotenv(_env_path)
 
 # Configuración Base de Tema
 ctk.set_appearance_mode("dark")
