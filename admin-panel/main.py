@@ -1,9 +1,10 @@
 import customtkinter as ctk
 import psycopg2
 from psycopg2 import Error
-from tkinter import messagebox
+from tkinter import messagebox, simpledialog
 from tkinter import ttk
 import os
+import bcrypt
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde admin-panel/.env
@@ -29,6 +30,7 @@ class ParkingAdmin(ctk.CTk):
             "password": os.getenv("DB_PASSWORD", ""),
             "port": os.getenv("DB_PORT", "5432")
         }
+        self.admin_unlock_pass = os.getenv("ADMIN_UNLOCK_PASS", "admin123")
         
         # Grid Layout
         self.grid_columnconfigure(1, weight=1)
@@ -77,8 +79,23 @@ class ParkingAdmin(ctk.CTk):
         self.tab1.grid_rowconfigure(1, weight=1)
         self.tab1.grid_columnconfigure(0, weight=1)
         
-        self.title_label = ctk.CTkLabel(self.tab1, text="Reservaciones Activas", font=ctk.CTkFont(size=24, weight="bold"))
-        self.title_label.grid(row=0, column=0, padx=20, pady=10, sticky="w")
+        self.tab1_header = ctk.CTkFrame(self.tab1, fg_color="transparent")
+        self.tab1_header.grid(row=0, column=0, sticky="ew", padx=20, pady=10)
+        self.tab1_header.grid_columnconfigure(1, weight=1)
+        
+        self.title_label = ctk.CTkLabel(self.tab1_header, text="Registro de Actividad", font=ctk.CTkFont(size=24, weight="bold"))
+        self.title_label.grid(row=0, column=0, sticky="w")
+        
+        self.filter_pending_var = ctk.BooleanVar(value=False)
+        self.chk_filter = ctk.CTkCheckBox(
+            self.tab1_header,
+            text="🚨 Mostrar SÓLO Pendientes",
+            variable=self.filter_pending_var,
+            command=self.load_data,
+            fg_color="#d4af37",
+            hover_color="#b5952f"
+        )
+        self.chk_filter.grid(row=0, column=2, sticky="e")
         
         # Estilos aplicados de manera general al Treeview
         style = ttk.Style()
@@ -190,7 +207,10 @@ class ParkingAdmin(ctk.CTk):
                 cursor = conn.cursor()
                 
                 # Cargar TAB 1 (Reservaciones)
-                cursor.execute("SELECT id, full_name, service, vehicle, arrival_date, arrival_time, status FROM reservations ORDER BY created_at DESC;")
+                if hasattr(self, 'filter_pending_var') and self.filter_pending_var.get():
+                    cursor.execute("SELECT id, full_name, service, vehicle, arrival_date, arrival_time, status FROM reservations WHERE status = 'pending' OR status IS NULL ORDER BY created_at DESC;")
+                else:
+                    cursor.execute("SELECT id, full_name, service, vehicle, arrival_date, arrival_time, status FROM reservations ORDER BY created_at DESC;")
                 records = cursor.fetchall()
                 for row in records:
                     date_time = f"{row[4]} {row[5]}" if row[4] and row[5] else "Pendiente"
@@ -238,7 +258,7 @@ class ParkingAdmin(ctk.CTk):
                 cursor = conn.cursor()
                 # Obtener detalles completos de este usuario buscando todos sus historiales
                 cursor.execute("""
-                    SELECT full_name, phone, service, vehicle, status, created_at
+                    SELECT full_name, phone, service, vehicle, status, created_at, id, license_plate
                     FROM reservations
                     WHERE email = %s
                     ORDER BY created_at DESC
@@ -263,11 +283,18 @@ class ParkingAdmin(ctk.CTk):
                 # Header del Socio
                 hdr_frame = ctk.CTkFrame(self.user_detail_frame, fg_color="transparent")
                 hdr_frame.pack(fill="x", pady=(10, 20), padx=10)
+                hdr_frame.grid_columnconfigure(0, weight=1)
                 
-                name_lbl = ctk.CTkLabel(hdr_frame, text=nombre, font=ctk.CTkFont(size=22, weight="bold"), text_color="#d4af37")
+                info_f = ctk.CTkFrame(hdr_frame, fg_color="transparent")
+                info_f.grid(row=0, column=0, sticky="w")
+                
+                name_lbl = ctk.CTkLabel(info_f, text=nombre, font=ctk.CTkFont(size=22, weight="bold"), text_color="#d4af37")
                 name_lbl.pack(anchor="w")
-                email_lbl = ctk.CTkLabel(hdr_frame, text=email, font=ctk.CTkFont(size=13), text_color="#a0a0a0")
+                email_lbl = ctk.CTkLabel(info_f, text=email, font=ctk.CTkFont(size=13), text_color="#a0a0a0")
                 email_lbl.pack(anchor="w")
+                
+                btn_security = ctk.CTkButton(hdr_frame, text="🔒 Seguridad", width=100, fg_color="#c0392b", hover_color="#922b21", command=lambda: self.prompt_security(email))
+                btn_security.grid(row=0, column=1, sticky="e")
                 
                 # Stats grid
                 stats_frame = ctk.CTkFrame(self.user_detail_frame, fg_color="#2b2b2b", corner_radius=8)
@@ -362,6 +389,103 @@ class ParkingAdmin(ctk.CTk):
                 finally:
                     if cursor: cursor.close()
                     if conn: conn.close()
+
+    def prompt_security(self, email):
+        dialog = ctk.CTkInputDialog(text="Introduce la contraseña de desbloqueo de administrador:", title="Acceso Protegido")
+        pwd = dialog.get_input()
+        if pwd is None:
+            return
+        if pwd == self.admin_unlock_pass:
+            self.open_security_window(email)
+        else:
+            messagebox.showerror("Acceso Denegado", "Contraseña incorrecta.")
+            
+    def open_security_window(self, email):
+        toplevel = ctk.CTkToplevel(self)
+        toplevel.title(f"Datos Sensibles - {email}")
+        toplevel.geometry("500x600")
+        toplevel.grab_set()
+        
+        container = ctk.CTkScrollableFrame(toplevel)
+        container.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        ctk.CTkLabel(container, text="Modificar Seguridad y Accesos", font=ctk.CTkFont(size=20, weight="bold"), text_color="#d4af37").pack(anchor="w", pady=(0, 20))
+        
+        # Cambio de contraseña
+        ctk.CTkLabel(container, text="Nueva Contraseña Usuario:", font=ctk.CTkFont(weight="bold")).pack(anchor="w")
+        pwd_entry = ctk.CTkEntry(container, placeholder_text="Mínimo 6 caracteres", width=300, show="*")
+        pwd_entry.pack(anchor="w", pady=(0, 20))
+        
+        ctk.CTkLabel(container, text="Vehículos (Matrículas)", font=ctk.CTkFont(size=16, weight="bold"), text_color="#d4af37").pack(anchor="w", pady=(10, 10))
+        
+        # Obtener todas las reservaciones (coches del usuario) para editar matrícula
+        conn = self.get_connection()
+        plate_entries = {} # record_id -> CTkEntry
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT id, vehicle, license_plate, service FROM reservations WHERE email = %s ORDER BY created_at DESC", (email,))
+                vehiculos = cursor.fetchall()
+                
+                for v in vehiculos:
+                    v_id = v[0]
+                    v_type = v[1].upper() if v[1] else "VEHICULO"
+                    v_plate = v[2] if v[2] else ""
+                    
+                    frame = ctk.CTkFrame(container, fg_color="#2b2b2b")
+                    frame.pack(fill="x", pady=5)
+                    
+                    ctk.CTkLabel(frame, text=f"Auto: {v_type} (ID: {v_id})").pack(side="left", padx=10, pady=10)
+                    
+                    entry = ctk.CTkEntry(frame, width=120)
+                    entry.insert(0, v_plate)
+                    entry.pack(side="right", padx=10, pady=10)
+                    
+                    plate_entries[v_id] = entry
+                    
+            except Error as e:
+                messagebox.showerror("Error", f"Error cargando vehículos: {e}")
+            finally:
+                if cursor: cursor.close()
+                if conn: conn.close()
+                
+        def save_changes():
+            new_pwd = pwd_entry.get().strip()
+            
+            save_conn = self.get_connection()
+            if not save_conn: return
+            
+            try:
+                cur = save_conn.cursor()
+                
+                # Guardar placas
+                for v_id, entry in plate_entries.items():
+                    placa = entry.get().strip()
+                    cur.execute("UPDATE reservations SET license_plate = %s WHERE id = %s", (placa, v_id))
+                
+                # Actualizar password si hay
+                if new_pwd:
+                    if len(new_pwd) < 4:
+                        messagebox.showwarning("Inseguro", "La contraseña es muy corta.")
+                        return
+                    salt = bcrypt.gensalt(rounds=12)
+                    hashed = bcrypt.hashpw(new_pwd.encode('utf-8'), salt).decode('utf-8')
+                    # Actualiza en todas las reservaciones ligadas a este email para consistencia de inicio de sesión
+                    cur.execute("UPDATE reservations SET password_hash = %s WHERE email = %s", (hashed, email))
+                
+                save_conn.commit()
+                messagebox.showinfo("Éxito", "Cambios guardados de forma segura en la Bóveda.")
+                toplevel.destroy()
+                
+            except Error as e:
+                messagebox.showerror("Error SQL", f"No se pudo guardar: {e}")
+            finally:
+                if cur: cur.close()
+                if save_conn: save_conn.close()
+                
+        # Boton Guardar
+        btn_save = ctk.CTkButton(container, text="Guardar Cambios", fg_color="#2ecc71", hover_color="#27ae60", command=save_changes)
+        btn_save.pack(pady=20)
 
 if __name__ == "__main__":
     app = ParkingAdmin()
