@@ -5,6 +5,8 @@ from tkinter import messagebox, simpledialog
 from tkinter import ttk
 import os
 import bcrypt
+import requests
+import threading
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde admin-panel/.env
@@ -134,8 +136,15 @@ class ParkingAdmin(ctk.CTk):
         self.tab2.grid_rowconfigure(1, weight=1)
         self.tab2.grid_columnconfigure(0, weight=1)
         
-        self.users_title = ctk.CTkLabel(self.tab2, text="Directorio de Socios", font=ctk.CTkFont(size=24, weight="bold"))
-        self.users_title.grid(row=0, column=0, padx=20, pady=10, sticky="w")
+        self.tab2_header = ctk.CTkFrame(self.tab2, fg_color="transparent")
+        self.tab2_header.grid(row=0, column=0, sticky="ew", padx=20, pady=10)
+        self.tab2_header.grid_columnconfigure(0, weight=1)
+        
+        self.users_title = ctk.CTkLabel(self.tab2_header, text="Directorio de Socios", font=ctk.CTkFont(size=24, weight="bold"))
+        self.users_title.grid(row=0, column=0, sticky="w")
+        
+        self.btn_delete_member = ctk.CTkButton(self.tab2_header, text="🗑 Eliminar Socio", fg_color="#e74c3c", hover_color="#c0392b", width=140, command=self.delete_member)
+        self.btn_delete_member.grid(row=0, column=1, sticky="e")
 
         # Split frame
         self.users_split = ctk.CTkFrame(self.tab2, fg_color="transparent")
@@ -355,16 +364,80 @@ class ParkingAdmin(ctk.CTk):
         if conn:
             try:
                 cursor = conn.cursor()
-                # Marcar como 'completed' en lugar de 'pending'
+                # Obtener datos del usuario antes de aprobar
+                cursor.execute("SELECT full_name, email, service FROM reservations WHERE id = %s", (record_id,))
+                user_row = cursor.fetchone()
+                
+                # Marcar como 'completed'
                 cursor.execute("UPDATE reservations SET status = %s WHERE id = %s", ('completed', record_id))
                 conn.commit()
                 self.load_data()
-                messagebox.showinfo("Éxito", f"Registro ID {record_id} marcado como completado.")
+                
+                # Enviar correo de aprobación
+                if user_row and user_row[1]:  # Si tiene email
+                    nombre = user_row[0] or "Socio"
+                    email = user_row[1]
+                    servicio = (user_row[2] or "valet").upper()
+                    
+                    send_email = messagebox.askyesno(
+                        "Enviar Notificación",
+                        f"Registro ID {record_id} aprobado.\n\n¿Deseas enviar correo de aprobación a {email}?"
+                    )
+                    if send_email:
+                        self.send_approval_email(nombre, email, servicio)
+                else:
+                    messagebox.showinfo("Éxito", f"Registro ID {record_id} marcado como completado (sin email para notificar).")
+                    
             except Error as e:
                 messagebox.showerror("Error SQL", f"No se pudo actualizar el registro.\n{e}")
             finally:
                 if cursor: cursor.close()
                 if conn: conn.close()
+
+    def send_approval_email(self, to_name, to_email, membership_type):
+        """Envía correo de aprobación via EmailJS REST API en un hilo separado."""
+        self.status_label.configure(text="Enviando correo...", text_color="#f39c12")
+        self.update()
+        
+        def _send():
+            try:
+                payload = {
+                    "service_id": "service_h4dij37",
+                    "template_id": "template_r4gkv6g",
+                    "user_id": "BaTFzWtSBU0bZ_lKj",
+                    "accessToken": "oXznojZUyeBLPnRk_GqNj",
+                    "template_params": {
+                        "to_name": to_name,
+                        "to_email": to_email,
+                        "membership_type": membership_type
+                    }
+                }
+                
+                response = requests.post(
+                    "https://api.emailjs.com/api/v1.0/email/send",
+                    json=payload,
+                    headers={"Content-Type": "application/json"},
+                    timeout=15
+                )
+                
+                if response.status_code == 200:
+                    self.after(0, lambda: [
+                        self.status_label.configure(text="Estado: Correo enviado ✅", text_color="#2ecc71"),
+                        messagebox.showinfo("Éxito", f"Correo de aprobación enviado a:\n{to_email}")
+                    ])
+                else:
+                    self.after(0, lambda: [
+                        self.status_label.configure(text="Estado: Error de correo", text_color="#e74c3c"),
+                        messagebox.showwarning("Error EmailJS", f"No se pudo enviar el correo.\nCódigo: {response.status_code}\n{response.text}")
+                    ])
+            except Exception as e:
+                self.after(0, lambda: [
+                    self.status_label.configure(text="Estado: Error de red", text_color="#e74c3c"),
+                    messagebox.showerror("Error de Red", f"No se pudo conectar a EmailJS:\n{e}")
+                ])
+        
+        # Ejecutar en hilo separado para no congelar la UI
+        threading.Thread(target=_send, daemon=True).start()
 
     def delete_record(self):
         selected = self.tree.selection()
@@ -386,6 +459,34 @@ class ParkingAdmin(ctk.CTk):
                     self.load_data()
                 except Error as e:
                     messagebox.showerror("Error SQL", f"No se pudo eliminar el registro.\n{e}")
+                finally:
+                    if cursor: cursor.close()
+                    if conn: conn.close()
+                    
+    def delete_member(self):
+        selected = self.tree_users.selection()
+        if not selected:
+            messagebox.showwarning("Atención", "Por favor selecciona un socio de la tabla primero.")
+            return
+            
+        email = self.tree_users.item(selected[0])["values"][0]
+        
+        confirm = messagebox.askyesno("Confirmar Eliminación de Socio", f"🚨 ATENCIÓN 🚨\n\n¿Estás completamente seguro de que quieres eliminar al socio con email:\n'{email}'\n\nEsto borrará TODAS sus reservaciones, vehículos y acceso al portal. Esta acción no se puede deshacer.")
+        if confirm:
+            conn = self.get_connection()
+            if conn:
+                try:
+                    cursor = conn.cursor()
+                    # Delete all rows matching this email
+                    cursor.execute("DELETE FROM reservations WHERE email = %s", (email,))
+                    deleted_count = cursor.rowcount
+                    conn.commit()
+                    
+                    self.load_data()
+                    self.show_empty_details()  # Clear the panel just in case
+                    messagebox.showinfo("Éxito", f"Socio eliminado.\nSe eliminaron {deleted_count} registros asociados a {email}.")
+                except Error as e:
+                    messagebox.showerror("Error SQL", f"No se pudo eliminar el socio.\n{e}")
                 finally:
                     if cursor: cursor.close()
                     if conn: conn.close()

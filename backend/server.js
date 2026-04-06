@@ -225,7 +225,7 @@ app.post("/api/login", createLimiter, async (req, res) => {
   if (!email || !password) return res.status(400).json({ success: false, errors: ["Email and password required."] });
   try {
     const result = await pool.query(
-      "SELECT id, full_name, password_hash FROM reservations WHERE email = $1 ORDER BY created_at DESC LIMIT 1",
+      "SELECT id, full_name, password_hash, status FROM reservations WHERE email = $1 ORDER BY created_at DESC LIMIT 1",
       [email.toLowerCase()]
     );
     if (result.rowCount === 0) return res.status(401).json({ success: false, errors: ["Invalid credentials."] });
@@ -236,7 +236,7 @@ app.post("/api/login", createLimiter, async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(401).json({ success: false, errors: ["Invalid credentials."] });
     
-    res.json({ success: true, id: user.id, name: user.full_name });
+    res.json({ success: true, id: user.id, name: user.full_name, status: user.status });
   } catch (err) {
     console.error("Login error: ", err);
     res.status(500).json({ success: false, errors: ["Server error."] });

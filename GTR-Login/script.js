@@ -180,6 +180,13 @@
           });
           const data = await res.json();
           if (res.ok && data.success) {
+            if (data.status !== "completed") {
+              alert(lang === "es" ? "Pronto abriremos tu Portal de Cliente. Por favor espera a que aprobemos tu membresía." : "Client Portal coming soon. Please wait for membership approval.");
+              btn.disabled = false;
+              btn.style.opacity = "1";
+              btn.querySelector("span").textContent = origText;
+              return;
+            }
             sessionStorage.setItem("gtr_user_id", data.id);
             window.location.href = "../GTR-Profile/index.html";
           } else {
@@ -247,7 +254,15 @@
           const data = await res.json();
 
           if (res.ok && data.success) {
-            // Guardamos el ID en la sesión y redirigimos
+            if (data.reservation.status !== "completed") {
+               alert(lang === "es" ? "Solicitud recibida correctamente. Por favor, espera a que nuestros administradores validen tu perfil mediante el Panel de Seguridad." : "Application received successfully. Please wait for an administrator to authorise your profile.");
+               btn.disabled = false;
+               btn.style.opacity = "1";
+               btn.querySelector("span").textContent = origText;
+               form.reset();
+               return;
+            }
+            // Guardamos el ID en la sesión y redirigimos si por casualidad ya estaba completado
             sessionStorage.setItem("gtr_user_id", data.reservation.id);
             window.location.href = "../GTR-Profile/index.html";
             return;
