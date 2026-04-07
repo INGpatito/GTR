@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet" />
   
+  <link rel="stylesheet" href="../styles.css" />
   <link rel="stylesheet" href="../GTR-Login/styles.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -20,12 +21,15 @@
   <div id="cursorDot" class="cursor-dot" aria-hidden="true"></div>
   <div id="cursorRing" class="cursor-ring" aria-hidden="true"></div>
 
-  <!-- Header -->
-  <header class="site-header" id="siteHeader">
-    <div class="container header-inner">
-      <a href="../index.html" class="brand-mini">Parking GTR</a>
+  <canvas id="luxuryParticles" class="luxury-particles" aria-hidden="true"></canvas>
+
+  <div id="pageShell" class="page-shell">
+    <!-- Header -->
+    <header class="site-header" id="siteHeader">
+      <div class="container header-inner">
+        <a href="../index.html" class="brand-mini">Parking GTR</a>
       <div class="header-right">
-        <button class="btn-logout" id="btnLogout">Sign Out</button>
+        <button class="btn btn-outline" id="btnLogout">Sign Out</button>
       </div>
     </div>
   </header>
@@ -119,7 +123,10 @@
       </div>
     </section>
   </main>
+  </div> <!-- Shell -->
 
+  <!-- FontAwesome for icons if needed -->
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <script src="script.js"></script>
 </body>
 </html>

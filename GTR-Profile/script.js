@@ -159,4 +159,159 @@
   /* ── INIT ── */
   loadProfile();
 
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  initCustomCursor(prefersReducedMotion);
+  initParticles(prefersReducedMotion);
+
+  /* ═══════════════════════════════════════════════════
+     CUSTOM CURSOR
+     ═══════════════════════════════════════════════════ */
+  function initCustomCursor(prefersReducedMotion) {
+    const hasFinePinter = window.matchMedia("(pointer: fine)").matches;
+    if (!hasFinePinter || prefersReducedMotion) return;
+
+    const dot  = document.getElementById("cursorDot");
+    const ring = document.getElementById("cursorRing");
+    if (!dot || !ring) return;
+
+    let mouseX = -200, mouseY = -200;
+    let ringX  = -200, ringY  = -200;
+    let rafId;
+
+    function tick() {
+      ringX += (mouseX - ringX) * 0.12;
+      ringY += (mouseY - ringY) * 0.12;
+      dot.style.left  = mouseX + "px";
+      dot.style.top   = mouseY + "px";
+      ring.style.left = Math.round(ringX) + "px";
+      ring.style.top  = Math.round(ringY) + "px";
+      rafId = requestAnimationFrame(tick);
+    }
+    tick();
+
+    document.addEventListener("mousemove", (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      document.body.classList.remove("cursor-out");
+    });
+
+    document.addEventListener("mouseleave", () => document.body.classList.add("cursor-out"));
+    document.addEventListener("mouseenter", () => document.body.classList.remove("cursor-out"));
+
+    const interactiveSelector = "a, button, [role='button'], input, select, textarea, .vip-card-wrapper, .btn";
+
+    document.addEventListener("mouseover", (e) => {
+      if (e.target.closest(interactiveSelector)) document.body.classList.add("cursor-hover");
+    });
+    document.addEventListener("mouseout", (e) => {
+      if (e.target.closest(interactiveSelector)) document.body.classList.remove("cursor-hover");
+    });
+
+    document.addEventListener("mousedown", () => document.body.classList.add("cursor-click"));
+    document.addEventListener("mouseup",   () => document.body.classList.remove("cursor-click"));
+  }
+
+  /* ═══════════════════════════════════════════════════
+     LUXURY PARTICLES
+     ═══════════════════════════════════════════════════ */
+  function initParticles(prefersReducedMotion) {
+    const canvas = document.getElementById("luxuryParticles");
+    if (!canvas || prefersReducedMotion) return;
+
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    let particles = [];
+    let width = 0;
+    let height = 0;
+    let animationId = 0;
+
+    class Particle {
+      constructor() {
+        this.reset();
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+      }
+      reset() {
+        this.radius = 0.45 + Math.random() * 1.7;
+        this.alpha = 0.08 + Math.random() * 0.38;
+        this.vx = (Math.random() - 0.5) * 0.28;
+        this.vy = (Math.random() - 0.5) * 0.28;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.x < -6) this.x = width + 6;
+        if (this.x > width + 6) this.x = -6;
+        if (this.y < -6) this.y = height + 6;
+        if (this.y > height + 6) this.y = -6;
+      }
+      draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(212, 175, 55, ${this.alpha})`;
+        ctx.fill();
+      }
+    }
+
+    const isMobile = window.innerWidth < 768;
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const count = isMobile
+        ? Math.min(15, Math.max(8, Math.floor(width / 30)))
+        : Math.min(95, Math.max(38, Math.floor(width / 20)));
+      particles = Array.from({ length: count }, () => new Particle());
+    }
+
+    function drawConnections() {
+      for (let i = 0; i < particles.length; i += 1) {
+        for (let j = i + 1; j < particles.length; j += 1) {
+          const a = particles[i];
+          const b = particles[j];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < 90) {
+            const alpha = (1 - distance / 90) * 0.1;
+            context.strokeStyle = `rgba(212, 175, 55, ${alpha})`;
+            context.lineWidth = 0.5;
+            context.beginPath();
+            context.moveTo(a.x, a.y);
+            context.lineTo(b.x, b.y);
+            context.stroke();
+          }
+        }
+      }
+    }
+
+    function animate() {
+      context.clearRect(0, 0, width, height);
+      particles.forEach((particle) => {
+        particle.update();
+        particle.draw(context);
+      });
+      if (!isMobile) drawConnections();
+      animationId = requestAnimationFrame(animate);
+    }
+
+    resize();
+    animate();
+    window.addEventListener("resize", resize);
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) cancelAnimationFrame(animationId);
+      else animate();
+    });
+  }
+
 })();

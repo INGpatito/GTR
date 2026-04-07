@@ -98,6 +98,7 @@ body {
   color: #fff;
   background: linear-gradient(100deg, #9f7f25 0%, #d4af37 50%, #f0d988 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   font-weight: 600;
 }
@@ -201,21 +202,3 @@ body {
   line-height: 1.5;
 }
 
-/* Logout Button */
-.btn-logout {
-  background: none;
-  border: 1px solid rgba(212, 175, 55, 0.4);
-  color: var(--gold-soft);
-  padding: 0.4rem 1rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.btn-logout:hover {
-  background: rgba(212, 175, 55, 0.1);
-  border-color: var(--gold);
-}
