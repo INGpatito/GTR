@@ -276,7 +276,7 @@ label {
   font-weight: 500;
 }
 
-input,
+input:not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
   background: rgba(255, 255, 255, 0.04);
@@ -298,7 +298,7 @@ textarea::placeholder {
   color: rgba(200, 188, 152, 0.35);
 }
 
-input:focus,
+input:not([type="checkbox"]):not([type="radio"]):focus,
 select:focus,
 textarea:focus {
   border-color: rgba(212, 175, 55, 0.7);
