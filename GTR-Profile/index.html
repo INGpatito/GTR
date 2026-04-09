@@ -29,10 +29,17 @@
       <div class="container header-inner">
         <a href="../index.html" class="brand-mini">Parking GTR</a>
         <div class="header-right">
-          <span class="welcome-name" id="welcomeName"></span>
-          <button class="btn-lang" id="btnLang" title="Switch Language">🌐 EN</button>
-          <button class="btn btn-outline" id="btnLogout" data-en="Sign Out" data-es="Cerrar Sesión">Sign Out</button>
+          <!-- Language switcher (matched to main UI) -->
+          <div class="lang-switcher" id="langSwitcher" role="group" aria-label="Language">
+            <button class="lang-btn lang-btn--active" id="langEN" data-lang="en">EN</button>
+            <span class="lang-sep" aria-hidden="true">|</span>
+            <button class="lang-btn" id="langES" data-lang="es">ES</button>
+          </div>
         </div>
+        <nav class="nav-links" style="display:flex; align-items:center; gap:1.5rem;" aria-label="Primary">
+          <span class="welcome-name" id="welcomeName"></span>
+          <button class="btn btn-outline" id="btnLogout" style="padding:0.4rem 1.2rem; font-size:0.85rem;" data-en="Sign Out" data-es="Cerrar Sesión">Sign Out</button>
+        </nav>
       </div>
     </header>
 

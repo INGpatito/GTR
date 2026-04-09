@@ -654,18 +654,25 @@
 
   let currentLang = localStorage.getItem("gtr_lang") || "en";
 
-  const btnLang = document.getElementById("btnLang");
-  if (btnLang) {
-    btnLang.addEventListener("click", () => {
-      currentLang = currentLang === "en" ? "es" : "en";
-      localStorage.setItem("gtr_lang", currentLang);
-      applyTranslations();
-    });
+  const langEN = document.getElementById("langEN");
+  const langES = document.getElementById("langES");
+
+  function updateLangButtons() {
+    if (!langEN || !langES) return;
+    if (currentLang === "en") {
+      langEN.classList.add("lang-btn--active");
+      langES.classList.remove("lang-btn--active");
+    } else {
+      langES.classList.add("lang-btn--active");
+      langEN.classList.remove("lang-btn--active");
+    }
   }
+
+  if (langEN) langEN.addEventListener("click", () => { currentLang = "en"; localStorage.setItem("gtr_lang", "en"); updateLangButtons(); applyTranslations(); });
+  if (langES) langES.addEventListener("click", () => { currentLang = "es"; localStorage.setItem("gtr_lang", "es"); updateLangButtons(); applyTranslations(); });
 
   function applyTranslations() {
     const t = TEXTS[currentLang];
-    if (btnLang) btnLang.textContent = t.langBtn;
     if (btnLogout) btnLogout.textContent = t.signOut;
     
     document.querySelector("#statsGrid .stat-box:nth-child(1) .stat-label").textContent = t.reservations;
@@ -699,6 +706,7 @@
   }
 
   // Initial call
+  updateLangButtons();
   applyTranslations();
 
 })();
