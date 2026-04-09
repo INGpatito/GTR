@@ -239,9 +239,17 @@ app.post("/api/reservations", createLimiter, async (req, res) => {
     const reservation = result.rows[0];
     console.log(`✅ New reservation #${reservation.id} from ${reservation.email}`);
 
+    // Sign JWT so the user is instantly logged in after registration
+    const token = jwt.sign(
+      { id: reservation.id, email: reservation.email },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES }
+    );
+
     res.status(201).json({
       success: true,
       reservation,
+      token
     });
 
   } catch (err) {

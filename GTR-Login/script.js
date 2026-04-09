@@ -265,6 +265,7 @@
             }
             // Guardamos el ID en la sesión y redirigimos si por casualidad ya estaba completado
             sessionStorage.setItem("gtr_user_id", data.reservation.id);
+            if (data.token) sessionStorage.setItem("gtr_token", data.token);
             window.location.href = "../GTR-Profile/index.html";
             return;
           } else {
