@@ -598,4 +598,107 @@
     });
   }
 
+  /* ══════════════════════════════════════════════════
+     TRANSLATIONS
+     ══════════════════════════════════════════════════ */
+  const TEXTS = {
+    en: {
+      langBtn: "🌐 ES",
+      signOut: "Sign Out",
+      reservations: "Reservations",
+      vehicles: "Vehicles",
+      daysMember: "Days as Member",
+      accStatus: "Account Status",
+      memberId: "Member ID",
+      profSettings: "Profile Settings",
+      profDesc: "Update your personal information and preferred service tier.",
+      fName: "Full Name",
+      fPhone: "Phone",
+      fPrefServ: "Preferred Service",
+      fSave: "Save Profile",
+      notifTitle: "Notification Preferences",
+      notifDesc: "Choose how you'd like to receive alerts when your vehicle is ready.",
+      garTitle: "My Garage",
+      garDesc: "Register up to 3 vehicles. Set one as primary for automatic valet recognition.",
+      addBtn: "Add Vehicle",
+      garEmpty: "No vehicles registered yet. Add your first car below.",
+      actTitle: "Recent Activity",
+      actDesc: "Track your latest valet and concierge interactions.",
+      actEmpty: "No activity records found."
+    },
+    es: {
+      langBtn: "🌐 EN",
+      signOut: "Cerrar Sesión",
+      reservations: "Reservas",
+      vehicles: "Vehículos",
+      daysMember: "Días como Miembro",
+      accStatus: "Estado de Cuenta",
+      memberId: "ID de Socio",
+      profSettings: "Configuración de Perfil",
+      profDesc: "Actualiza tu información personal y nivel de servicio preferido.",
+      fName: "Nombre Completo",
+      fPhone: "Teléfono",
+      fPrefServ: "Servicio Preferido",
+      fSave: "Guardar Perfil",
+      notifTitle: "Preferencias de Notificaciones",
+      notifDesc: "Elige cómo deseas recibir alertas cuando tu vehículo esté listo.",
+      garTitle: "Mi Garaje",
+      garDesc: "Registra hasta 3 vehículos. Fija uno como principal para el valet.",
+      addBtn: "Añadir Vehículo",
+      garEmpty: "No hay vehículos. Añade tu primer auto abajo.",
+      actTitle: "Actividad Reciente",
+      actDesc: "Rastrea tus últimas interacciones de valet y concierge.",
+      actEmpty: "No se encontraron registros de actividad."
+    }
+  };
+
+  let currentLang = localStorage.getItem("gtr_lang") || "en";
+
+  const btnLang = document.getElementById("btnLang");
+  if (btnLang) {
+    btnLang.addEventListener("click", () => {
+      currentLang = currentLang === "en" ? "es" : "en";
+      localStorage.setItem("gtr_lang", currentLang);
+      applyTranslations();
+    });
+  }
+
+  function applyTranslations() {
+    const t = TEXTS[currentLang];
+    if (btnLang) btnLang.textContent = t.langBtn;
+    if (btnLogout) btnLogout.textContent = t.signOut;
+    
+    document.querySelector("#statsGrid .stat-box:nth-child(1) .stat-label").textContent = t.reservations;
+    document.querySelector("#statsGrid .stat-box:nth-child(2) .stat-label").textContent = t.vehicles;
+    document.querySelector("#statsGrid .stat-box:nth-child(3) .stat-label").textContent = t.daysMember;
+    document.querySelector("#statsGrid .stat-box:nth-child(4) .stat-label").textContent = t.accStatus;
+    
+    document.querySelector(".mid-label").textContent = t.memberId;
+    
+    document.querySelector(".dash-card:nth-child(1) .dash-title").textContent = t.profSettings;
+    document.querySelector(".dash-card:nth-child(1) .dash-desc").textContent = t.profDesc;
+    
+    document.querySelector('label[for="inputName"]').textContent = t.fName;
+    document.querySelector('label[for="inputPhone"]').textContent = t.fPhone;
+    document.querySelector('.form-group.full:nth-of-type(4) label').textContent = t.fPrefServ;
+    document.querySelector('#btnUpdateProfile span').textContent = t.fSave;
+    
+    document.querySelector(".dash-card:nth-child(2) .dash-title").textContent = t.notifTitle;
+    document.querySelector(".dash-card:nth-child(2) .dash-desc").textContent = t.notifDesc;
+    
+    const rightCards = document.querySelectorAll('.dash-col:nth-child(2) .dash-card');
+    if(rightCards[0]) {
+       rightCards[0].querySelector('.dash-title').textContent = t.garTitle;
+       rightCards[0].querySelector('.dash-desc').textContent = t.garDesc;
+       rightCards[0].querySelector('#btnAddVehicle span:last-child').textContent = userVehicles.length >= 3 ? (currentLang==='es'?"Garaje Lleno":"Garage Full") : t.addBtn;
+    }
+    if(rightCards[1]) {
+       rightCards[1].querySelector('.dash-title').textContent = t.actTitle;
+       rightCards[1].querySelector('.dash-desc').textContent = t.actDesc;
+    }
+  }
+
+  // Initial call
+  applyTranslations();
+
 })();

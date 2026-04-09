@@ -24,6 +24,71 @@ body {
   padding-top: 80px;
 }
 
+/* ── HEADER (TOP BAR) ───────────────────────────────── */
+.site-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 70px;
+  background: var(--surface);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  z-index: 100;
+}
+
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 5%;
+}
+
+.brand-mini {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--gold);
+  text-decoration: none;
+  letter-spacing: 0.1em;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.welcome-name {
+  font-family: 'Cinzel', serif;
+  font-size: .85rem;
+  color: var(--gold-soft);
+  letter-spacing: .05em;
+  opacity: .9;
+}
+
+.btn-lang {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s var(--expo);
+}
+
+.btn-lang:hover {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: var(--line);
+  color: var(--gold);
+}
+
 .auth-hero { display: none; }
 
 /* ── WELCOME NAME in header ─────────────────────────── */
