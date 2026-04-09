@@ -124,6 +124,7 @@ function requireAdminKey(req, res, next) {
 function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    console.error("JWT Auth Failed: authHeader is missing or invalid format.");
     return res.status(401).json({ success: false, errors: ["Authentication required."] });
   }
 
@@ -135,14 +136,17 @@ function requireAuth(req, res, next) {
     // If the route has :id param, enforce ownership
     const paramId = parseInt(req.params.id, 10);
     if (!isNaN(paramId) && decoded.id !== paramId) {
+      console.error(`JWT Auth Failed: Token ID (${decoded.id}) does not match URL ID (${paramId}).`);
       return res.status(403).json({ success: false, errors: ["Access denied. You can only access your own data."] });
     }
 
     next();
   } catch (err) {
     if (err.name === "TokenExpiredError") {
+      console.error("JWT Auth Failed: TokenExpiredError");
       return res.status(401).json({ success: false, errors: ["Session expired. Please log in again."] });
     }
+    console.error("JWT Auth Failed: jwt.verify error ->", err.message);
     return res.status(401).json({ success: false, errors: ["Invalid token."] });
   }
 }
