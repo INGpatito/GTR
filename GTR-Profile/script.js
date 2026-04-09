@@ -19,9 +19,11 @@
   const inputPhone = document.getElementById("inputPhone");
   
   const cardName = document.getElementById("cardName");
-  const cardVehicleCount = document.getElementById("cardVehicleCount");
+  const cardSince = document.getElementById("cardSince");
   const cardTier = document.getElementById("cardTier");
   const cardNum = document.getElementById("cardNum");
+  const welcomeName = document.getElementById("welcomeName");
+  const memberId = document.getElementById("memberId");
   
   const btnLogout = document.getElementById("btnLogout");
   const toast = document.getElementById("profileToast");
@@ -41,6 +43,10 @@
   const addVehicleForm = document.getElementById("addVehicleForm");
   const btnCancelAdd = document.getElementById("btnCancelAdd");
 
+  // Activity & Vault
+  const activityList = document.getElementById("activityList");
+  const vaultValue = document.getElementById("vaultValue");
+
   let userVehicles = [];
 
   /* ── TOAST HELPER ── */
@@ -51,37 +57,33 @@
     showToast._t = setTimeout(() => toast.classList.remove("visible"), 5000);
   }
 
-  /* ── VEHICLE TYPE EMOJI MAP ── */
-  const EMOJI = {
-    exotic: "✨", sports: "🏎", suv: "🚙", sedan: "🚗", convertible: "🚘"
-  };
-  const TYPE_LABEL = {
-    exotic: "Exotic", sports: "Sports", suv: "SUV", sedan: "Sedan", convertible: "Convertible"
-  };
-  const SERVICE_MAP = {
-    valet: "VALET", monthly: "MONTHLY", concierge: "CONCIERGE", fleet: "FLEET", event: "VIP PASS"
-  };
+  /* ── MAPS ── */
+  const EMOJI = { exotic: "✨", sports: "🏎", suv: "🚙", sedan: "🚗", convertible: "🚘" };
+  const TYPE_LABEL = { exotic: "Exotic", sports: "Sports", suv: "SUV", sedan: "Sedan", convertible: "Convertible" };
+  const SERVICE_MAP = { valet: "VALET", monthly: "MONTHLY", concierge: "CONCIERGE", fleet: "FLEET", event: "VIP PASS" };
 
   /* ── 3D CARD HOVER EFFECT ── */
   const cardWrapper = document.getElementById("vipCard");
-  const card = cardWrapper.querySelector(".vip-card");
-  
-  cardWrapper.addEventListener("mousemove", (e) => {
-    const rect = cardWrapper.getBoundingClientRect();
-    const x = e.clientX - rect.left; 
-    const y = e.clientY - rect.top;
-    const xPct = x / rect.width;
-    const yPct = y / rect.height;
-    const rotateY = (xPct - 0.5) * 30; 
-    const rotateX = (0.5 - yPct) * 30; 
-    cardWrapper.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-    card.style.setProperty("--gx", `${xPct * 100}%`);
-    card.style.setProperty("--gy", `${yPct * 100}%`);
-  });
-  
-  cardWrapper.addEventListener("mouseleave", () => {
-    cardWrapper.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
-  });
+  if (cardWrapper) {
+    const card = cardWrapper.querySelector(".vip-card");
+    
+    cardWrapper.addEventListener("mousemove", (e) => {
+      const rect = cardWrapper.getBoundingClientRect();
+      const x = e.clientX - rect.left; 
+      const y = e.clientY - rect.top;
+      const xPct = x / rect.width;
+      const yPct = y / rect.height;
+      const rotateY = (xPct - 0.5) * 30; 
+      const rotateX = (0.5 - yPct) * 30; 
+      cardWrapper.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      card.style.setProperty("--gx", `${xPct * 100}%`);
+      card.style.setProperty("--gy", `${yPct * 100}%`);
+    });
+    
+    cardWrapper.addEventListener("mouseleave", () => {
+      cardWrapper.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
+    });
+  }
 
   /* ══════════════════════════════════════════════════
      LOAD PROFILE DATA
@@ -113,11 +115,22 @@
   }
 
   function updateVIPCard(u) {
-    cardName.textContent = u.full_name || "MEMBER";
+    const name = u.full_name || "MEMBER";
+    cardName.textContent = name;
+    if (welcomeName) welcomeName.textContent = `Welcome, ${name.split(" ")[0]}`;
+    
     const svc = u.preferred_service || u.service || "valet";
     cardTier.textContent = SERVICE_MAP[svc] || "MEMBER";
+    
     const paddedId = String(u.id).padStart(4, "0");
     cardNum.textContent = `4920 8100 2344 ${paddedId}`;
+    if (memberId) memberId.textContent = `GTR-${paddedId}`;
+    
+    // Member since
+    if (u.created_at && cardSince) {
+      const d = new Date(u.created_at);
+      cardSince.textContent = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    }
   }
 
   /* ══════════════════════════════════════════════════
@@ -134,8 +147,6 @@
         animateCounter(statDays, s.member_days);
         statStatus.textContent = (s.status || "pending").toUpperCase();
         statStatus.style.fontSize = ".85rem";
-        
-        cardVehicleCount.textContent = `${s.vehicles_registered}/${s.max_vehicles}`;
       }
     } catch (err) {
       console.error("Stats error:", err);
@@ -143,6 +154,7 @@
   }
 
   function animateCounter(el, target) {
+    if (!el) return;
     const start = performance.now();
     const dur = 1200;
     (function tick(now) {
@@ -170,7 +182,6 @@
 
   function renderGarage() {
     garageCounter.textContent = `${userVehicles.length} / 3`;
-    cardVehicleCount.textContent = `${userVehicles.length}/3`;
 
     if (userVehicles.length === 0) {
       garageGrid.innerHTML = `<div class="garage-empty">No vehicles registered yet. Add your first car below.</div>`;
@@ -194,8 +205,8 @@
               <div class="veh-badges">${badges.join("")}</div>
             </div>
             <div class="veh-actions">
-              ${!v.is_primary ? `<button class="veh-btn" onclick="setPrimary(${v.id})">★ Set Primary</button>` : ''}
-              <button class="veh-btn delete" onclick="deleteVehicle(${v.id}, '${v.nickname.replace(/'/g, "\\'")}')">✕ Remove</button>
+              ${!v.is_primary ? `<button class="veh-btn" onclick="setPrimary(${v.id})">★ Primary</button>` : ''}
+              <button class="veh-btn delete" onclick="deleteVehicle(${v.id}, '${v.nickname.replace(/'/g, "\\'")}')">&times; Remove</button>
             </div>
           </div>`;
       }).join("");
@@ -266,7 +277,7 @@
     }
   });
 
-  /* ── DELETE VEHICLE (global function for onclick) ── */
+  /* ── DELETE VEHICLE ── */
   window.deleteVehicle = async function(vid, name) {
     if (!confirm(`Remove "${name}" from your garage?`)) return;
     try {
@@ -284,13 +295,14 @@
     }
   };
 
-  /* ── SET PRIMARY (global function for onclick) ── */
+  /* ── SET PRIMARY ── */
   window.setPrimary = async function(vid) {
     try {
+      const veh = userVehicles.find(v => v.id === vid);
       const res = await fetch(`${API}/api/user/${userId}/vehicles/${vid}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...userVehicles.find(v => v.id === vid), is_primary: true }),
+        body: JSON.stringify({ ...veh, is_primary: true }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -301,6 +313,48 @@
       showToast("Network error.", true);
     }
   };
+
+  /* ══════════════════════════════════════════════════
+     LOAD ACTIVITY HISTORY
+     ══════════════════════════════════════════════════ */
+  async function loadActivity() {
+    try {
+      const res = await fetch(`${API}/api/user/${userId}/activity`);
+      const data = await res.json();
+      if (res.ok && data.success && data.activity.length > 0) {
+        const items = data.activity;
+        
+        activityList.innerHTML = items.map(a => {
+          const date = new Date(a.created_at);
+          const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+          const timeStr = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+          const svc = SERVICE_MAP[a.service] || a.service || "RESERVATION";
+          const status = a.status || "pending";
+          
+          return `
+            <div class="activity-item">
+              <div class="act-dot ${status}"></div>
+              <div class="act-info">
+                <div class="act-title">${svc} Service</div>
+                <div class="act-date">${dateStr} at ${timeStr}</div>
+              </div>
+              <span class="act-status ${status}">${status}</span>
+            </div>`;
+        }).join("");
+
+        // Update vault status based on most recent confirmed/active reservation
+        const active = items.find(a => a.status === "confirmed");
+        if (active) {
+          vaultValue.textContent = "🟢 Vehicle currently in Vault";
+          vaultValue.style.color = "#2ecc71";
+        } else {
+          vaultValue.textContent = "No vehicle in Vault";
+        }
+      }
+    } catch (err) {
+      console.error("Activity error:", err);
+    }
+  }
 
   /* ══════════════════════════════════════════════════
      SAVE PROFILE
@@ -319,14 +373,13 @@
       name: inputName.value.trim(),
       phone: inputPhone.value.trim(),
       service: selectedService,
-      vehicle: "sports", // kept for backwards compat
+      vehicle: "sports",
       date: "",
       time: "",
       message: ""
     };
     
     try {
-      // Update profile
       const res = await fetch(`${API}/api/user/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -363,13 +416,13 @@
   }
   btnLogout.addEventListener("click", logout);
 
-  /* ── INIT ── */
+  /* ══════════════════════════════════════════════════
+     INIT — Load everything
+     ══════════════════════════════════════════════════ */
   loadProfile();
   loadStats();
   loadVehicles();
-
-  // Reveal all sections immediately (no scroll-trigger needed on profile)
-  document.querySelectorAll(".reveal").forEach(el => el.classList.add("is-visible"));
+  loadActivity();
 
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   initCustomCursor(prefersReducedMotion);
@@ -410,7 +463,7 @@
     document.addEventListener("mouseleave", () => document.body.classList.add("cursor-out"));
     document.addEventListener("mouseenter", () => document.body.classList.remove("cursor-out"));
 
-    const interactiveSelector = "a, button, [role='button'], input, select, textarea, .vip-card-wrapper, .btn, .vehicle-card, .svc-chip";
+    const interactiveSelector = "a, button, [role='button'], input, select, textarea, .vip-card-wrapper, .btn, .vehicle-card, .svc-chip, .notif-toggle";
 
     document.addEventListener("mouseover", (e) => {
       if (e.target.closest(interactiveSelector)) document.body.classList.add("cursor-hover");

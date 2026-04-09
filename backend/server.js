@@ -461,6 +461,33 @@ app.patch("/api/user/:id/service", async (req, res) => {
   }
 });
 
+// ── USER ACTIVITY HISTORY ─────────────────────────
+app.get("/api/user/:id/activity", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+
+  try {
+    // Get the user's email first, then fetch all their reservations
+    const userRes = await pool.query("SELECT email FROM reservations WHERE id = $1", [id]);
+    if (userRes.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
+
+    const email = userRes.rows[0].email;
+    const result = await pool.query(
+      `SELECT id, full_name, service, vehicle, arrival_date, arrival_time, status, created_at
+       FROM reservations
+       WHERE email = $1
+       ORDER BY created_at DESC
+       LIMIT 10`,
+      [email]
+    );
+
+    res.json({ success: true, activity: result.rows });
+  } catch (err) {
+    console.error("Activity error:", err.message);
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
 // LIST reservations (admin — protected)
 app.get("/api/reservations", requireAdminKey, async (req, res) => {
   const { status, limit = 50, offset = 0 } = req.query;
