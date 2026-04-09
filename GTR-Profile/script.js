@@ -8,22 +8,59 @@
     return;
   }
 
+  const API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3000"
+    : "";
+
   /* ── ELEMENTS ── */
   const form = document.getElementById("profileForm");
   const inputName = document.getElementById("inputName");
   const inputEmail = document.getElementById("inputEmail");
   const inputPhone = document.getElementById("inputPhone");
-  const inputService = document.getElementById("inputService");
-  const inputVehicle = document.getElementById("inputVehicle");
   
   const cardName = document.getElementById("cardName");
-  const cardVehicle = document.getElementById("cardVehicle");
+  const cardVehicleCount = document.getElementById("cardVehicleCount");
   const cardTier = document.getElementById("cardTier");
   const cardNum = document.getElementById("cardNum");
   
   const btnLogout = document.getElementById("btnLogout");
   const toast = document.getElementById("profileToast");
   const toastMsg = document.getElementById("toastMsg");
+
+  // Stats
+  const statReservations = document.getElementById("statReservations");
+  const statVehicles = document.getElementById("statVehicles");
+  const statDays = document.getElementById("statDays");
+  const statStatus = document.getElementById("statStatus");
+
+  // Garage
+  const garageGrid = document.getElementById("garageGrid");
+  const garageCounter = document.getElementById("garageCounter");
+  const btnAddVehicle = document.getElementById("btnAddVehicle");
+  const addVehiclePanel = document.getElementById("addVehiclePanel");
+  const addVehicleForm = document.getElementById("addVehicleForm");
+  const btnCancelAdd = document.getElementById("btnCancelAdd");
+
+  let userVehicles = [];
+
+  /* ── TOAST HELPER ── */
+  function showToast(msg, isError = false) {
+    toast.className = isError ? "form-toast error visible" : "form-toast visible";
+    toastMsg.textContent = msg;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => toast.classList.remove("visible"), 5000);
+  }
+
+  /* ── VEHICLE TYPE EMOJI MAP ── */
+  const EMOJI = {
+    exotic: "✨", sports: "🏎", suv: "🚙", sedan: "🚗", convertible: "🚘"
+  };
+  const TYPE_LABEL = {
+    exotic: "Exotic", sports: "Sports", suv: "SUV", sedan: "Sedan", convertible: "Convertible"
+  };
+  const SERVICE_MAP = {
+    valet: "VALET", monthly: "MONTHLY", concierge: "CONCIERGE", fleet: "FLEET", event: "VIP PASS"
+  };
 
   /* ── 3D CARD HOVER EFFECT ── */
   const cardWrapper = document.getElementById("vipCard");
@@ -33,16 +70,11 @@
     const rect = cardWrapper.getBoundingClientRect();
     const x = e.clientX - rect.left; 
     const y = e.clientY - rect.top;
-    
-    // Calculate rotation (-15deg to 15deg)
     const xPct = x / rect.width;
     const yPct = y / rect.height;
     const rotateY = (xPct - 0.5) * 30; 
     const rotateX = (0.5 - yPct) * 30; 
-    
     cardWrapper.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-    
-    // Move glow
     card.style.setProperty("--gx", `${xPct * 100}%`);
     card.style.setProperty("--gy", `${yPct * 100}%`);
   });
@@ -51,59 +83,228 @@
     cardWrapper.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
   });
 
-  /* ── LOAD DATA ── */
+  /* ══════════════════════════════════════════════════
+     LOAD PROFILE DATA
+     ══════════════════════════════════════════════════ */
   async function loadProfile() {
     try {
-      const res = await fetch(`/api/user/${userId}`);
+      const res = await fetch(`${API}/api/user/${userId}`);
       const data = await res.json();
       if (res.ok && data.success) {
         const u = data.user;
-        
-        // Populate form
         inputName.value = u.full_name || "";
         inputEmail.value = u.email || "";
         inputPhone.value = u.phone || "";
-        inputService.value = u.service || "valet";
-        inputVehicle.value = u.vehicle || "exotic";
         
-        updateCard(u);
+        // Set service chip
+        const svcValue = u.preferred_service || u.service || "valet";
+        const svcRadio = document.querySelector(`input[name="preferred_service"][value="${svcValue}"]`);
+        if (svcRadio) svcRadio.checked = true;
+        
+        updateVIPCard(u);
       } else {
         alert("Session expired or invalid.");
         logout();
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to load profile details.");
+      showToast("Failed to load profile.", true);
     }
   }
 
-  function updateCard(u) {
+  function updateVIPCard(u) {
     cardName.textContent = u.full_name || "MEMBER";
-    
-    const vMap = {
-      "sports": "SPORTS",
-      "suv": "LUXURY SUV",
-      "sedan": "PREMIUM SEDAN",
-      "convertible": "CONVERTIBLE",
-      "exotic": "HYPERCAR"
-    };
-    cardVehicle.textContent = vMap[u.vehicle] || "VEHICLE";
-    
-    const tMap = {
-      "monthly": "MONTHLY",
-      "concierge": "CONCIERGE",
-      "fleet": "FLEET",
-      "event": "VIP PASS",
-      "valet": "VALET"
-    };
-    cardTier.textContent = tMap[u.service] || "MEMBER";
-    
-    // Fake card number based on ID
+    const svc = u.preferred_service || u.service || "valet";
+    cardTier.textContent = SERVICE_MAP[svc] || "MEMBER";
     const paddedId = String(u.id).padStart(4, "0");
     cardNum.textContent = `4920 8100 2344 ${paddedId}`;
   }
 
-  /* ── UPDATE DATA ── */
+  /* ══════════════════════════════════════════════════
+     LOAD STATS
+     ══════════════════════════════════════════════════ */
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/api/user/${userId}/stats`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const s = data.stats;
+        animateCounter(statReservations, s.total_reservations);
+        animateCounter(statVehicles, s.vehicles_registered);
+        animateCounter(statDays, s.member_days);
+        statStatus.textContent = (s.status || "pending").toUpperCase();
+        statStatus.style.fontSize = ".85rem";
+        
+        cardVehicleCount.textContent = `${s.vehicles_registered}/${s.max_vehicles}`;
+      }
+    } catch (err) {
+      console.error("Stats error:", err);
+    }
+  }
+
+  function animateCounter(el, target) {
+    const start = performance.now();
+    const dur = 1200;
+    (function tick(now) {
+      const p = Math.min((now - start) / dur, 1);
+      el.textContent = Math.round((1 - Math.pow(1 - p, 3)) * target);
+      if (p < 1) requestAnimationFrame(tick);
+    })(start);
+  }
+
+  /* ══════════════════════════════════════════════════
+     LOAD VEHICLES (GARAGE)
+     ══════════════════════════════════════════════════ */
+  async function loadVehicles() {
+    try {
+      const res = await fetch(`${API}/api/user/${userId}/vehicles`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        userVehicles = data.vehicles;
+        renderGarage();
+      }
+    } catch (err) {
+      console.error("Vehicles error:", err);
+    }
+  }
+
+  function renderGarage() {
+    garageCounter.textContent = `${userVehicles.length} / 3`;
+    cardVehicleCount.textContent = `${userVehicles.length}/3`;
+
+    if (userVehicles.length === 0) {
+      garageGrid.innerHTML = `<div class="garage-empty">No vehicles registered yet. Add your first car below.</div>`;
+    } else {
+      garageGrid.innerHTML = userVehicles.map(v => {
+        const emoji = EMOJI[v.vehicle] || "🚗";
+        const typeLabel = TYPE_LABEL[v.vehicle] || "Vehicle";
+        const meta = [v.brand, v.model, v.year].filter(Boolean).join(" · ") || typeLabel;
+        const badges = [];
+        if (v.is_primary) badges.push(`<span class="veh-badge primary">★ Primary</span>`);
+        badges.push(`<span class="veh-badge">${typeLabel}</span>`);
+        if (v.plate) badges.push(`<span class="veh-badge">${v.plate}</span>`);
+        if (v.color) badges.push(`<span class="veh-badge">${v.color}</span>`);
+
+        return `
+          <div class="vehicle-card ${v.is_primary ? 'is-primary' : ''}" data-vid="${v.id}">
+            <div class="veh-emoji">${emoji}</div>
+            <div class="veh-info">
+              <div class="veh-name">${v.nickname}</div>
+              <div class="veh-meta">${meta}</div>
+              <div class="veh-badges">${badges.join("")}</div>
+            </div>
+            <div class="veh-actions">
+              ${!v.is_primary ? `<button class="veh-btn" onclick="setPrimary(${v.id})">★ Set Primary</button>` : ''}
+              <button class="veh-btn delete" onclick="deleteVehicle(${v.id}, '${v.nickname.replace(/'/g, "\\'")}')">✕ Remove</button>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    // Toggle add button state
+    if (userVehicles.length >= 3) {
+      btnAddVehicle.classList.add("disabled");
+      btnAddVehicle.querySelector("span:last-child").textContent = "Garage Full (3/3)";
+    } else {
+      btnAddVehicle.classList.remove("disabled");
+      btnAddVehicle.querySelector("span:last-child").textContent = "Add Vehicle";
+    }
+  }
+
+  /* ── ADD VEHICLE ── */
+  btnAddVehicle.addEventListener("click", () => {
+    if (userVehicles.length >= 3) return;
+    addVehiclePanel.style.display = "block";
+    btnAddVehicle.style.display = "none";
+    document.getElementById("vNickname").focus();
+  });
+
+  btnCancelAdd.addEventListener("click", () => {
+    addVehiclePanel.style.display = "none";
+    btnAddVehicle.style.display = "flex";
+    addVehicleForm.reset();
+  });
+
+  addVehicleForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const nickname = document.getElementById("vNickname").value.trim();
+    if (!nickname) {
+      document.getElementById("vNickname").style.borderColor = "#e74c3c";
+      return;
+    }
+
+    const payload = {
+      nickname,
+      vehicle: document.getElementById("vType").value,
+      brand: document.getElementById("vBrand").value.trim(),
+      model: document.getElementById("vModel").value.trim(),
+      year: document.getElementById("vYear").value,
+      color: document.getElementById("vColor").value.trim(),
+      plate: document.getElementById("vPlate").value.trim(),
+      is_primary: document.getElementById("vPrimary").checked,
+    };
+
+    try {
+      const res = await fetch(`${API}/api/user/${userId}/vehicles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`${nickname} added to your garage!`);
+        addVehiclePanel.style.display = "none";
+        btnAddVehicle.style.display = "flex";
+        addVehicleForm.reset();
+        loadVehicles();
+        loadStats();
+      } else {
+        showToast(data.errors?.join(". ") || "Error adding vehicle.", true);
+      }
+    } catch (err) {
+      showToast("Network error.", true);
+    }
+  });
+
+  /* ── DELETE VEHICLE (global function for onclick) ── */
+  window.deleteVehicle = async function(vid, name) {
+    if (!confirm(`Remove "${name}" from your garage?`)) return;
+    try {
+      const res = await fetch(`${API}/api/user/${userId}/vehicles/${vid}`, { method: "DELETE" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`${name} removed from garage.`);
+        loadVehicles();
+        loadStats();
+      } else {
+        showToast(data.errors?.join(". ") || "Error removing vehicle.", true);
+      }
+    } catch (err) {
+      showToast("Network error.", true);
+    }
+  };
+
+  /* ── SET PRIMARY (global function for onclick) ── */
+  window.setPrimary = async function(vid) {
+    try {
+      const res = await fetch(`${API}/api/user/${userId}/vehicles/${vid}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...userVehicles.find(v => v.id === vid), is_primary: true }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast("Primary vehicle updated.");
+        loadVehicles();
+      }
+    } catch (err) {
+      showToast("Network error.", true);
+    }
+  };
+
+  /* ══════════════════════════════════════════════════
+     SAVE PROFILE
+     ══════════════════════════════════════════════════ */
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = document.getElementById("btnUpdateProfile");
@@ -112,36 +313,42 @@
     btn.style.opacity = "0.7";
     btn.querySelector("span").textContent = "Saving...";
     
+    const selectedService = document.querySelector('input[name="preferred_service"]:checked')?.value || "valet";
+    
     const payload = {
       name: inputName.value.trim(),
       phone: inputPhone.value.trim(),
-      service: inputService.value,
-      vehicle: inputVehicle.value,
+      service: selectedService,
+      vehicle: "sports", // kept for backwards compat
       date: "",
       time: "",
       message: ""
     };
     
     try {
-      const res = await fetch(`/api/user/${userId}`, {
+      // Update profile
+      const res = await fetch(`${API}/api/user/${userId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
       const data = await res.json();
       
+      // Update preferred service
+      await fetch(`${API}/api/user/${userId}/service`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service: selectedService })
+      });
+      
       if (res.ok && data.success) {
-        toast.className = "form-toast visible";
-        toastMsg.textContent = "Profile updated securely in Vault.";
-        updateCard(data.user);
-        setTimeout(() => toast.classList.remove("visible"), 5000);
+        showToast("Profile updated securely in Vault.");
+        updateVIPCard({ ...data.user, preferred_service: selectedService });
       } else {
-        toast.className = "form-toast error visible";
-        toastMsg.textContent = data.errors?.join(". ") || "Error updating profile.";
+        showToast(data.errors?.join(". ") || "Error updating profile.", true);
       }
     } catch (err) {
-      toast.className = "form-toast error visible";
-      toastMsg.textContent = "Network error while saving.";
+      showToast("Network error while saving.", true);
     } finally {
       btn.disabled = false;
       btn.style.opacity = "1";
@@ -158,6 +365,8 @@
 
   /* ── INIT ── */
   loadProfile();
+  loadStats();
+  loadVehicles();
 
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   initCustomCursor(prefersReducedMotion);
@@ -198,7 +407,7 @@
     document.addEventListener("mouseleave", () => document.body.classList.add("cursor-out"));
     document.addEventListener("mouseenter", () => document.body.classList.remove("cursor-out"));
 
-    const interactiveSelector = "a, button, [role='button'], input, select, textarea, .vip-card-wrapper, .btn";
+    const interactiveSelector = "a, button, [role='button'], input, select, textarea, .vip-card-wrapper, .btn, .vehicle-card, .svc-chip";
 
     document.addEventListener("mouseover", (e) => {
       if (e.target.closest(interactiveSelector)) document.body.classList.add("cursor-hover");

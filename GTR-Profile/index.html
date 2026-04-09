@@ -55,77 +55,160 @@
                     <span class="val" id="cardName">Loading...</span>
                   </div>
                   <div class="card-detail right">
-                    <span class="lbl">VEHICLE</span>
-                    <span class="val" id="cardVehicle">--</span>
+                    <span class="lbl">VEHICLES</span>
+                    <span class="val" id="cardVehicleCount">0/3</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           <p class="vip-tip">Hover over the card to interact</p>
+
+          <!-- ── MEMBER STATS ── -->
+          <div class="stats-grid" id="statsGrid">
+            <div class="stat-box">
+              <span class="stat-value" id="statReservations">—</span>
+              <span class="stat-label">Reservations</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="statVehicles">—</span>
+              <span class="stat-label">Vehicles</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="statDays">—</span>
+              <span class="stat-label">Days as Member</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-value" id="statStatus">—</span>
+              <span class="stat-label">Account Status</span>
+            </div>
+          </div>
         </div>
 
-        <!-- Right: Editable Profile Form -->
-        <div class="profile-form-wrap reveal" data-delay="2">
-          <h3 class="form-title">Dashboard Settings</h3>
-          <p class="form-desc">Update your personal information and reservation details. These changes are saved securely to your Vault profile.</p>
+        <!-- Right Column -->
+        <div class="right-column">
 
-          <form id="profileForm" novalidate>
-            <div class="form-grid">
-              <div class="form-group full">
-                <label for="inputName">Full Name</label>
-                <input type="text" id="inputName" name="name" required />
+          <!-- ── PROFILE FORM ── -->
+          <div class="profile-form-wrap reveal" data-delay="2">
+            <h3 class="form-title">Dashboard Settings</h3>
+            <p class="form-desc">Update your personal information and preferred service tier.</p>
+
+            <form id="profileForm" novalidate>
+              <div class="form-grid">
+                <div class="form-group full">
+                  <label for="inputName">Full Name</label>
+                  <input type="text" id="inputName" name="name" required />
+                </div>
+                <div class="form-group">
+                  <label for="inputEmail">Email (Read Only)</label>
+                  <input type="email" id="inputEmail" name="email" disabled />
+                </div>
+                <div class="form-group">
+                  <label for="inputPhone">Phone</label>
+                  <input type="tel" id="inputPhone" name="phone" />
+                </div>
+                <div class="form-group full">
+                  <label for="inputService">Preferred Service</label>
+                  <div class="service-chips" id="serviceChips" role="radiogroup" aria-label="Preferred service">
+                    <label class="svc-chip"><input type="radio" name="preferred_service" value="valet" /><span>🤵 Valet</span></label>
+                    <label class="svc-chip"><input type="radio" name="preferred_service" value="monthly" /><span>📅 Monthly</span></label>
+                    <label class="svc-chip"><input type="radio" name="preferred_service" value="concierge" /><span>⭐ Concierge</span></label>
+                    <label class="svc-chip"><input type="radio" name="preferred_service" value="fleet" /><span>🏢 Fleet</span></label>
+                    <label class="svc-chip"><input type="radio" name="preferred_service" value="event" /><span>🎭 Event</span></label>
+                  </div>
+                </div>
+                
+                <div class="form-group full">
+                  <button type="submit" class="btn-submit" id="btnUpdateProfile">
+                    <span>Save Profile</span>
+                  </button>
+                </div>
               </div>
-              <div class="form-group">
-                <label for="inputEmail">Email (Read Only)</label>
-                <input type="email" id="inputEmail" name="email" disabled />
-              </div>
-              <div class="form-group">
-                <label for="inputPhone">Phone</label>
-                <input type="tel" id="inputPhone" name="phone" />
-              </div>
-              <div class="form-group">
-                <label for="inputService">Subscription Tier</label>
-                <select id="inputService" name="service">
-                  <option value="monthly">Monthly Membership</option>
-                  <option value="concierge">Concierge Priority (Annual)</option>
-                  <option value="fleet">Corporate Fleet</option>
-                  <option value="event">Event VIP Pass</option>
-                  <option value="valet">Standard Valet (Pay per Use)</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="inputVehicle">Vehicle Primary</label>
-                <select id="inputVehicle" name="vehicle">
-                  <option value="exotic">✨ Exotic/Hypercar</option>
-                  <option value="sports">🏎 Sports</option>
-                  <option value="suv">🚙 Luxury SUV</option>
-                  <option value="sedan">🚗 Premium Sedan</option>
-                  <option value="convertible">🚘 Convertible</option>
-                </select>
-              </div>
-              
-              <div class="form-group full">
-                <button type="submit" class="btn-submit" id="btnUpdateProfile">
-                  <span>Save Profile</span>
-                </button>
-              </div>
+            </form>
+          </div>
+
+          <!-- ── MY GARAGE ── -->
+          <div class="garage-wrap reveal" data-delay="3">
+            <div class="garage-header">
+              <h3 class="form-title">My Garage</h3>
+              <span class="garage-counter" id="garageCounter">0 / 3</span>
             </div>
-            
-            <div class="form-toast" id="profileToast" role="status" aria-live="polite">
-              <span>◆</span>
-              <span id="toastMsg">Profile updated successfully.</span>
+            <p class="form-desc">Register up to 3 vehicles. Set one as your primary for automatic valet recognition.</p>
+
+            <div class="garage-grid" id="garageGrid">
+              <!-- Vehicle cards rendered by JS -->
             </div>
-          </form>
-        </div>
+
+            <!-- Add Vehicle Form (hidden by default) -->
+            <div class="add-vehicle-panel" id="addVehiclePanel" style="display:none">
+              <h4 class="add-title">Add New Vehicle</h4>
+              <form id="addVehicleForm" class="form-grid" novalidate>
+                <div class="form-group">
+                  <label for="vNickname">Nickname *</label>
+                  <input type="text" id="vNickname" placeholder="e.g. Black Panther" required />
+                </div>
+                <div class="form-group">
+                  <label for="vType">Type</label>
+                  <select id="vType">
+                    <option value="exotic">✨ Exotic / Hypercar</option>
+                    <option value="sports">🏎 Sports</option>
+                    <option value="suv">🚙 SUV</option>
+                    <option value="sedan">🚗 Sedan</option>
+                    <option value="convertible">🚘 Convertible</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="vBrand">Brand</label>
+                  <input type="text" id="vBrand" placeholder="e.g. Lamborghini" />
+                </div>
+                <div class="form-group">
+                  <label for="vModel">Model</label>
+                  <input type="text" id="vModel" placeholder="e.g. Huracán EVO" />
+                </div>
+                <div class="form-group">
+                  <label for="vYear">Year</label>
+                  <input type="number" id="vYear" min="1990" max="2030" placeholder="2025" />
+                </div>
+                <div class="form-group">
+                  <label for="vColor">Color</label>
+                  <input type="text" id="vColor" placeholder="e.g. Nero Nemesis" />
+                </div>
+                <div class="form-group">
+                  <label for="vPlate">Plate</label>
+                  <input type="text" id="vPlate" placeholder="e.g. GTR-001" />
+                </div>
+                <div class="form-group" style="align-self:end">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="vPrimary" />
+                    <span>Set as primary</span>
+                  </label>
+                </div>
+                <div class="form-group full btn-row">
+                  <button type="submit" class="btn-submit btn-sm"><span>Add Vehicle</span></button>
+                  <button type="button" class="btn-cancel" id="btnCancelAdd">Cancel</button>
+                </div>
+              </form>
+            </div>
+
+            <button class="btn-add-vehicle" id="btnAddVehicle">
+              <span class="plus-icon">+</span>
+              <span>Add Vehicle</span>
+            </button>
+          </div>
+
+        </div><!-- /right-column -->
 
       </div>
     </section>
   </main>
   </div> <!-- Shell -->
 
-  <!-- FontAwesome for icons if needed -->
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  <!-- Toast notification -->
+  <div class="form-toast" id="profileToast" role="status" aria-live="polite">
+    <span>◆</span>
+    <span id="toastMsg">Profile updated successfully.</span>
+  </div>
+
   <script src="script.js"></script>
 </body>
 </html>

@@ -59,7 +59,7 @@ app.use(cors({
         else cb(new Error("CORS: origin not allowed"));
       }
     : true,
-  methods: ["GET", "POST", "PATCH"],
+  methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "X-API-Key"],
 }));
 
@@ -284,6 +284,179 @@ app.put("/api/user/:id", async (req, res) => {
     res.json({ success: true, user: result.rows[0] });
   } catch (err) {
     console.error("Update error: ", err);
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
+// ── USER VEHICLES CRUD ────────────────────────────
+
+// GET all vehicles for a user
+app.get("/api/user/:id/vehicles", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+  try {
+    const result = await pool.query(
+      "SELECT * FROM user_vehicles WHERE user_id = $1 ORDER BY is_primary DESC, created_at ASC",
+      [id]
+    );
+    res.json({ success: true, vehicles: result.rows, count: result.rowCount });
+  } catch (err) {
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
+// ADD a vehicle (max 3 enforced by DB trigger)
+app.post("/api/user/:id/vehicles", createLimiter, async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  if (isNaN(userId)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+
+  const { nickname, brand, model, year, color, plate, vehicle, is_primary } = req.body;
+
+  if (!nickname || nickname.trim().length < 1) {
+    return res.status(400).json({ success: false, errors: ["A vehicle nickname is required."] });
+  }
+  if (vehicle && !VALID_VEHICLES.includes(vehicle)) {
+    return res.status(400).json({ success: false, errors: [`Invalid vehicle type. Must be: ${VALID_VEHICLES.join(", ")}`] });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO user_vehicles (user_id, nickname, brand, model, year, color, plate, vehicle, is_primary)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING *`,
+      [
+        userId,
+        sanitizeString(nickname),
+        sanitizeString(brand || "") || null,
+        sanitizeString(model || "") || null,
+        year ? parseInt(year, 10) : null,
+        sanitizeString(color || "") || null,
+        sanitizeString(plate || "") || null,
+        vehicle || "sports",
+        is_primary || false,
+      ]
+    );
+    res.status(201).json({ success: true, vehicle: result.rows[0] });
+  } catch (err) {
+    if (err.message.includes("Maximum of 3 vehicles")) {
+      return res.status(400).json({ success: false, errors: ["You can register a maximum of 3 vehicles."] });
+    }
+    console.error("Vehicle insert error:", err.message);
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
+// UPDATE a vehicle
+app.put("/api/user/:id/vehicles/:vid", async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  const vid = parseInt(req.params.vid, 10);
+  if (isNaN(userId) || isNaN(vid)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+
+  const { nickname, brand, model, year, color, plate, vehicle, is_primary } = req.body;
+
+  try {
+    const result = await pool.query(
+      `UPDATE user_vehicles
+       SET nickname=$1, brand=$2, model=$3, year=$4, color=$5, plate=$6, vehicle=$7, is_primary=$8
+       WHERE id=$9 AND user_id=$10
+       RETURNING *`,
+      [
+        sanitizeString(nickname || "My Vehicle"),
+        sanitizeString(brand || "") || null,
+        sanitizeString(model || "") || null,
+        year ? parseInt(year, 10) : null,
+        sanitizeString(color || "") || null,
+        sanitizeString(plate || "") || null,
+        vehicle || "sports",
+        is_primary || false,
+        vid, userId,
+      ]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["Vehicle not found."] });
+    res.json({ success: true, vehicle: result.rows[0] });
+  } catch (err) {
+    console.error("Vehicle update error:", err.message);
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
+// DELETE a vehicle
+app.delete("/api/user/:id/vehicles/:vid", async (req, res) => {
+  const userId = parseInt(req.params.id, 10);
+  const vid = parseInt(req.params.vid, 10);
+  if (isNaN(userId) || isNaN(vid)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+
+  try {
+    const result = await pool.query(
+      "DELETE FROM user_vehicles WHERE id=$1 AND user_id=$2 RETURNING id",
+      [vid, userId]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["Vehicle not found."] });
+    res.json({ success: true, deleted: vid });
+  } catch (err) {
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
+// ── USER STATS ────────────────────────────────────
+
+app.get("/api/user/:id/stats", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+
+  try {
+    const [userRes, vehicleRes] = await Promise.all([
+      pool.query(
+        `SELECT id, full_name, email, service, status, preferred_service, created_at,
+                (SELECT COUNT(*) FROM reservations r2 WHERE r2.email = r.email) AS total_reservations
+         FROM reservations r WHERE r.id = $1`, [id]
+      ),
+      pool.query("SELECT COUNT(*) AS count FROM user_vehicles WHERE user_id = $1", [id]),
+    ]);
+
+    if (userRes.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
+
+    const u = userRes.rows[0];
+    const memberSince = new Date(u.created_at);
+    const now = new Date();
+    const memberDays = Math.floor((now - memberSince) / (1000 * 60 * 60 * 24));
+
+    res.json({
+      success: true,
+      stats: {
+        total_reservations: parseInt(u.total_reservations, 10),
+        vehicles_registered: parseInt(vehicleRes.rows[0].count, 10),
+        max_vehicles: 3,
+        member_since: u.created_at,
+        member_days: memberDays,
+        status: u.status,
+        preferred_service: u.preferred_service || u.service || "valet",
+      },
+    });
+  } catch (err) {
+    console.error("Stats error:", err.message);
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
+// UPDATE preferred service
+app.patch("/api/user/:id/service", async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+
+  const { service } = req.body;
+  if (!service || !VALID_SERVICES.includes(service)) {
+    return res.status(400).json({ success: false, errors: [`Invalid service. Must be: ${VALID_SERVICES.join(", ")}`] });
+  }
+
+  try {
+    const result = await pool.query(
+      "UPDATE reservations SET preferred_service=$1 WHERE id=$2 RETURNING id, preferred_service",
+      [service, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
+    res.json({ success: true, preferred_service: result.rows[0].preferred_service });
+  } catch (err) {
     res.status(500).json({ success: false, errors: ["Server error."] });
   }
 });
