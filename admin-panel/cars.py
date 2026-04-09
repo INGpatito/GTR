@@ -1,8 +1,14 @@
+import os
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def obtener_foto_carro(placa, estado):
-    # Reemplaza con tu API Key de CarsXE (la obtienes en su web)
-    api_key = "2x871f4wi_y7t2b4u1n_w37h03bas"
+    api_key = os.getenv("CARSXE_API_KEY")
+    if not api_key:
+        print("⚠️ CARSXE_API_KEY not found in .env")
+        return None
     
     # URL del endpoint de imágenes
     url = "https://api.carsxe.com/images"
