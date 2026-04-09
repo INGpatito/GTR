@@ -188,6 +188,7 @@
               return;
             }
             sessionStorage.setItem("gtr_user_id", data.id);
+            sessionStorage.setItem("gtr_token", data.token);
             window.location.href = "../GTR-Profile/index.html";
           } else {
             alert(data.errors?.join(". ") || (lang === "es" ? "Credenciales inválidas." : "Invalid credentials."));

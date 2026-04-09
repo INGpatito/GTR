@@ -3,7 +3,8 @@
 
   // Check auth
   const userId = sessionStorage.getItem("gtr_user_id");
-  if (!userId) {
+  const token  = sessionStorage.getItem("gtr_token");
+  if (!userId || !token) {
     window.location.href = "../GTR-Login/index.html";
     return;
   }
@@ -11,6 +12,22 @@
   const API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:3000"
     : "";
+
+  // Auth headers for all protected requests
+  const authHeaders = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`
+  };
+
+  // Handle 401 globally (expired/invalid token → re-login)
+  function handleAuthError(res) {
+    if (res.status === 401 || res.status === 403) {
+      sessionStorage.clear();
+      window.location.href = "../GTR-Login/index.html";
+      return true;
+    }
+    return false;
+  }
 
   /* ── ELEMENTS ── */
   const form = document.getElementById("profileForm");
@@ -90,7 +107,8 @@
      ══════════════════════════════════════════════════ */
   async function loadProfile() {
     try {
-      const res = await fetch(`${API}/api/user/${userId}`);
+      const res = await fetch(`${API}/api/user/${userId}`, { headers: authHeaders });
+      if (handleAuthError(res)) return;
       const data = await res.json();
       if (res.ok && data.success) {
         const u = data.user;
@@ -138,7 +156,7 @@
      ══════════════════════════════════════════════════ */
   async function loadStats() {
     try {
-      const res = await fetch(`${API}/api/user/${userId}/stats`);
+      const res = await fetch(`${API}/api/user/${userId}/stats`, { headers: authHeaders });
       const data = await res.json();
       if (res.ok && data.success) {
         const s = data.stats;
@@ -169,7 +187,7 @@
      ══════════════════════════════════════════════════ */
   async function loadVehicles() {
     try {
-      const res = await fetch(`${API}/api/user/${userId}/vehicles`);
+      const res = await fetch(`${API}/api/user/${userId}/vehicles`, { headers: authHeaders });
       const data = await res.json();
       if (res.ok && data.success) {
         userVehicles = data.vehicles;
@@ -258,7 +276,7 @@
     try {
       const res = await fetch(`${API}/api/user/${userId}/vehicles`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -281,7 +299,7 @@
   window.deleteVehicle = async function(vid, name) {
     if (!confirm(`Remove "${name}" from your garage?`)) return;
     try {
-      const res = await fetch(`${API}/api/user/${userId}/vehicles/${vid}`, { method: "DELETE" });
+      const res = await fetch(`${API}/api/user/${userId}/vehicles/${vid}`, { method: "DELETE", headers: authHeaders });
       const data = await res.json();
       if (res.ok && data.success) {
         showToast(`${name} removed from garage.`);
@@ -301,7 +319,7 @@
       const veh = userVehicles.find(v => v.id === vid);
       const res = await fetch(`${API}/api/user/${userId}/vehicles/${vid}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({ ...veh, is_primary: true }),
       });
       const data = await res.json();
@@ -319,7 +337,7 @@
      ══════════════════════════════════════════════════ */
   async function loadActivity() {
     try {
-      const res = await fetch(`${API}/api/user/${userId}/activity`);
+      const res = await fetch(`${API}/api/user/${userId}/activity`, { headers: authHeaders });
       const data = await res.json();
       if (res.ok && data.success && data.activity.length > 0) {
         const items = data.activity;
@@ -382,7 +400,7 @@
     try {
       const res = await fetch(`${API}/api/user/${userId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify(payload)
       });
       const data = await res.json();
@@ -390,7 +408,7 @@
       // Update preferred service
       await fetch(`${API}/api/user/${userId}/service`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({ service: selectedService })
       });
       
@@ -412,6 +430,7 @@
   /* ── LOGOUT ── */
   function logout() {
     sessionStorage.removeItem("gtr_user_id");
+    sessionStorage.removeItem("gtr_token");
     window.location.href = "../GTR-Login/index.html";
   }
   btnLogout.addEventListener("click", logout);

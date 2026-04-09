@@ -17,12 +17,15 @@ const cors       = require("cors");
 const helmet     = require("helmet");
 const rateLimit  = require("express-rate-limit");
 const bcrypt     = require("bcrypt");
+const jwt        = require("jsonwebtoken");
 const { Pool }   = require("pg");
 
 // ── Config ─────────────────────────────────────────
 const PORT       = process.env.PORT || 3000;
 const BCRYPT_ROUNDS = 12;
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "";
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_dev_secret_change_me";
+const JWT_EXPIRES = "7d";
 
 const pool = new Pool({
   host:     process.env.DB_HOST     || "localhost",
@@ -114,6 +117,34 @@ function requireAdminKey(req, res, next) {
     });
   }
   next();
+}
+
+// ── JWT Auth Middleware ────────────────────────────
+// Verifies the Bearer token AND ensures the token's userId matches :id in the URL
+function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ success: false, errors: ["Authentication required."] });
+  }
+
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.authUser = decoded; // { id, email, iat, exp }
+
+    // If the route has :id param, enforce ownership
+    const paramId = parseInt(req.params.id, 10);
+    if (!isNaN(paramId) && decoded.id !== paramId) {
+      return res.status(403).json({ success: false, errors: ["Access denied. You can only access your own data."] });
+    }
+
+    next();
+  } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ success: false, errors: ["Session expired. Please log in again."] });
+    }
+    return res.status(401).json({ success: false, errors: ["Invalid token."] });
+  }
 }
 
 // ── Validation helpers ─────────────────────────────
@@ -219,13 +250,13 @@ app.post("/api/reservations", createLimiter, async (req, res) => {
   }
 });
 
-// LOGIN (public, rate-limited)
+// LOGIN (public, rate-limited) — returns JWT
 app.post("/api/login", createLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ success: false, errors: ["Email and password required."] });
   try {
     const result = await pool.query(
-      "SELECT id, full_name, password_hash, status FROM reservations WHERE email = $1 ORDER BY created_at DESC LIMIT 1",
+      "SELECT id, full_name, email, password_hash, status FROM reservations WHERE email = $1 ORDER BY created_at DESC LIMIT 1",
       [email.toLowerCase()]
     );
     if (result.rowCount === 0) return res.status(401).json({ success: false, errors: ["Invalid credentials."] });
@@ -236,15 +267,22 @@ app.post("/api/login", createLimiter, async (req, res) => {
     const match = await bcrypt.compare(password, user.password_hash);
     if (!match) return res.status(401).json({ success: false, errors: ["Invalid credentials."] });
     
-    res.json({ success: true, id: user.id, name: user.full_name, status: user.status });
+    // Sign JWT with user id and email
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES }
+    );
+    
+    res.json({ success: true, id: user.id, name: user.full_name, status: user.status, token });
   } catch (err) {
     console.error("Login error: ", err);
     res.status(500).json({ success: false, errors: ["Server error."] });
   }
 });
 
-// GET USER INFO (for profile page)
-app.get("/api/user/:id", async (req, res) => {
+// GET USER INFO (for profile page) — JWT protected
+app.get("/api/user/:id", requireAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
   try {
@@ -259,8 +297,8 @@ app.get("/api/user/:id", async (req, res) => {
   }
 });
 
-// UPDATE USER INFO (for profile page)
-app.put("/api/user/:id", async (req, res) => {
+// UPDATE USER INFO (for profile page) — JWT protected
+app.put("/api/user/:id", requireAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
   
@@ -291,7 +329,7 @@ app.put("/api/user/:id", async (req, res) => {
 // ── USER VEHICLES CRUD ────────────────────────────
 
 // GET all vehicles for a user
-app.get("/api/user/:id/vehicles", async (req, res) => {
+app.get("/api/user/:id/vehicles", requireAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
   try {
@@ -306,7 +344,7 @@ app.get("/api/user/:id/vehicles", async (req, res) => {
 });
 
 // ADD a vehicle (max 3 enforced by DB trigger)
-app.post("/api/user/:id/vehicles", createLimiter, async (req, res) => {
+app.post("/api/user/:id/vehicles", requireAuth, createLimiter, async (req, res) => {
   const userId = parseInt(req.params.id, 10);
   if (isNaN(userId)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
 
@@ -347,7 +385,7 @@ app.post("/api/user/:id/vehicles", createLimiter, async (req, res) => {
 });
 
 // UPDATE a vehicle
-app.put("/api/user/:id/vehicles/:vid", async (req, res) => {
+app.put("/api/user/:id/vehicles/:vid", requireAuth, async (req, res) => {
   const userId = parseInt(req.params.id, 10);
   const vid = parseInt(req.params.vid, 10);
   if (isNaN(userId) || isNaN(vid)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
@@ -381,7 +419,7 @@ app.put("/api/user/:id/vehicles/:vid", async (req, res) => {
 });
 
 // DELETE a vehicle
-app.delete("/api/user/:id/vehicles/:vid", async (req, res) => {
+app.delete("/api/user/:id/vehicles/:vid", requireAuth, async (req, res) => {
   const userId = parseInt(req.params.id, 10);
   const vid = parseInt(req.params.vid, 10);
   if (isNaN(userId) || isNaN(vid)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
@@ -400,7 +438,7 @@ app.delete("/api/user/:id/vehicles/:vid", async (req, res) => {
 
 // ── USER STATS ────────────────────────────────────
 
-app.get("/api/user/:id/stats", async (req, res) => {
+app.get("/api/user/:id/stats", requireAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
 
@@ -440,7 +478,7 @@ app.get("/api/user/:id/stats", async (req, res) => {
 });
 
 // UPDATE preferred service
-app.patch("/api/user/:id/service", async (req, res) => {
+app.patch("/api/user/:id/service", requireAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
 
@@ -462,7 +500,7 @@ app.patch("/api/user/:id/service", async (req, res) => {
 });
 
 // ── USER ACTIVITY HISTORY ─────────────────────────
-app.get("/api/user/:id/activity", async (req, res) => {
+app.get("/api/user/:id/activity", requireAuth, async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
 
