@@ -20,7 +20,7 @@
   --expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-body {
+main {
   padding-top: 80px;
 }
 
