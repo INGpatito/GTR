@@ -368,6 +368,11 @@
   loadStats();
   loadVehicles();
   
+  // Make the page shell visible
+  const pageShell = document.getElementById("pageShell");
+  if (pageShell) pageShell.classList.add("ready");
+  document.body.classList.remove("loading");
+
   setTimeout(() => {
     document.querySelectorAll(".reveal").forEach(el => el.classList.add("is-visible"));
   }, 100);
