@@ -367,6 +367,10 @@
   loadProfile();
   loadStats();
   loadVehicles();
+  
+  setTimeout(() => {
+    document.querySelectorAll(".reveal").forEach(el => el.classList.add("is-visible"));
+  }, 100);
 
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   initCustomCursor(prefersReducedMotion);
