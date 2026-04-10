@@ -13,6 +13,7 @@
   
   <link rel="stylesheet" href="../styles.css" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 </head>
 
 <body>
@@ -50,10 +51,11 @@
           <!-- ═══ TOP ROW: VIP Card + Stats ═══ -->
           <div class="top-row">
 
-            <!-- VIP Card -->
+            <!-- VIP Card (3D Flip) -->
             <div class="vip-panel">
               <div class="vip-card-wrapper" id="vipCard">
-                <div class="vip-card">
+                <!-- FRONT -->
+                <div class="vip-card vip-card-front">
                   <div class="vip-card-glow"></div>
                   <div class="card-header">
                     <span class="card-logo">GTR</span>
@@ -74,8 +76,23 @@
                     </div>
                   </div>
                 </div>
+                <!-- BACK -->
+                <div class="vip-card vip-card-back">
+                  <div class="card-back-stripe"></div>
+                  <div class="qr-container">
+                    <div id="qrCode"></div>
+                    <p class="qr-label">ACCESS PASS</p>
+                  </div>
+                  <div class="card-back-footer">
+                    <span class="card-logo">GTR</span>
+                    <span class="card-back-text">TAP TO FLIP BACK</span>
+                  </div>
+                </div>
               </div>
-              <p class="vip-tip">Hover over the card to interact</p>
+              <button class="btn-flip-card" id="btnFlipCard">
+                <span class="flip-icon">🔄</span>
+                <span data-en="Show Access Pass" data-es="Mostrar Pase">Show Access Pass</span>
+              </button>
             </div>
 
             <!-- Stats Grid -->
@@ -156,6 +173,32 @@
                     </div>
                   </div>
                 </form>
+
+                <!-- Password Change (collapsible) -->
+                <div class="password-section">
+                  <button class="btn-toggle-pw" id="btnTogglePw" type="button">
+                    <span>🔐</span>
+                    <span data-en="Change Password" data-es="Cambiar Contraseña">Change Password</span>
+                    <span class="chevron">▼</span>
+                  </button>
+                  <div class="pw-fields" id="pwFields" style="display:none">
+                    <div class="form-grid">
+                      <div class="form-group">
+                        <label for="inputCurrentPw">Current Password</label>
+                        <input type="password" id="inputCurrentPw" autocomplete="current-password" />
+                      </div>
+                      <div class="form-group">
+                        <label for="inputNewPw">New Password</label>
+                        <input type="password" id="inputNewPw" minlength="6" autocomplete="new-password" />
+                      </div>
+                      <div class="form-group full">
+                        <button type="button" class="btn-submit btn-sm" id="btnChangePw">
+                          <span>Update Password</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Notification Preferences -->

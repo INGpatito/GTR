@@ -18,6 +18,7 @@ const helmet     = require("helmet");
 const rateLimit  = require("express-rate-limit");
 const bcrypt     = require("bcrypt");
 const jwt        = require("jsonwebtoken");
+const crypto     = require("crypto");
 const { Pool }   = require("pg");
 
 // ── Config ─────────────────────────────────────────
@@ -63,7 +64,7 @@ app.use(cors({
       }
     : true,
   methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "X-API-Key"],
+  allowedHeaders: ["Content-Type", "X-API-Key", "Authorization"],
 }));
 
 // Body parser with size limit (reject payloads > 16 KB)
@@ -100,6 +101,24 @@ function sanitizeString(str) {
     .replace(/javascript:/gi, "")   // strip javascript: URIs
     .replace(/on\w+\s*=/gi, "")     // strip inline event handlers (onclick=, etc.)
     .trim();
+}
+
+// ── Encrypted Card Number Generator ───────────────
+// Uses HMAC-SHA256 with JWT_SECRET to derive a unique 16-digit card number
+// from the member ID. The number is deterministic but impossible to reverse.
+function generateCardNumber(memberId) {
+  const hmac = crypto.createHmac("sha256", JWT_SECRET);
+  hmac.update(`GTR-CARD-${memberId}`);
+  const hex = hmac.digest("hex"); // 64 hex chars
+  // Convert first 48 hex chars into 16 decimal digits (4 groups of 4)
+  let digits = "";
+  for (let i = 0; i < 48 && digits.length < 16; i += 3) {
+    const num = parseInt(hex.substring(i, i + 3), 16) % 10;
+    digits += num;
+  }
+  // Ensure exactly 16 digits
+  while (digits.length < 16) digits += "0";
+  return `${digits.slice(0,4)} ${digits.slice(4,8)} ${digits.slice(8,12)} ${digits.slice(12,16)}`;
 }
 
 // ── Admin Auth Middleware ──────────────────────────
@@ -303,7 +322,9 @@ app.get("/api/user/:id", requireAuth, async (req, res) => {
       [id]
     );
     if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
-    res.json({ success: true, user: result.rows[0] });
+    const user = result.rows[0];
+    user.card_number = generateCardNumber(user.id);
+    res.json({ success: true, user });
   } catch (err) {
     res.status(500).json({ success: false, errors: ["Server error."] });
   }
@@ -334,6 +355,44 @@ app.put("/api/user/:id", requireAuth, async (req, res) => {
     res.json({ success: true, user: result.rows[0] });
   } catch (err) {
     console.error("Update error: ", err);
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
+// CHANGE PASSWORD — JWT protected
+app.put("/api/user/:id/password", requireAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ success: false, errors: ["Current and new password are required."] });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ success: false, errors: ["New password must be at least 6 characters."] });
+  }
+
+  try {
+    const result = await pool.query("SELECT password_hash FROM reservations WHERE id = $1", [id]);
+    if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
+
+    const user = result.rows[0];
+    if (!user.password_hash) {
+      return res.status(400).json({ success: false, errors: ["Account has no password set."] });
+    }
+
+    const match = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!match) {
+      return res.status(401).json({ success: false, errors: ["Current password is incorrect."] });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    await pool.query("UPDATE reservations SET password_hash = $1 WHERE id = $2", [newHash, id]);
+
+    console.log(`🔑 Password changed for user #${id}`);
+    res.json({ success: true, message: "Password updated successfully." });
+  } catch (err) {
+    console.error("Password change error:", err.message);
     res.status(500).json({ success: false, errors: ["Server error."] });
   }
 });

@@ -82,9 +82,10 @@
   /* ── 3D CARD HOVER EFFECT ── */
   const cardWrapper = document.getElementById("vipCard");
   if (cardWrapper) {
-    const card = cardWrapper.querySelector(".vip-card");
+    const card = cardWrapper.querySelector(".vip-card-front");
     
     cardWrapper.addEventListener("mousemove", (e) => {
+      if (cardWrapper.classList.contains("is-flipped")) return;
       const rect = cardWrapper.getBoundingClientRect();
       const x = e.clientX - rect.left; 
       const y = e.clientY - rect.top;
@@ -93,11 +94,14 @@
       const rotateY = (xPct - 0.5) * 30; 
       const rotateX = (0.5 - yPct) * 30; 
       cardWrapper.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-      card.style.setProperty("--gx", `${xPct * 100}%`);
-      card.style.setProperty("--gy", `${yPct * 100}%`);
+      if (card) {
+        card.style.setProperty("--gx", `${xPct * 100}%`);
+        card.style.setProperty("--gy", `${yPct * 100}%`);
+      }
     });
     
     cardWrapper.addEventListener("mouseleave", () => {
+      if (cardWrapper.classList.contains("is-flipped")) return;
       cardWrapper.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
     });
   }
@@ -132,6 +136,8 @@
     }
   }
 
+  let userCardNumber = "";
+
   function updateVIPCard(u) {
     const name = u.full_name || "MEMBER";
     cardName.textContent = name;
@@ -140,8 +146,11 @@
     const svc = u.preferred_service || u.service || "valet";
     cardTier.textContent = SERVICE_MAP[svc] || "MEMBER";
     
+    // Use the server-generated encrypted card number
+    userCardNumber = u.card_number || "0000 0000 0000 0000";
+    cardNum.textContent = userCardNumber;
+
     const paddedId = String(u.id).padStart(4, "0");
-    cardNum.textContent = `4920 8100 2344 ${paddedId}`;
     if (memberId) memberId.textContent = `GTR-${paddedId}`;
     
     // Member since
@@ -149,6 +158,9 @@
       const d = new Date(u.created_at);
       cardSince.textContent = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
     }
+
+    // Generate QR code with encrypted card number
+    generateQR(userCardNumber);
   }
 
   /* ══════════════════════════════════════════════════
@@ -436,6 +448,110 @@
   btnLogout.addEventListener("click", logout);
 
   /* ══════════════════════════════════════════════════
+     CARD FLIP & QR GENERATION
+     ══════════════════════════════════════════════════ */
+  const btnFlipCard = document.getElementById("btnFlipCard");
+  let qrGenerated = false;
+
+  function generateQR(cardNum) {
+    if (qrGenerated || !cardNum) return;
+    const qrEl = document.getElementById("qrCode");
+    if (!qrEl || typeof QRCode === "undefined") return;
+    qrEl.innerHTML = "";
+    new QRCode(qrEl, {
+      text: cardNum.replace(/\s/g, ""),
+      width: 120,
+      height: 120,
+      colorDark: "#111",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+    qrGenerated = true;
+  }
+
+  if (btnFlipCard && cardWrapper) {
+    btnFlipCard.addEventListener("click", () => {
+      const isFlipped = cardWrapper.classList.toggle("is-flipped");
+      cardWrapper.style.transform = "";
+      const labelSpan = btnFlipCard.querySelector("span:last-child");
+      if (isFlipped) {
+        labelSpan.textContent = currentLang === "es" ? "Volver a Tarjeta" : "Back to Card";
+      } else {
+        labelSpan.textContent = currentLang === "es" ? "Mostrar Pase" : "Show Access Pass";
+      }
+    });
+
+    // Also flip when clicking the back of the card
+    const backFace = cardWrapper.querySelector(".vip-card-back");
+    if (backFace) {
+      backFace.addEventListener("click", () => {
+        cardWrapper.classList.remove("is-flipped");
+        cardWrapper.style.transform = "";
+        const labelSpan = btnFlipCard.querySelector("span:last-child");
+        labelSpan.textContent = currentLang === "es" ? "Mostrar Pase" : "Show Access Pass";
+      });
+    }
+  }
+
+  /* ══════════════════════════════════════════════════
+     PASSWORD CHANGE
+     ══════════════════════════════════════════════════ */
+  const btnTogglePw = document.getElementById("btnTogglePw");
+  const pwFields = document.getElementById("pwFields");
+  const btnChangePw = document.getElementById("btnChangePw");
+
+  if (btnTogglePw && pwFields) {
+    btnTogglePw.addEventListener("click", () => {
+      const open = pwFields.style.display === "none";
+      pwFields.style.display = open ? "block" : "none";
+      btnTogglePw.classList.toggle("open", open);
+    });
+  }
+
+  if (btnChangePw) {
+    btnChangePw.addEventListener("click", async () => {
+      const currentPw = document.getElementById("inputCurrentPw").value;
+      const newPw = document.getElementById("inputNewPw").value;
+
+      if (!currentPw || !newPw) {
+        showToast(currentLang === "es" ? "Ambos campos son requeridos." : "Both fields are required.", true);
+        return;
+      }
+      if (newPw.length < 6) {
+        showToast(currentLang === "es" ? "Mínimo 6 caracteres." : "Minimum 6 characters.", true);
+        return;
+      }
+
+      btnChangePw.disabled = true;
+      btnChangePw.querySelector("span").textContent = currentLang === "es" ? "Actualizando..." : "Updating...";
+
+      try {
+        const res = await fetch(`${API}/api/user/${userId}/password`, {
+          method: "PUT",
+          headers: authHeaders,
+          body: JSON.stringify({ currentPassword: currentPw, newPassword: newPw })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          showToast(currentLang === "es" ? "Contraseña actualizada." : "Password updated successfully.");
+          document.getElementById("inputCurrentPw").value = "";
+          document.getElementById("inputNewPw").value = "";
+          pwFields.style.display = "none";
+          btnTogglePw.classList.remove("open");
+        } else {
+          showToast(data.errors?.join(". ") || "Error.", true);
+        }
+      } catch (err) {
+        showToast("Network error.", true);
+      } finally {
+        btnChangePw.disabled = false;
+        btnChangePw.querySelector("span").textContent = currentLang === "es" ? "Actualizar Contraseña" : "Update Password";
+      }
+    });
+  }
+
+  /* ══════════════════════════════════════════════════
      INIT — Load everything
      ══════════════════════════════════════════════════ */
   loadProfile();
@@ -624,7 +740,13 @@
       garEmpty: "No vehicles registered yet. Add your first car below.",
       actTitle: "Recent Activity",
       actDesc: "Track your latest valet and concierge interactions.",
-      actEmpty: "No activity records found."
+      actEmpty: "No activity records found.",
+      flipShow: "Show Access Pass",
+      flipBack: "Back to Card",
+      changePw: "Change Password",
+      currentPw: "Current Password",
+      newPw: "New Password",
+      updatePw: "Update Password"
     },
     es: {
       langBtn: "🌐 EN",
@@ -648,7 +770,13 @@
       garEmpty: "No hay vehículos. Añade tu primer auto abajo.",
       actTitle: "Actividad Reciente",
       actDesc: "Rastrea tus últimas interacciones de valet y concierge.",
-      actEmpty: "No se encontraron registros de actividad."
+      actEmpty: "No se encontraron registros de actividad.",
+      flipShow: "Mostrar Pase",
+      flipBack: "Volver a Tarjeta",
+      changePw: "Cambiar Contraseña",
+      currentPw: "Contraseña Actual",
+      newPw: "Nueva Contraseña",
+      updatePw: "Actualizar Contraseña"
     }
   };
 
@@ -703,6 +831,22 @@
        rightCards[1].querySelector('.dash-title').textContent = t.actTitle;
        rightCards[1].querySelector('.dash-desc').textContent = t.actDesc;
     }
+
+    // Flip button
+    const flipLabel = document.querySelector('#btnFlipCard span:last-child');
+    if (flipLabel && cardWrapper) {
+      flipLabel.textContent = cardWrapper.classList.contains('is-flipped') ? t.flipBack : t.flipShow;
+    }
+
+    // Password section
+    const pwLabel = document.querySelector('#btnTogglePw span[data-en]');
+    if (pwLabel) pwLabel.textContent = t.changePw;
+    const lblCurPw = document.querySelector('label[for="inputCurrentPw"]');
+    if (lblCurPw) lblCurPw.textContent = t.currentPw;
+    const lblNewPw = document.querySelector('label[for="inputNewPw"]');
+    if (lblNewPw) lblNewPw.textContent = t.newPw;
+    const btnPwSpan = document.querySelector('#btnChangePw span');
+    if (btnPwSpan) btnPwSpan.textContent = t.updatePw;
   }
 
   // Initial call
