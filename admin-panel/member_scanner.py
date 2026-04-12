@@ -135,49 +135,50 @@ class MemberScanner(ctk.CTk):
             font=ctk.CTkFont("Helvetica", 10), text_color=MUTED
         ).grid(row=1, column=0, padx=26, pady=(0, 24), sticky="w")
 
-        # ── Sección: Ingresar ID del Socio
-        self._sidebar_section(sb, row=2, text="BÚSQUEDA MANUAL")
+        # ── Sección: Número de Tarjeta
+        self._sidebar_section(sb, row=2, text="NÚMERO DE TARJETA")
 
-        self.id_entry = ctk.CTkEntry(
+        self.card_entry = ctk.CTkEntry(
             sb,
-            placeholder_text="Num. de Socio  (ej: 23)",
-            font=ctk.CTkFont("Helvetica", 13),
+            placeholder_text="3153 7028 2894 1005",
+            font=ctk.CTkFont("Courier", 13),
             height=40, corner_radius=8,
             border_color=GOLD, border_width=1,
         )
-        self.id_entry.grid(row=3, column=0, padx=16, pady=(4, 8), sticky="ew")
-        self.id_entry.bind("<Return>", lambda e: self._search_by_id())
+        self.card_entry.grid(row=3, column=0, padx=16, pady=(4, 8), sticky="ew")
+        self.card_entry.bind("<Return>", lambda e: self._search_by_card())
 
         ctk.CTkButton(
-            sb, text="🔍  Buscar por ID",
+            sb, text="🔍  Verificar Tarjeta",
             height=38, corner_radius=8,
             fg_color=GOLD, text_color="#000",
             hover_color="#b5952f",
             font=ctk.CTkFont("Helvetica", 13, "bold"),
-            command=self._search_by_id
-        ).grid(row=4, column=0, padx=16, pady=(0, 16), sticky="ew")
+            command=self._search_by_card
+        ).grid(row=4, column=0, padx=16, pady=(0, 24), sticky="ew")
 
-        # ── Sección: Ingresar número de tarjeta QR
-        self._sidebar_section(sb, row=5, text="CÓDIGO QR (TEXTO)")
+        # ── Sección: Admin — Buscar por ID interno (uso interno)
+        self._sidebar_section(sb, row=5, text="ADMIN — BUSCAR POR ID")
 
-        self.qr_entry = ctk.CTkEntry(
+        self.id_entry = ctk.CTkEntry(
             sb,
-            placeholder_text="Pega el número de tarjeta",
-            font=ctk.CTkFont("Helvetica", 13),
-            height=40, corner_radius=8,
-            border_color="#4a4a4a", border_width=1,
+            placeholder_text="ID interno  (ej: 23)",
+            font=ctk.CTkFont("Helvetica", 12),
+            height=36, corner_radius=8,
+            border_color="#3a3a3a", border_width=1,
+            text_color="#888"
         )
-        self.qr_entry.grid(row=6, column=0, padx=16, pady=(4, 8), sticky="ew")
-        self.qr_entry.bind("<Return>", lambda e: self._search_by_qr())
+        self.id_entry.grid(row=6, column=0, padx=16, pady=(4, 8), sticky="ew")
+        self.id_entry.bind("<Return>", lambda e: self._search_by_id())
 
         ctk.CTkButton(
-            sb, text="📇  Verificar QR",
-            height=38, corner_radius=8,
-            fg_color="#2b2b2b", text_color=GOLD_SOFT,
-            hover_color="#3a3a3a",
-            border_color="#444", border_width=1,
-            font=ctk.CTkFont("Helvetica", 13),
-            command=self._search_by_qr
+            sb, text="⚙️  Buscar (Admin)",
+            height=34, corner_radius=8,
+            fg_color="#252525", text_color="#666",
+            hover_color="#333",
+            border_color="#333", border_width=1,
+            font=ctk.CTkFont("Helvetica", 11),
+            command=self._search_by_id
         ).grid(row=7, column=0, padx=16, pady=(0, 24), sticky="ew")
 
         # ── Sección Sensor (stub)
@@ -260,26 +261,39 @@ class MemberScanner(ctk.CTk):
         ).pack(pady=(12, 0))
 
     # ─────────────────────────────────────────────────
-    #  BÚSQUEDA POR ID NUMÉRICO
+    #  BÚSQUEDA POR NÚMERO DE TARJETA (principal)
+    # ─────────────────────────────────────────────────
+    def _search_by_card(self):
+        """Acepta el número de 16 dígitos impreso en la tarjeta física o el QR."""
+        raw = self.card_entry.get().strip().replace(" ", "").replace("-", "")
+        if not raw:
+            messagebox.showwarning("Campo vacío", "Ingresa el número de tu tarjeta GTR.")
+            return
+        if not raw.isdigit() or len(raw) != 16:
+            messagebox.showwarning(
+                "Formato incorrecto",
+                "El número de tarjeta debe tener 16 dígitos.\n"
+                "Ejemplo: 3153 7028 2894 1005"
+            )
+            return
+        self._verify_card_number(raw)
+
+    # ─────────────────────────────────────────────────
+    #  BÚSQUEDA POR ID NUMÉRICO (solo admin)
     # ─────────────────────────────────────────────────
     def _search_by_id(self):
         raw = self.id_entry.get().strip().replace("GTR-", "").replace("gtr-", "")
         if not raw.isdigit():
-            messagebox.showwarning("Entrada inválida", "Ingresa solo el número de socio (ej: 23).")
+            messagebox.showwarning("Entrada inválida", "Ingresa solo el número interno de socio (ej: 23).")
             return
         self._fetch_and_show(int(raw))
 
     # ─────────────────────────────────────────────────
-    #  BÚSQUEDA POR NÚMERO DE TARJETA QR (ENCRIPTADO)
+    #  VERIFICACIÓN HMAC DEL NÚMERO (compartida)
     # ─────────────────────────────────────────────────
-    def _search_by_qr(self):
-        raw = self.qr_entry.get().strip().replace(" ", "")
-        if not raw:
-            messagebox.showwarning("Campo vacío", "Pega el número de tarjeta del QR.")
-            return
-
-        # Buscar qué ID de socio genera ese número HMAC
-        self.db_status.configure(text="● Verificando tarjeta...", text_color=AMBER)
+    def _verify_card_number(self, digits_clean: str):
+        """Busca el socio cuyo HMAC coincide con el número de tarjeta dado."""
+        self.db_status.configure(text="● Verificando...", text_color=AMBER)
         self.update()
 
         def _verify():
@@ -292,7 +306,7 @@ class MemberScanner(ctk.CTk):
 
                 matched_id = None
                 for mid in ids:
-                    if generate_card_number(mid).replace(" ", "") == raw:
+                    if generate_card_number(mid).replace(" ", "") == digits_clean:
                         matched_id = mid
                         break
 
@@ -300,8 +314,12 @@ class MemberScanner(ctk.CTk):
                     self.after(0, lambda: self._fetch_and_show(matched_id))
                 else:
                     self.after(0, lambda: [
-                        self.db_status.configure(text="● QR inválido", text_color=RED),
-                        messagebox.showerror("QR Inválido", "No se encontró ningún socio con esa tarjeta.\n\nVerifica que el número sea correcto.")
+                        self.db_status.configure(text="● Tarjeta no válida", text_color=RED),
+                        messagebox.showerror(
+                            "Tarjeta No Reconocida",
+                            "Ese número de tarjeta no pertenece a ningún socio GTR.\n\n"
+                            "Verifica que hayas escrito los 16 dígitos correctamente."
+                        )
                     ])
             except Exception as e:
                 self.after(0, lambda: messagebox.showerror("Error DB", str(e)))
