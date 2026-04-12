@@ -40,6 +40,18 @@ load_dotenv(os.path.join(_dir, ".env"))
 
 JWT_SECRET = os.getenv("JWT_SECRET", "fallback_dev_secret_change_me")
 
+# ── Diagnóstico de arranque ───────────────────────────
+print("\n" + "═"*55)
+print("  PARKING GTR — Member Scanner")
+print("═"*55)
+if JWT_SECRET == "fallback_dev_secret_change_me" or JWT_SECRET == "your_jwt_secret_here":
+    print("  ⚠️  JWT_SECRET no configurado en admin-panel/.env")
+    print("     Copia el valor de backend/.env → JWT_SECRET")
+else:
+    masked = JWT_SECRET[:4] + "*" * max(0, len(JWT_SECRET)-8) + JWT_SECRET[-4:]
+    print(f"  ✅ JWT_SECRET cargado: {masked}")
+print("═"*55 + "\n")
+
 # ═══════════════════════════════════════════════════════
 #  HMAC — Replica la misma lógica que backend/server.js
 # ═══════════════════════════════════════════════════════
@@ -273,7 +285,7 @@ class MemberScanner(ctk.CTk):
             messagebox.showwarning(
                 "Formato incorrecto",
                 "El número de tarjeta debe tener 16 dígitos.\n"
-                "Ejemplo: 3153 7028 2894 1005"
+                "Ejemplo: 1234 5678 9012 3456"
             )
             return
         self._verify_card_number(raw)
@@ -301,14 +313,27 @@ class MemberScanner(ctk.CTk):
             try:
                 conn = get_conn()
                 cur = conn.cursor()
-                cur.execute("SELECT id FROM reservations WHERE password_hash IS NOT NULL ORDER BY id")
+                # ⚠️ Sin filtro de password_hash: todos los socios tienen número de tarjeta
+                cur.execute("SELECT id FROM reservations ORDER BY id")
                 ids = [r[0] for r in cur.fetchall()]
+
+                print(f"[DEBUG] Buscando tarjeta: {digits_clean}")
+                print(f"[DEBUG] Total IDs en DB: {len(ids)}")
 
                 matched_id = None
                 for mid in ids:
-                    if generate_card_number(mid).replace(" ", "") == digits_clean:
+                    generated = generate_card_number(mid).replace(" ", "")
+                    if generated == digits_clean:
                         matched_id = mid
+                        print(f"[DEBUG] ¡Match! ID={mid} → {generated}")
                         break
+
+                if not matched_id:
+                    # Mostrar los primeros 3 para diagnóstico
+                    sample = [(mid, generate_card_number(mid)) for mid in ids[:3]]
+                    print(f"[DEBUG] No hubo match. Primeros 3 números generados:")
+                    for mid, cn in sample:
+                        print(f"  ID {mid} → {cn}")
 
                 if matched_id:
                     self.after(0, lambda: self._fetch_and_show(matched_id))
