@@ -1,82 +1,69 @@
-# Despliegue automatico a Orange Pi (self-hosted runner)
+# Despliegue a Orange Pi (GTR Platform)
 
-Este repositorio usa GitHub Actions con un runner instalado dentro de tu Orange Pi. Asi, cada push a `main` despliega sin depender de exponer tu red local.
+Este repositorio soporta dos métodos de despliegue: mediante un script de automatización local (SSH) y mediante GitHub Actions.
 
-Archivo del workflow:
-- `.github/workflows/deploy-orange-pi.yml`
+## Método 1: Despliegue Local (Recomendado para Desarrollo)
 
-## 1) Instala el runner en Orange Pi
+El archivo `deploy_orangepi.py` permite desplegar cambios directamente desde tu PC a la Orange Pi sin esperar a GitHub.
 
-En GitHub: Settings > Actions > Runners > New self-hosted runner > Linux > ARM64.
+### Requisitos
+- Tener Python instalado.
+- Instalar la librería `paramiko`:
+  ```bash
+  pip install paramiko
+  ```
 
-Copia y ejecuta en la Orange Pi los comandos que te da GitHub (descarga, config y run).
+### Procedimiento
+1. Realiza tus cambios y haz un `git push` a GitHub.
+2. Ejecuta el despachador:
+   ```bash
+   python deploy_orangepi.py
+   ```
 
-Recomendacion: instalar como servicio para que inicie solo.
+### ¿Qué hace el script?
+1. Se conecta vía SSH a la Orange Pi (`192.168.100.61`).
+2. **Sincroniza el Reloj:** Configura la zona horaria a `America/Mexico_City` y fuerza la actualización de la hora mediante `chrony`.
+3. **Actualiza Código:** Ejecuta un `git fetch` y `git reset --hard origin/main` en la carpeta `~/GTR`.
+4. **Reinicia Backend:** Instala dependencias con `npm install` y reinicia los procesos con `pm2 restart all`.
 
+---
+
+## Método 2: GitHub Actions (Continuo)
+
+ GitHub Actions para despliegue automático cuando haces un push a `main`.
+
+### Configuración de Runner
+Si el runner se detiene, ejecútalo como servicio en la Orange Pi:
 ```bash
-cd actions-runner
-sudo ./svc.sh install orangepi
+cd ~/actions-runner
 sudo ./svc.sh start
 ```
 
-## 2) Secretos/variables que necesitas
+### Secretos en GitHub
+Asegúrate de tener estos secretos en `Settings > Secrets and variables > Actions`:
+- `ORANGE_PI_APP_DIR`: `/home/orangepi/GTR`
+- `ADMIN_UNLOCK_PASS`: Tu contraseña administrativa.
 
-En tu repo: Settings > Secrets and variables > Actions.
+---
 
-Obligatorio:
-- `ORANGE_PI_APP_DIR`: ruta destino local en la Orange Pi (ejemplo `/home/orangepi/GTR`)
+## Mantenimiento del Sistema (Orange Pi)
 
-Opcional:
-- `ORANGE_PI_SERVICE_NAME`: servicio systemd a reiniciar al final (ejemplo `nginx` o `gtr.service`)
-- `TELEGRAM_BOT_TOKEN`: token del bot de Telegram para alertas
-- `TELEGRAM_CHAT_ID`: chat id donde se enviaran alertas
-
-## 3) Primer despliegue
-
-Haz push a `main`:
-
+### Gestión de Procesos (PM2)
+Para ver el estado de los servicios del backend en la Orange Pi:
 ```bash
-git add .
-git commit -m "Configurar deploy con self-hosted runner"
-git push origin main
+pm2 status
+pm2 logs gtr-backend
 ```
 
-## 4) Verifica ejecucion
-
-En GitHub: Actions > workflow "Deploy to Orange Pi".
-
-En la Orange Pi:
-
+### Sincronización de Hora
+Si el reloj se desincroniza (causando errores en logs), usa estos comandos (ya incluidos en el script de deploy):
 ```bash
-cd /home/orangepi/GTR
-ls -la
+sudo chronyc makestep
+timedatectl status
 ```
 
-Si configuraste Telegram, recibirás notificacion de deploy exitoso y deploy fallido con enlace directo al run.
+### Ubicación de Archivos
+- **Frontend/Backend:** `/home/orangepi/GTR`
+- **Base de Datos:** PostgreSQL (Puerto 5432)
+- **Panel Admin (Python):** `~/GTR/admin-panel`
 
-## Obtener datos de Telegram
-
-1. Crea un bot con BotFather y copia el token.
-2. Escribe al bot al menos una vez desde tu cuenta o grupo.
-3. Obtén el chat id con:
-
-```bash
-curl -s "https://api.telegram.org/bot<TU_TOKEN>/getUpdates"
-```
-
-Busca el valor `chat.id` y guardalo como `TELEGRAM_CHAT_ID`.
-
-## Opcional: script de post-despliegue
-
-Si agregas un archivo `deploy.sh` en la raiz del repo, el workflow lo ejecuta automaticamente dentro de `ORANGE_PI_APP_DIR`.
-
-Ejemplo:
-
-```bash
-#!/usr/bin/env bash
-set -e
-
-# Aqui pones pasos de build/restart
-# npm ci
-# npm run build
-```
