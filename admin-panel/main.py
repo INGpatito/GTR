@@ -7,6 +7,7 @@ import os
 import bcrypt
 import requests
 import threading
+import datetime
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde admin-panel/.env
@@ -238,7 +239,8 @@ class ParkingAdmin(ctk.CTk):
                 for u in users:
                     self.tree_users.insert("", "end", values=(u[0], u[1], u[2], u[3]))
                     
-                self.status_label.configure(text="Estado: Conectado y Listo", text_color="#2ecc71")
+                now = datetime.datetime.now().strftime("%H:%M:%S")
+                self.status_label.configure(text=f"Estado: Listo ({now})", text_color="#2ecc71")
             except Error as e:
                 messagebox.showerror("Error SQL", f"No se pudieron leer los registros.\n{e}")
             finally:
