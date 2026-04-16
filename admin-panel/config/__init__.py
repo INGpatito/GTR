@@ -1,0 +1,1 @@
+"""Parking GTR — Configuración centralizada."""
