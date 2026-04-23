@@ -13,8 +13,43 @@ _PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(_PACKAGE_DIR, ".env"))
 
 # ── Base de Datos (PostgreSQL en Orange Pi) ────────────
+# IPs de la OrangePi: Tailscale (VPN) y LAN (red local)
+_TAILSCALE_HOST = os.getenv("DB_HOST_TAILSCALE", "100.89.43.30")
+_LAN_HOST       = os.getenv("DB_HOST_LAN",       "192.168.100.61")
+
+
+def _resolve_db_host() -> str:
+    """Intenta conectar vía Tailscale primero, luego LAN.
+
+    Prueba cada host con un socket TCP rápido (timeout 2s).
+    Retorna el primer host que responda en el puerto 5432.
+    """
+    import socket
+
+    env_host = os.getenv("DB_HOST")
+    if env_host:
+        # Si hay un host explícito en .env, usarlo directamente
+        return env_host
+
+    for host, label in [(_TAILSCALE_HOST, "Tailscale"), (_LAN_HOST, "LAN")]:
+        try:
+            sock = socket.create_connection((host, 5432), timeout=2)
+            sock.close()
+            print(f"  ✅ DB conectada vía {label}: {host}")
+            return host
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            print(f"  ⚠️  DB {label} ({host}) no disponible, probando siguiente...")
+            continue
+
+    # Fallback: usar Tailscale de todas formas (fallará en psycopg2 con mejor error)
+    print("  ❌ Ningún host de DB disponible, usando Tailscale como fallback")
+    return _TAILSCALE_HOST
+
+
+_DB_HOST = _resolve_db_host()
+
 DB_PARAMS: dict = {
-    "host":     os.getenv("DB_HOST",     "192.168.100.61"),
+    "host":     _DB_HOST,
     "port":     int(os.getenv("DB_PORT",  "5432")),
     "database": os.getenv("DB_NAME",     "parking_gtr"),
     "user":     os.getenv("DB_USER",     "postgres"),
