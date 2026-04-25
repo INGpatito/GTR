@@ -292,8 +292,8 @@ class MemberScanner(ctk.CTk):
             try:
                 conn = get_conn()
                 cur = conn.cursor()
-                # ⚠️ Sin filtro de password_hash: todos los socios tienen número de tarjeta
-                cur.execute("SELECT id FROM reservations ORDER BY id")
+                # ⚠️ Todos los socios (users) tienen número de tarjeta
+                cur.execute("SELECT id FROM users ORDER BY id")
                 ids = [r[0] for r in cur.fetchall()]
 
                 print(f"[DEBUG] Buscando tarjeta: {digits_clean}")
@@ -363,12 +363,14 @@ class MemberScanner(ctk.CTk):
                 conn = get_conn()
                 cur = conn.cursor()
 
-                # ── Datos principales
+                # ── Datos principales (Desde la tabla users)
                 cur.execute("""
-                    SELECT id, full_name, email, phone, service, vehicle,
-                           arrival_date, arrival_time, status, created_at
-                    FROM reservations
-                    WHERE id = %s
+                    SELECT u.id, u.full_name, u.email, u.phone, u.preferred_service, 
+                           r.vehicle, r.arrival_date, r.arrival_time, u.status, u.created_at
+                    FROM users u
+                    LEFT JOIN reservations r ON u.id = r.user_id
+                    WHERE u.id = %s
+                    ORDER BY r.created_at DESC LIMIT 1
                 """, (member_id,))
                 row = cur.fetchone()
 
@@ -388,13 +390,13 @@ class MemberScanner(ctk.CTk):
                 """, (member_id,))
                 vehicles = cur.fetchall()
 
-                # ── Historial de actividad
+                # ── Historial de actividad (Desde reservations)
                 cur.execute("""
                     SELECT service, status, created_at
                     FROM reservations
-                    WHERE id != %s AND email = (SELECT email FROM reservations WHERE id = %s)
+                    WHERE user_id = %s
                     ORDER BY created_at DESC LIMIT 10
-                """, (member_id, member_id))
+                """, (member_id,))
                 activity = cur.fetchall()
 
                 card_num = generate_card_number(member_id)
@@ -475,7 +477,7 @@ class MemberScanner(ctk.CTk):
         ).grid(row=2, column=1, sticky="w", pady=(6, 0))
 
         # Badge de estado
-        status_color = {"confirmed": GREEN, "completed": GREEN, "pending": AMBER}.get(status or "pending", MUTED)
+        status_color = {"confirmed": GREEN, "completed": GREEN, "active": GREEN, "pending": AMBER}.get(status or "pending", MUTED)
         ctk.CTkLabel(
             cf_inner, text=f"  {(status or 'pending').upper()}  ",
             font=ctk.CTkFont("Helvetica", 10, "bold"),

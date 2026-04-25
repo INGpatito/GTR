@@ -248,7 +248,8 @@
           const data = await res.json();
 
           if (res.ok && data.success) {
-            if (data.reservation.status !== "completed") {
+            // Si el usuario ya está activo (socio existente), saltamos el mensaje de aprobación
+            if (data.user_status !== "active" && data.reservation.status !== "completed") {
                alert(lang === "es" ? "Solicitud recibida correctamente. Por favor, espera a que nuestros administradores validen tu perfil mediante el Panel de Seguridad." : "Application received successfully. Please wait for an administrator to authorise your profile.");
                btn.disabled = false;
                btn.style.opacity = "1";

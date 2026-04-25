@@ -68,7 +68,12 @@ router.post("/", createLimiter, async (req, res) => {
     console.log(`✅ New reservation #${reservation.id} from ${safeEmail} (User ID: ${userId})`);
 
     const token = jwt.sign({ id: userId, email: safeEmail }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
-    res.status(201).json({ success: true, reservation, token });
+    
+    // Fetch current user status to inform frontend
+    const userStatusRes = await pool.query("SELECT status FROM users WHERE id = $1", [userId]);
+    const userStatus = userStatusRes.rows[0]?.status || 'pending';
+
+    res.status(201).json({ success: true, reservation, token, user_status: userStatus });
 
   } catch (err) {
     await pool.query('ROLLBACK');
