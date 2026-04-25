@@ -1,29 +1,41 @@
 """
 Parking GTR — Database Connection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Provee conexión centralizada a PostgreSQL con context manager
-para manejo automático de cursor y conexión.
+Provee conexión centralizada a PostgreSQL con pool de conexiones
+para manejo eficiente y auto-commit.
 """
 
 from contextlib import contextmanager
 
-import psycopg2
 from psycopg2 import Error as PGError
+from psycopg2.pool import ThreadedConnectionPool
 
 from config.settings import DB_PARAMS
 
+# Crear un pool global. Mínimo 1 conexión, máximo 5 conexiones.
+try:
+    _pool = ThreadedConnectionPool(1, 5, **DB_PARAMS)
+except PGError as e:
+    print(f"Error inicializando Connection Pool: {e}")
+    _pool = None
 
 def get_connection():
-    """Crea y retorna una nueva conexión a PostgreSQL.
+    """Obtiene y retorna una conexión a PostgreSQL desde el pool.
 
     Returns:
         psycopg2.connection | None: Conexión activa, o None si falla.
     """
-    try:
-        return psycopg2.connect(**DB_PARAMS)
-    except PGError:
-        return None
+    if _pool:
+        try:
+            return _pool.getconn()
+        except PGError:
+            return None
+    return None
 
+def put_connection(conn):
+    """Devuelve la conexión al pool."""
+    if _pool and conn:
+        _pool.putconn(conn)
 
 @contextmanager
 def db_cursor():
@@ -34,12 +46,15 @@ def db_cursor():
         with db_cursor() as cur:
             cur.execute("SELECT ...")
             rows = cur.fetchall()
-        # Conexión y cursor se cierran automáticamente
+        # Conexión devuelta al pool y cursor cerrado automáticamente
 
     Raises:
         PGError: Si no se puede conectar a la base de datos.
     """
-    conn = psycopg2.connect(**DB_PARAMS)
+    if not _pool:
+        raise PGError("Database pool is not initialized")
+        
+    conn = _pool.getconn()
     cur = conn.cursor()
     try:
         yield cur
@@ -49,4 +64,4 @@ def db_cursor():
         raise
     finally:
         cur.close()
-        conn.close()
+        _pool.putconn(conn)
