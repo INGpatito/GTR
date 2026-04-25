@@ -34,6 +34,7 @@ export PGPASSWORD=$DB_PWD
 psql -h localhost -U postgres -d "$DB_NAME" -f db/schema.sql > /dev/null
 psql -h localhost -U postgres -d "$DB_NAME" -f db/migration_password_hash.sql > /dev/null
 psql -h localhost -U postgres -d "$DB_NAME" -f db/migration_vehicles.sql > /dev/null
+psql -h localhost -U postgres -d "$DB_NAME" -f db/migration_users.sql > /dev/null
 
 unset PGPASSWORD
 
