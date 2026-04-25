@@ -248,16 +248,7 @@
           const data = await res.json();
 
           if (res.ok && data.success) {
-            // Si el usuario ya está activo (socio existente), saltamos el mensaje de aprobación
-            if (data.user_status !== "active" && data.reservation.status !== "completed") {
-               alert(lang === "es" ? "Solicitud recibida correctamente. Por favor, espera a que nuestros administradores validen tu perfil mediante el Panel de Seguridad." : "Application received successfully. Please wait for an administrator to authorise your profile.");
-               btn.disabled = false;
-               btn.style.opacity = "1";
-               btn.querySelector("span").textContent = origText;
-               form.reset();
-               return;
-            }
-            // Guardamos el ID en la sesión y redirigimos si por casualidad ya estaba completado
+            // Always redirect to profile — the dashboard shows account status
             sessionStorage.setItem("gtr_user_id", data.reservation.id);
             if (data.token) sessionStorage.setItem("gtr_token", data.token);
             window.location.href = "../GTR-Profile/index.html";
