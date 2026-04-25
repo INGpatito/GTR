@@ -33,24 +33,12 @@ try:
 except ImportError:
     SOUND_OK = False
 
-# ---------- Env ----------
-from dotenv import load_dotenv
-_dir = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(_dir, ".env"))
-
-JWT_SECRET = os.getenv("JWT_SECRET", "fallback_dev_secret_change_me")
+# ---------- Env & Settings ----------
+from config.settings import DB_PARAMS, JWT_SECRET, print_startup_banner
 
 # ── Diagnóstico de arranque ───────────────────────────
-print("\n" + "═"*55)
-print("  PARKING GTR — Member Scanner")
-print("═"*55)
-if JWT_SECRET == "fallback_dev_secret_change_me" or JWT_SECRET == "your_jwt_secret_here":
-    print("  ⚠️  JWT_SECRET no configurado en admin-panel/.env")
-    print("     Copia el valor de backend/.env → JWT_SECRET")
-else:
-    masked = JWT_SECRET[:4] + "*" * max(0, len(JWT_SECRET)-8) + JWT_SECRET[-4:]
-    print(f"  ✅ JWT_SECRET cargado: {masked}")
-print("═"*55 + "\n")
+print_startup_banner("Member Scanner")
+
 
 # ═══════════════════════════════════════════════════════
 #  HMAC — Replica la misma lógica que backend/server.js
@@ -91,15 +79,6 @@ ctk.set_default_color_theme("dark-blue")
 # ═══════════════════════════════════════════════════════
 #  DB HELPER
 # ═══════════════════════════════════════════════════════
-DB_PARAMS = {
-    "host":     os.getenv("DB_HOST",     "192.168.100.61"),
-    "port":     int(os.getenv("DB_PORT", "5432")),
-    "database": os.getenv("DB_NAME",     "parking_gtr"),
-    "user":     os.getenv("DB_USER",     "postgres"),
-    "password": os.getenv("DB_PASSWORD", ""),
-}
-
-
 def get_conn():
     return psycopg2.connect(**DB_PARAMS)
 
