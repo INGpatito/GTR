@@ -1,27 +1,29 @@
 import paramiko
 import time
+import getpass
 
 def deploy():
     print("🚀 Conectando a Orange Pi (192.168.100.61)...")
+    password = getpass.getpass("Contraseña SSH (orangepi): ")
     
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     
     try:
-        ssh.connect("192.168.100.61", username="orangepi", password="orangepi", timeout=10)
+        ssh.connect("192.168.100.61", username="orangepi", password=password, timeout=10)
         print("✅ Conexión exitosa. Ejecutando comandos...")
         
         commands = [
-            "echo orangepi | sudo -S timedatectl set-timezone America/Mexico_City",
-            "echo orangepi | sudo -S apt-get install -y chrony",
-            "echo orangepi | sudo -S systemctl enable --now chronyd",
-            "echo orangepi | sudo -S chronyc makestep",
+            f"echo {password} | sudo -S timedatectl set-timezone America/Mexico_City",
+            f"echo {password} | sudo -S apt-get install -y chrony",
+            f"echo {password} | sudo -S systemctl enable --now chronyd",
+            f"echo {password} | sudo -S chronyc makestep",
             "cd ~/GTR && git fetch origin && git reset --hard origin/main",
             "cd ~/GTR/backend && npm install && pm2 restart all"
         ]
         
         for cmd in commands:
-            print(f"➜ Ejecutando: {cmd.replace('echo orangepi | sudo -S ', 'sudo ')}")
+            print(f"➜ Ejecutando: {cmd.replace(f'echo {password} | sudo -S ', 'sudo ')}")
             stdin, stdout, stderr = ssh.exec_command(cmd)
             # Imprimir salida
             out = stdout.read().decode().strip()
