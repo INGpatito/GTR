@@ -180,13 +180,6 @@
           });
           const data = await res.json();
           if (res.ok && data.success) {
-            if (data.status !== "completed") {
-              alert(lang === "es" ? "Pronto abriremos tu Portal de Cliente. Por favor espera a que aprobemos tu membresía." : "Client Portal coming soon. Please wait for membership approval.");
-              btn.disabled = false;
-              btn.style.opacity = "1";
-              btn.querySelector("span").textContent = origText;
-              return;
-            }
             sessionStorage.setItem("gtr_user_id", data.id);
             sessionStorage.setItem("gtr_token", data.token);
             window.location.href = "../GTR-Profile/index.html";
