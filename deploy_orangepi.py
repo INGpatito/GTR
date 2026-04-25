@@ -19,7 +19,7 @@ def deploy():
             f"echo {password} | sudo -S systemctl enable --now chronyd",
             f"echo {password} | sudo -S chronyc makestep",
             "cd ~/GTR && git fetch origin && git reset --hard origin/main",
-            "cd ~/GTR/backend && npm install && pm2 restart all"
+            "cd ~/GTR && chmod +x deploy.sh && ./deploy.sh"
         ]
         
         for cmd in commands:
