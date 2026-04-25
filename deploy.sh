@@ -46,7 +46,35 @@ if [ -f "requirements.txt" ]; then
 fi
 cd ..
 
-# 5. Reiniciar Servicios con PM2
+# 5. Configurar Backup Automático
+echo -e "💾 Configurando backup automático de la base de datos..."
+BACKUP_DIR="/home/orangepi/backups"
+mkdir -p "$BACKUP_DIR"
+
+# Crear script de backup
+cat << 'EOF' > "$BACKUP_DIR/backup.sh"
+#!/bin/bash
+DB_NAME="parking_gtr"
+BACKUP_DIR="/home/orangepi/backups"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_FILE="$BACKUP_DIR/${DB_NAME}_${TIMESTAMP}.sql.gz"
+
+echo "Iniciando backup de $DB_NAME..."
+sudo -u postgres pg_dump "$DB_NAME" | gzip > "$BACKUP_FILE"
+echo "Backup completado: $BACKUP_FILE"
+
+# Eliminar backups de más de 7 días
+find "$BACKUP_DIR" -name "*.sql.gz" -type f -mtime +7 -delete
+echo "Limpieza completada."
+EOF
+chmod +x "$BACKUP_DIR/backup.sh"
+
+# Añadir a cron si no existe
+CRON_JOB="0 3 * * * $BACKUP_DIR/backup.sh >> $BACKUP_DIR/backup.log 2>&1"
+(crontab -l 2>/dev/null | grep -v "$BACKUP_DIR/backup.sh"; echo "$CRON_JOB") | crontab -
+echo -e "  ✅ Backup diario programado a las 3:00 AM"
+
+# 6. Reiniciar Servicios con PM2
 echo -e "🚀 Reiniciando procesos en PM2..."
 # Intentar usar el ecosistema si existe, si no, usar el nombre directo
 if [ -f "backend/ecosystem.config.js" ]; then
@@ -58,6 +86,17 @@ fi
 
 # Guardar estado para persistencia tras reinicio de la placa
 pm2 save
+
+# 7. Verificación de Salud
+echo -e "⏳ Verificando salud del backend..."
+sleep 3
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health)
+if [ "$HTTP_CODE" = "200" ]; then
+    echo -e "${GREEN}✅ Backend respondiendo correctamente (HTTP $HTTP_CODE)${NC}"
+else
+    echo -e "${RED}❌ Backend NO responde (HTTP $HTTP_CODE). Revisa: pm2 logs${NC}"
+    # No fallamos el script entero aquí, solo alertamos
+fi
 
 echo -e "${GREEN}✅ ¡Despliegue finalizado con éxito!${NC}"
 pm2 status
