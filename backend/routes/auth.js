@@ -19,8 +19,15 @@ router.post("/login", createLimiter, async (req, res) => {
     if (result.rowCount === 0) return res.status(401).json({ success: false, errors: ["Invalid credentials."] });
     
     const user = result.rows[0];
-    // Allow login regardless of status — the profile page shows account status.
-    // Previously this blocked 'pending' users from accessing their dashboard.
+
+    // Only active (approved) users can log in
+    if (user.status !== 'active') {
+      return res.status(403).json({ 
+        success: false, 
+        reason: "inactive",
+        errors: ["Tu cuenta aún no ha sido activada. Por favor espera a que un administrador apruebe tu membresía."] 
+      });
+    }
     if (!user.password_hash) return res.status(401).json({ success: false, errors: ["Account not configured for login."] });
     
     const match = await bcrypt.compare(password, user.password_hash);

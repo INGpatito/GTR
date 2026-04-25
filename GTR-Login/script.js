@@ -183,6 +183,14 @@
             sessionStorage.setItem("gtr_user_id", data.id);
             sessionStorage.setItem("gtr_token", data.token);
             window.location.href = "../GTR-Profile/index.html";
+          } else if (res.status === 403 && data.reason === "inactive") {
+            // Account exists but not yet approved by admin
+            alert(lang === "es"
+              ? "Tu cuenta aún no ha sido activada. Por favor espera a que un administrador apruebe tu membresía."
+              : "Your account has not been activated yet. Please wait for an administrator to approve your membership.");
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            btn.querySelector("span").textContent = origText;
           } else {
             alert(data.errors?.join(". ") || (lang === "es" ? "Credenciales inválidas." : "Invalid credentials."));
             btn.disabled = false;
@@ -248,10 +256,21 @@
           const data = await res.json();
 
           if (res.ok && data.success) {
-            // Always redirect to profile — the dashboard shows account status
-            sessionStorage.setItem("gtr_user_id", data.reservation.id);
-            if (data.token) sessionStorage.setItem("gtr_token", data.token);
-            window.location.href = "../GTR-Profile/index.html";
+            // If user is already active, redirect to profile
+            if (data.user_status === "active") {
+              sessionStorage.setItem("gtr_user_id", data.reservation.id);
+              if (data.token) sessionStorage.setItem("gtr_token", data.token);
+              window.location.href = "../GTR-Profile/index.html";
+              return;
+            }
+            // New registration or pending user — show approval message
+            alert(lang === "es"
+              ? "Tu solicitud ha sido recibida. Un administrador revisará y activará tu cuenta. Te contactaremos pronto."
+              : "Your application has been received. An administrator will review and activate your account. We will contact you soon.");
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            btn.querySelector("span").textContent = origText;
+            form.reset();
             return;
           } else {
             toast.classList.add("error", "visible");
