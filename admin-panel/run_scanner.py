@@ -14,7 +14,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from ui.scanner.app import MemberScanner
-o
+
 
 def main():
     app = MemberScanner()
