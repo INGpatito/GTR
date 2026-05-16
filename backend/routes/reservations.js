@@ -74,7 +74,7 @@ router.post("/", createLimiter, async (req, res) => {
     const userStatusRes = await pool.query("SELECT status FROM users WHERE id = $1", [userId]);
     const userStatus = userStatusRes.rows[0]?.status || 'pending';
 
-    res.status(201).json({ success: true, reservation, token, user_status: userStatus });
+    res.status(201).json({ success: true, reservation, token, user_status: userStatus, user_id: userId });
 
   } catch (err) {
     await pool.query('ROLLBACK');

@@ -251,7 +251,7 @@
           if (res.ok && data.success) {
             // If user is already active, redirect to profile
             if (data.user_status === "active") {
-              sessionStorage.setItem("gtr_user_id", data.reservation.id);
+              sessionStorage.setItem("gtr_user_id", data.user_id);
               if (data.token) sessionStorage.setItem("gtr_token", data.token);
               window.location.href = "../GTR-Profile/index.html";
               return;
