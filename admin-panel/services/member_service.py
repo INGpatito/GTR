@@ -1,24 +1,26 @@
 """
 Parking GTR — Member Service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Operaciones sobre socios/usuarios (tabla ``users``).
+Operaciones sobre socios/usuarios en la tabla ``users``.
 """
 
 from core.database import db_cursor
 
 
 def get_members_summary() -> list[tuple]:
-    """Obtiene un resumen de socios desde la tabla ``users``.
+    """Obtiene un resumen de socios desde la tabla users.
 
     Returns:
-        Lista de tuplas (email, full_name, vehicle_count, preferred_service).
+        Lista de tuplas (email, full_name, reservation_count, preferred_service).
     """
     with db_cursor() as cur:
         cur.execute("""
             SELECT u.email, u.full_name, 
-                   (SELECT COUNT(*) FROM user_vehicles WHERE user_id = u.id),
+                   COUNT(r.id) AS reservation_count,
                    u.preferred_service
             FROM users u
+            LEFT JOIN reservations r ON r.user_id = u.id
+            GROUP BY u.id, u.email, u.full_name, u.preferred_service
             ORDER BY u.created_at DESC;
         """)
         return cur.fetchall()
@@ -26,40 +28,48 @@ def get_members_summary() -> list[tuple]:
 
 def get_member_details(email: str) -> list[tuple]:
     """Obtiene el historial completo de reservaciones de un socio.
-    
-    Busca por email en la tabla users y une con reservations.
 
     Returns:
         Lista de tuplas (full_name, phone, service, vehicle, status,
-                         created_at, res_id, license_plate).
+                         created_at, id).
     """
     with db_cursor() as cur:
-        # Primero obtenemos datos del usuario y sus reservaciones
-        cur.execute("""
-            SELECT u.full_name, u.phone, r.service, r.vehicle, r.status, r.created_at, r.id, r.license_plate
-            FROM users u
-            LEFT JOIN reservations r ON u.id = r.user_id
-            WHERE u.email = %s
-            ORDER BY r.created_at DESC NULLS LAST;
-        """, (email,))
+        cur.execute(
+            "SELECT u.full_name, u.phone, r.service, r.vehicle, r.status, "
+            "r.created_at, r.id "
+            "FROM reservations r "
+            "JOIN users u ON r.user_id = u.id "
+            "WHERE u.email = %s ORDER BY r.created_at DESC",
+            (email,),
+        )
         return cur.fetchall()
 
 
 def delete_member(email: str) -> int:
-    """Elimina un socio y todas sus dependencias (vía CASCADE o manual).
+    """Elimina un socio y todas sus reservaciones y vehículos.
 
     Returns:
-        Cantidad de registros de usuario eliminados.
+        1 si el usuario fue eliminado, 0 si no se encontró.
     """
     with db_cursor() as cur:
-        # Al borrar el usuario, las reservaciones y vehículos deberían borrarse si las FK tienen CASCADE.
-        # Si no, las borramos manualmente aquí.
-        cur.execute("DELETE FROM users WHERE email = %s", (email,))
-        return cur.rowcount
+        # Get user ID first
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        row = cur.fetchone()
+        if not row:
+            return 0
+        user_id = row[0]
+        
+        # Delete vehicles (CASCADE should handle this but be explicit)
+        cur.execute("DELETE FROM user_vehicles WHERE user_id = %s", (user_id,))
+        # Delete reservations
+        cur.execute("DELETE FROM reservations WHERE user_id = %s", (user_id,))
+        # Delete user
+        cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        return 1
 
 
 def update_password(email: str, password_hash: str) -> None:
-    """Actualiza el hash de contraseña del socio."""
+    """Actualiza el hash de contraseña del usuario."""
     with db_cursor() as cur:
         cur.execute(
             "UPDATE users SET password_hash = %s WHERE email = %s",
@@ -67,17 +77,8 @@ def update_password(email: str, password_hash: str) -> None:
         )
 
 
-def update_license_plate(record_id: int, plate: str) -> None:
-    """Actualiza la matrícula de una reservación específica."""
-    with db_cursor() as cur:
-        cur.execute(
-            "UPDATE reservations SET license_plate = %s WHERE id = %s",
-            (plate, record_id),
-        )
-
-
 def get_all_member_ids() -> list[int]:
-    """Obtiene todos los IDs de la tabla users para verificación de tarjeta.
+    """Obtiene todos los IDs de usuarios para verificación de tarjeta.
 
     Returns:
         Lista de IDs ordenados ascendentemente.
@@ -88,14 +89,17 @@ def get_all_member_ids() -> list[int]:
 
 
 def get_vehicles_for_email(email: str) -> list[tuple]:
-    """Obtiene los vehículos de un socio."""
+    """Obtiene los vehículos registrados de un socio.
+
+    Returns:
+        Lista de tuplas (id, vehicle, service).
+    """
     with db_cursor() as cur:
-        cur.execute("""
-            SELECT v.id, v.vehicle, v.plate, r.service
-            FROM users u
-            JOIN user_vehicles v ON u.id = v.user_id
-            LEFT JOIN reservations r ON u.id = r.user_id
-            WHERE u.email = %s
-            ORDER BY v.created_at DESC;
-        """, (email,))
+        cur.execute(
+            "SELECT r.id, r.vehicle, r.service "
+            "FROM reservations r "
+            "JOIN users u ON r.user_id = u.id "
+            "WHERE u.email = %s ORDER BY r.created_at DESC",
+            (email,),
+        )
         return cur.fetchall()

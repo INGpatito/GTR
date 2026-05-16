@@ -33,12 +33,24 @@ try:
 except ImportError:
     SOUND_OK = False
 
-# ---------- Env & Settings ----------
-from config.settings import DB_PARAMS, JWT_SECRET, print_startup_banner
+# ---------- Env ----------
+from dotenv import load_dotenv
+_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(_dir, ".env"))
+
+JWT_SECRET = os.getenv("JWT_SECRET", "fallback_dev_secret_change_me")
 
 # ── Diagnóstico de arranque ───────────────────────────
-print_startup_banner("Member Scanner")
-
+print("\n" + "═"*55)
+print("  PARKING GTR — Member Scanner")
+print("═"*55)
+if JWT_SECRET == "fallback_dev_secret_change_me" or JWT_SECRET == "your_jwt_secret_here":
+    print("  ⚠️  JWT_SECRET no configurado en admin-panel/.env")
+    print("     Copia el valor de backend/.env → JWT_SECRET")
+else:
+    masked = JWT_SECRET[:4] + "*" * max(0, len(JWT_SECRET)-8) + JWT_SECRET[-4:]
+    print(f"  ✅ JWT_SECRET cargado: {masked}")
+print("═"*55 + "\n")
 
 # ═══════════════════════════════════════════════════════
 #  HMAC — Replica la misma lógica que backend/server.js
@@ -79,6 +91,15 @@ ctk.set_default_color_theme("dark-blue")
 # ═══════════════════════════════════════════════════════
 #  DB HELPER
 # ═══════════════════════════════════════════════════════
+DB_PARAMS = {
+    "host":     os.getenv("DB_HOST",     "192.168.100.61"),
+    "port":     int(os.getenv("DB_PORT", "5432")),
+    "database": os.getenv("DB_NAME",     "parking_gtr"),
+    "user":     os.getenv("DB_USER",     "postgres"),
+    "password": os.getenv("DB_PASSWORD", ""),
+}
+
+
 def get_conn():
     return psycopg2.connect(**DB_PARAMS)
 
@@ -292,8 +313,8 @@ class MemberScanner(ctk.CTk):
             try:
                 conn = get_conn()
                 cur = conn.cursor()
-                # ⚠️ Todos los socios (users) tienen número de tarjeta
-                cur.execute("SELECT id FROM users ORDER BY id")
+                # ⚠️ Sin filtro de password_hash: todos los socios tienen número de tarjeta
+                cur.execute("SELECT id FROM reservations ORDER BY id")
                 ids = [r[0] for r in cur.fetchall()]
 
                 print(f"[DEBUG] Buscando tarjeta: {digits_clean}")
@@ -363,14 +384,12 @@ class MemberScanner(ctk.CTk):
                 conn = get_conn()
                 cur = conn.cursor()
 
-                # ── Datos principales (Desde la tabla users)
+                # ── Datos principales
                 cur.execute("""
-                    SELECT u.id, u.full_name, u.email, u.phone, u.preferred_service, 
-                           r.vehicle, r.arrival_date, r.arrival_time, u.status, u.created_at
-                    FROM users u
-                    LEFT JOIN reservations r ON u.id = r.user_id
-                    WHERE u.id = %s
-                    ORDER BY r.created_at DESC LIMIT 1
+                    SELECT id, full_name, email, phone, service, vehicle,
+                           arrival_date, arrival_time, status, created_at
+                    FROM reservations
+                    WHERE id = %s
                 """, (member_id,))
                 row = cur.fetchone()
 
@@ -390,13 +409,13 @@ class MemberScanner(ctk.CTk):
                 """, (member_id,))
                 vehicles = cur.fetchall()
 
-                # ── Historial de actividad (Desde reservations)
+                # ── Historial de actividad
                 cur.execute("""
                     SELECT service, status, created_at
                     FROM reservations
-                    WHERE user_id = %s
+                    WHERE id != %s AND email = (SELECT email FROM reservations WHERE id = %s)
                     ORDER BY created_at DESC LIMIT 10
-                """, (member_id,))
+                """, (member_id, member_id))
                 activity = cur.fetchall()
 
                 card_num = generate_card_number(member_id)
@@ -477,7 +496,7 @@ class MemberScanner(ctk.CTk):
         ).grid(row=2, column=1, sticky="w", pady=(6, 0))
 
         # Badge de estado
-        status_color = {"confirmed": GREEN, "completed": GREEN, "active": GREEN, "pending": AMBER}.get(status or "pending", MUTED)
+        status_color = {"confirmed": GREEN, "completed": GREEN, "pending": AMBER}.get(status or "pending", MUTED)
         ctk.CTkLabel(
             cf_inner, text=f"  {(status or 'pending').upper()}  ",
             font=ctk.CTkFont("Helvetica", 10, "bold"),

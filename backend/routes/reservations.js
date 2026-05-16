@@ -44,9 +44,9 @@ router.post("/", createLimiter, async (req, res) => {
         passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
       }
       const newUser = await pool.query(
-        `INSERT INTO users (full_name, email, phone, password_hash, preferred_service)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-        [safeName, safeEmail, safePhone, passwordHash, service || 'valet']
+        `INSERT INTO users (full_name, email, phone, password_hash, preferred_service, status)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        [safeName, safeEmail, safePhone, passwordHash, service || 'valet', 'pending']
       );
       userId = newUser.rows[0].id;
     }

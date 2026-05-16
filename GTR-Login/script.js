@@ -27,12 +27,6 @@
           "info.hoursLabel": "Hours", "info.hours": "24 / 7 — 365 days",
           "form.name": "Full Name", "form.email": "Email Address", "form.phone": "Phone",
           "form.password": "Password", "form.newpassword": "Create Password",
-          "form.service": "Subscription Tier", "form.selectTier": "Select a tier…",
-          "form.opt.valet": "Standard Valet (Pay per Use)", "form.opt.monthly": "Monthly Membership",
-          "form.opt.event": "Event VIP Pass", "form.opt.concierge": "Concierge Priority (Annual)", "form.opt.fleet": "Corporate Fleet",
-          "form.vehicle": "Vehicle Classification",
-          "form.veh.sports": "🏎 Sports", "form.veh.suv": "🚙 Luxury SUV", "form.veh.sedan": "🚗 Premium Sedan",
-          "form.veh.convertible": "🚘 Convertible", "form.veh.exotic": "✨ Exotic/Hypercar",
           "form.date": "Arrival Date", "form.time": "Arrival Time", "form.message": "Special Requests",
           "form.submit": "Send Reservation Request",
           "form.success": "Your membership application is under review. Please wait for our concierge to contact you.",
@@ -61,12 +55,6 @@
           "info.hoursLabel": "Horario", "info.hours": "24 / 7 — 365 días",
           "form.name": "Nombre Completo", "form.email": "Correo Electrónico", "form.phone": "Teléfono",
           "form.password": "Contraseña", "form.newpassword": "Crear Contraseña",
-          "form.service": "Nivel de Suscripción", "form.selectTier": "Seleccione un nivel…",
-          "form.opt.valet": "Valet Estándar (Pago por Uso)", "form.opt.monthly": "Membresía Mensual",
-          "form.opt.event": "Pase VIP para Eventos", "form.opt.concierge": "Prioridad Conserje (Anual)", "form.opt.fleet": "Flota / Corporativo",
-          "form.vehicle": "Clasificación de Vehículo",
-          "form.veh.sports": "🏎 Deportivo", "form.veh.suv": "🚙 SUV de Lujo", "form.veh.sedan": "🚗 Sedán Premium",
-          "form.veh.convertible": "🚘 Convertible", "form.veh.exotic": "✨ Exótico / Hipercoche",
           "form.date": "Fecha de Llegada", "form.time": "Hora de Llegada", "form.message": "Solicitudes Especiales",
           "form.submit": "Enviar Solicitud de Reserva",
           "form.success": "Su solicitud de membresía está bajo revisión. Por favor, espere a que nuestro conserje lo contacte.",
@@ -186,8 +174,8 @@
           } else if (res.status === 403 && data.reason === "inactive") {
             // Account exists but not yet approved by admin
             alert(lang === "es"
-              ? "Tu cuenta aún no ha sido activada. Por favor espera a que un administrador apruebe tu membresía."
-              : "Your account has not been activated yet. Please wait for an administrator to approve your membership.");
+              ? "Tu cuenta aún no ha sido activada. Por favor espera a que un administrador apruebe tu membresía. Recibirás un correo cuando esté listo."
+              : "Your account has not been activated yet. Please wait for an administrator to approve your membership. You will receive an email when it's ready.");
             btn.disabled = false;
             btn.style.opacity = "1";
             btn.querySelector("span").textContent = origText;
@@ -217,8 +205,8 @@
         const name = form.querySelector("#inputName").value.trim();
         const email = form.querySelector("#inputEmail").value.trim();
         const phone = form.querySelector("#inputPhone").value.trim();
-        const service = form.querySelector("#inputService").value;
-        const vehicle = form.querySelector("input[name='vehicle']:checked")?.value || "sports";
+        const service = form.querySelector("#inputService")?.value || "valet";
+        const vehicle = form.querySelector("input[name='vehicle']")?.value || "sports";
         const date = form.querySelector("#inputDate").value;
         const time = form.querySelector("#inputTime").value;
         const message = form.querySelector("#inputMsg").value.trim();

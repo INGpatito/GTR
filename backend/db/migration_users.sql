@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   phone             VARCHAR(30),
   password_hash     TEXT,
   preferred_service service_type DEFAULT 'valet',
-  status            VARCHAR(20) DEFAULT 'active',
+  status            VARCHAR(20) DEFAULT 'pending',
   created_at        TIMESTAMPTZ DEFAULT NOW(),
   updated_at        TIMESTAMPTZ DEFAULT NOW()
 );

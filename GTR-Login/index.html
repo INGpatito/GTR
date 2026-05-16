@@ -120,41 +120,9 @@
                   <label for="inputRegisterPass" data-i18n="form.newpassword">Create Password</label>
                   <input type="password" id="inputRegisterPass" name="newpassword" placeholder="••••••••" required />
                 </div>
-                <!-- Service / Subscription -->
-                <div class="form-group">
-                  <label for="inputService" data-i18n="form.service">Subscription Tier</label>
-                  <select id="inputService" name="service" required>
-                    <option value="" data-i18n="form.selectTier">Select a tier…</option>
-                    <option value="monthly" data-i18n="form.opt.monthly">Monthly Membership</option>
-                    <option value="concierge" data-i18n="form.opt.concierge">Concierge Priority (Annual)</option>
-                    <option value="fleet" data-i18n="form.opt.fleet">Corporate Fleet</option>
-                    <option value="event" data-i18n="form.opt.event">Event VIP Pass</option>
-                    <option value="valet" data-i18n="form.opt.valet">Standard Valet (Pay per Use)</option>
-                  </select>
-                </div>
-
-                <!-- Vehicle type -->
-                <div class="form-group full">
-                  <label data-i18n="form.vehicle">Vehicle Classification</label>
-                  <div class="radio-group" role="radiogroup">
-                    <div class="radio-chip">
-                      <input type="radio" id="vExotic" name="vehicle" value="exotic" checked />
-                      <label for="vExotic" data-i18n="form.veh.exotic">✨ Exotic/Hypercar</label>
-                    </div>
-                    <div class="radio-chip">
-                      <input type="radio" id="vSports" name="vehicle" value="sports" />
-                      <label for="vSports" data-i18n="form.veh.sports">🏎 Sports</label>
-                    </div>
-                    <div class="radio-chip">
-                      <input type="radio" id="vSUV" name="vehicle" value="suv" />
-                      <label for="vSUV" data-i18n="form.veh.suv">🚙 Luxury SUV</label>
-                    </div>
-                    <div class="radio-chip">
-                      <input type="radio" id="vSedan" name="vehicle" value="sedan" />
-                      <label for="vSedan" data-i18n="form.veh.sedan">🚗 Premium Sedan</label>
-                    </div>
-                  </div>
-                </div>
+                <!-- Hidden defaults for service and vehicle (removed from UI) -->
+                <input type="hidden" id="inputService" name="service" value="valet" />
+                <input type="hidden" name="vehicle" value="sports" />
 
                 <!-- Hidden Date/Time/Msg since it's just membership -->
                 <input type="hidden" id="inputDate" value="" />

@@ -20,6 +20,11 @@ router.post("/login", createLimiter, async (req, res) => {
     
     const user = result.rows[0];
 
+    if (!user.password_hash) return res.status(401).json({ success: false, errors: ["Account not configured for login."] });
+    
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(401).json({ success: false, errors: ["Invalid credentials."] });
+
     // Only active (approved) users can log in
     if (user.status !== 'active') {
       return res.status(403).json({ 
@@ -28,10 +33,6 @@ router.post("/login", createLimiter, async (req, res) => {
         errors: ["Tu cuenta aún no ha sido activada. Por favor espera a que un administrador apruebe tu membresía."] 
       });
     }
-    if (!user.password_hash) return res.status(401).json({ success: false, errors: ["Account not configured for login."] });
-    
-    const match = await bcrypt.compare(password, user.password_hash);
-    if (!match) return res.status(401).json({ success: false, errors: ["Invalid credentials."] });
     
     const token = jwt.sign(
       { id: user.id, email: user.email },
