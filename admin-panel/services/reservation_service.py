@@ -58,6 +58,26 @@ def get_reservation_by_id(record_id: int) -> tuple | None:
         return cur.fetchone()
 
 
+def get_latest_reservation_by_user_id(user_id: int) -> tuple | None:
+    """Obtiene la reservación más reciente de un usuario.
+
+    Returns:
+        Tupla (id, full_name, email, phone, service, vehicle,
+               arrival_date, arrival_time, status, created_at) o None.
+    """
+    with db_cursor() as cur:
+        cur.execute(
+            "SELECT r.id, u.full_name, u.email, u.phone, r.service, r.vehicle, "
+            "r.arrival_date, r.arrival_time, r.status, r.created_at "
+            "FROM reservations r "
+            "JOIN users u ON r.user_id = u.id "
+            "WHERE u.id = %s "
+            "ORDER BY r.created_at DESC LIMIT 1",
+            (user_id,),
+        )
+        return cur.fetchone()
+
+
 def get_user_info_for_approval(record_id: int) -> tuple | None:
     """Obtiene datos mínimos del usuario para enviar correo de aprobación.
 

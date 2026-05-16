@@ -48,10 +48,11 @@ class ProfileView:
             justify="center",
         ).pack(pady=(12, 0))
 
-    def render(self, row, vehicles, activity, card_num, on_checkin=None, on_checkout=None):
+    def render(self, member_id, row, vehicles, activity, card_num, on_checkin=None, on_checkout=None):
         """Renderiza el perfil completo del socio.
 
         Args:
+            member_id: ID interno del socio en tabla users.
             row: Tupla (id, full_name, email, phone, service, vehicle,
                         arrival_date, arrival_time, status, created_at).
             vehicles: Lista de vehículos del garaje.
@@ -60,7 +61,7 @@ class ProfileView:
             on_checkin: Callback(uid, status) para check-in.
             on_checkout: Callback(uid) para check-out.
         """
-        (uid, full_name, email, phone, service, vehicle,
+        (reservation_id, full_name, email, phone, service, vehicle,
          arr_date, arr_time, status, created_at) = row
 
         self._clear()
@@ -72,11 +73,11 @@ class ProfileView:
         scroll.grid_columnconfigure(1, weight=1)
 
         # ── 1. TARJETA VIP ──
-        self._render_vip_card(scroll, uid, full_name, service, card_num, status)
+        self._render_vip_card(scroll, member_id, full_name, service, card_num, status)
 
         # ── 2. INFO PERSONAL + CHECK-IN ──
         self._render_info_panel(
-            scroll, uid, email, phone, service, status, created_at,
+            scroll, reservation_id, email, phone, service, status, created_at,
             on_checkin, on_checkout,
         )
 
