@@ -215,7 +215,7 @@
 
         // Client-side validation
         let valid = true;
-        [form.querySelector("#inputName"), form.querySelector("#inputEmail")].forEach(el => {
+        [form.querySelector("#inputName"), form.querySelector("#inputEmail"), form.querySelector("#inputRegisterPass")].forEach(el => {
           el.style.borderColor = "";
         });
         if (!name || name.length < 2) {
@@ -224,6 +224,11 @@
         }
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
           form.querySelector("#inputEmail").style.borderColor = "#e74c3c";
+          valid = false;
+        }
+        if (!password || password.length < 6) {
+          form.querySelector("#inputRegisterPass").style.borderColor = "#e74c3c";
+          alert(lang === "es" ? "La contraseña debe tener al menos 6 caracteres." : "Password must be at least 6 characters.");
           valid = false;
         }
         if (!valid) return;

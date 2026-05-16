@@ -40,9 +40,10 @@ router.post("/", createLimiter, async (req, res) => {
       }
     } else {
       let passwordHash = null;
-      if (password && password.length >= 6) {
-        passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+      if (!password || password.length < 6) {
+        return res.status(400).json({ success: false, errors: ["La contraseña debe tener al menos 6 caracteres."] });
       }
+      passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
       const newUser = await pool.query(
         `INSERT INTO users (full_name, email, phone, password_hash, preferred_service, status)
          VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
