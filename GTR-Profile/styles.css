@@ -89,7 +89,30 @@ main {
   justify-content: space-between;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  transition: background 0.5s, border-color 0.5s, box-shadow 0.5s;
 }
+
+/* ── VIP Card Tier Specific Styles ── */
+.vip-card.tier-silver {
+  background: linear-gradient(135deg, #2a2a2c 0%, #161618 100%);
+  border-color: rgba(192, 192, 200, 0.5);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(192, 192, 200, 0.05);
+}
+.vip-card.tier-silver .card-tier { color: #c0c0c8; }
+
+.vip-card.tier-gold {
+  background: linear-gradient(135deg, #3a2e12 0%, #1a1508 100%);
+  border-color: rgba(212, 175, 55, 0.6);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(212, 175, 55, 0.1);
+}
+.vip-card.tier-gold .card-tier { color: var(--gold-soft); }
+
+.vip-card.tier-platinum {
+  background: linear-gradient(135deg, #1a222a 0%, #0a0d11 100%);
+  border-color: rgba(176, 200, 224, 0.6);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(176, 200, 224, 0.1);
+}
+.vip-card.tier-platinum .card-tier { color: #b0c8e0; }
 
 /* Front face */
 .vip-card-front {

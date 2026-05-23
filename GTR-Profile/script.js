@@ -585,6 +585,15 @@
         card.classList.remove('is-active');
       }
     });
+
+    // Update VIP Card appearance
+    const vipCards = document.querySelectorAll('.vip-card');
+    vipCards.forEach(card => {
+      card.classList.remove('tier-silver', 'tier-gold', 'tier-platinum');
+      if (tier && tier !== 'none') {
+        card.classList.add(`tier-${tier}`);
+      }
+    });
   }
 
   async function selectMembership(tier) {
