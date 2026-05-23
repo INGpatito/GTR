@@ -1,6 +1,6 @@
 """
-Parking GTR — Member Scanner Launcher
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Parking GTR — Member Scanner 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ejecuta el scanner de socios.
 
 Uso:

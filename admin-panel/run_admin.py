@@ -1,5 +1,5 @@
 """
-Parking GTR — Admin Panel Launcher
+Parking GTR — Admin Panel 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ejecuta el panel de administración.
 
@@ -22,4 +22,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main() #have been added to the system path, allowing for relative imports from the ui.admin package. The main function initializes and runs the ParkingAdmin application, which is the admin panel for the Parking GTR system. The script can be executed directly to launch the admin panel.
+
+#The script is straightforward and serves as the entry point for the admin panel. It ensures that the necessary modules are accessible and then starts the application.

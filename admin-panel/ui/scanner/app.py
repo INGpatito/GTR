@@ -157,13 +157,13 @@ class MemberScanner(ctk.CTk):
 
         def _load():
             try:
-                row = reservation_service.get_latest_reservation_by_user_id(member_id)
+                row = reservation_service.get_reservation_by_id(member_id)
                 if not row:
                     self.after(0, lambda: [
                         self.sidebar.db_status.set_status("● No encontrado", RED),
                         messagebox.showwarning(
                             "Socio no encontrado",
-                            f"No existe ningún socio activo con ID {member_id}.",
+                            f"No existe ningún socio con ID {member_id}.",
                         ),
                     ])
                     return
@@ -172,7 +172,7 @@ class MemberScanner(ctk.CTk):
                 activity = vehicle_service.get_activity_history(member_id)
                 card_num = generate_card_number(member_id)
 
-                self.after(0, lambda: self._render_profile(member_id, row, vehicles, activity, card_num))
+                self.after(0, lambda: self._render_profile(row, vehicles, activity, card_num))
 
             except Exception as exc:
                 err_msg = str(exc)
@@ -183,18 +183,18 @@ class MemberScanner(ctk.CTk):
 
         threading.Thread(target=_load, daemon=True).start()
 
-    def _render_profile(self, member_id, row, vehicles, activity, card_num) -> None:
+    def _render_profile(self, row, vehicles, activity, card_num) -> None:
         """Renderiza el perfil y actualiza estado."""
-        reservation_id = row[0]
-        self.current_member_id = member_id
+        uid = row[0]
+        self.current_member_id = uid
         play_chime()
 
         self.sidebar.db_status.set_status(
-            f"● GTR-{str(member_id).zfill(4)} cargado", GREEN
+            f"● GTR-{str(uid).zfill(4)} cargado", GREEN
         )
 
         self.profile_view.render(
-            member_id, row, vehicles, activity, card_num,
+            row, vehicles, activity, card_num,
             on_checkin=self._checkin,
             on_checkout=self._checkout,
         )
@@ -202,28 +202,28 @@ class MemberScanner(ctk.CTk):
     # ══════════════════════════════════════════════════
     #  CHECK-IN / CHECK-OUT
     # ══════════════════════════════════════════════════
-    def _checkin(self, reservation_id: int, current_status: str) -> None:
+    def _checkin(self, uid: int, current_status: str) -> None:
         if current_status == "confirmed":
             messagebox.showinfo("Ya en Vault", "Este socio ya tiene un check-in activo.")
             return
         self._update_status(
-            reservation_id, "confirmed",
-            f"✅ Check-In registrado con éxito.",
+            uid, "confirmed",
+            f"✅ Check-In registrado para GTR-{str(uid).zfill(4)}.",
         )
 
-    def _checkout(self, reservation_id: int) -> None:
+    def _checkout(self, uid: int) -> None:
         self._update_status(
-            reservation_id, "completed",
-            f"🚪 Check-Out registrado con éxito.",
+            uid, "completed",
+            f"🚪 Check-Out registrado para GTR-{str(uid).zfill(4)}.",
         )
 
-    def _update_status(self, reservation_id: int, new_status: str, msg: str) -> None:
+    def _update_status(self, uid: int, new_status: str, msg: str) -> None:
         def _do():
             try:
-                reservation_service.update_status(reservation_id, new_status)
+                reservation_service.update_status(uid, new_status)
                 self.after(0, lambda: [
                     messagebox.showinfo("Actualizado", msg),
-                    self._fetch_and_show(self.current_member_id),
+                    self._fetch_and_show(uid),
                 ])
             except Exception as exc:
                 self.after(0, lambda: messagebox.showerror("Error DB", str(exc)))

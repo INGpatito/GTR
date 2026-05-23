@@ -35,14 +35,14 @@ def _resolve_db_host() -> str:
         try:
             sock = socket.create_connection((host, 5432), timeout=2)
             sock.close()
-            print(f"  [OK] DB connected via {label}: {host}")
+            print(f"  [OK] DB conectada via {label}: {host}")
             return host
         except (socket.timeout, ConnectionRefusedError, OSError):
-            print(f"  [WARN] DB {label} ({host}) unavailable, trying next...")
+            print(f"  [WARN] DB {label} ({host}) no disponible, probando siguiente...")
             continue
 
     # Fallback: usar Tailscale de todas formas (fallará en psycopg2 con mejor error)
-    print("  [ERR] No DB host available, using Tailscale fallback")
+    print("  [ERROR] Ningun host de DB disponible, usando Tailscale como fallback")
     return _TAILSCALE_HOST
 
 
@@ -73,13 +73,13 @@ EMAILJS_ACCESS_TOKEN: str = os.getenv("EMAILJS_ACCESS_TOKEN", "oXznojZUyeBLPnRk_
 # ── Diagnóstico de arranque ────────────────────────────
 def print_startup_banner(app_name: str = "Admin Panel") -> None:
     """Imprime el banner de diagnóstico en consola al iniciar."""
-    print("\n" + "═" * 55)
-    print(f"  PARKING GTR — {app_name}")
-    print("═" * 55)
+    print("\n" + "=" * 55)
+    print(f"  PARKING GTR - {app_name}")
+    print("=" * 55)
     if JWT_SECRET in ("fallback_dev_secret_change_me", "your_jwt_secret_here"):
-        print("  [WARN] JWT_SECRET not configured in admin-panel/.env")
-        print("     Copy backend/.env JWT_SECRET value")
+        print("  [WARN] JWT_SECRET no configurado en admin-panel/.env")
+        print("     Copia el valor de backend/.env -> JWT_SECRET")
     else:
         masked = JWT_SECRET[:4] + "*" * max(0, len(JWT_SECRET) - 8) + JWT_SECRET[-4:]
-        print(f"  [OK] JWT_SECRET loaded: {masked}")
-    print("═" * 55 + "\n")
+        print(f"  [OK] JWT_SECRET cargado: {masked}")
+    print("=" * 55 + "\n")

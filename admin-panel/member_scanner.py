@@ -33,28 +33,15 @@ try:
 except ImportError:
     SOUND_OK = False
 
-# ---------- Env ----------
-from dotenv import load_dotenv
-_dir = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(_dir, ".env"))
-
-JWT_SECRET = os.getenv("JWT_SECRET", "fallback_dev_secret_change_me")
+# ---------- Env & Settings ----------
+from config.settings import DB_PARAMS, JWT_SECRET, print_startup_banner
 
 # ── Diagnóstico de arranque ───────────────────────────
-print("\n" + "═"*55)
-print("  PARKING GTR — Member Scanner")
-print("═"*55)
-if JWT_SECRET == "fallback_dev_secret_change_me" or JWT_SECRET == "your_jwt_secret_here":
-    print("  ⚠️  JWT_SECRET no configurado en admin-panel/.env")
-    print("     Copia el valor de backend/.env → JWT_SECRET")
-else:
-    masked = JWT_SECRET[:4] + "*" * max(0, len(JWT_SECRET)-8) + JWT_SECRET[-4:]
-    print(f"  ✅ JWT_SECRET cargado: {masked}")
-print("═"*55 + "\n")
+print_startup_banner("Member Scanner")
 
-# ═══════════════════════════════════════════════════════
-#  HMAC — Replica la misma lógica que backend/server.js
-# ═══════════════════════════════════════════════════════
+
+# HMAC — Replica la misma lógica que backend/server.js
+
 def generate_card_number(member_id: int) -> str:
     """Genera el número cifrado de 16 dígitos idéntico al backend Node.js."""
     msg = f"GTR-CARD-{member_id}".encode()
@@ -71,9 +58,9 @@ def generate_card_number(member_id: int) -> str:
     return f"{digits[0:4]} {digits[4:8]} {digits[8:12]} {digits[12:16]}"
 
 
-# ═══════════════════════════════════════════════════════
-#  COLORES & TEMA
-# ═══════════════════════════════════════════════════════
+
+#  COLORES y TEMA
+
 GOLD       = "#d4af37"
 GOLD_SOFT  = "#c8bc98"
 DARK_BG    = "#0d0d0d"
@@ -91,15 +78,6 @@ ctk.set_default_color_theme("dark-blue")
 # ═══════════════════════════════════════════════════════
 #  DB HELPER
 # ═══════════════════════════════════════════════════════
-DB_PARAMS = {
-    "host":     os.getenv("DB_HOST",     "192.168.100.61"),
-    "port":     int(os.getenv("DB_PORT", "5432")),
-    "database": os.getenv("DB_NAME",     "parking_gtr"),
-    "user":     os.getenv("DB_USER",     "postgres"),
-    "password": os.getenv("DB_PASSWORD", ""),
-}
-
-
 def get_conn():
     return psycopg2.connect(**DB_PARAMS)
 
@@ -272,9 +250,8 @@ class MemberScanner(ctk.CTk):
             text_color=MUTED, justify="center"
         ).pack(pady=(12, 0))
 
-    # ─────────────────────────────────────────────────
-    #  BÚSQUEDA POR NÚMERO DE TARJETA (principal)
-    # ─────────────────────────────────────────────────
+    # BÚSQUEDA POR NÚMERO DE TARJETA (principal)
+    
     def _search_by_card(self):
         """Acepta el número de 16 dígitos impreso en la tarjeta física o el QR."""
         raw = self.card_entry.get().strip().replace(" ", "").replace("-", "")
@@ -290,9 +267,8 @@ class MemberScanner(ctk.CTk):
             return
         self._verify_card_number(raw)
 
-    # ─────────────────────────────────────────────────
-    #  BÚSQUEDA POR ID NUMÉRICO (solo admin)
-    # ─────────────────────────────────────────────────
+    # BÚSQUEDA POR ID NUMÉRICO (solo admin)
+    
     def _search_by_id(self):
         raw = self.id_entry.get().strip().replace("GTR-", "").replace("gtr-", "")
         if not raw.isdigit():
@@ -300,9 +276,8 @@ class MemberScanner(ctk.CTk):
             return
         self._fetch_and_show(int(raw))
 
-    # ─────────────────────────────────────────────────
-    #  VERIFICACIÓN HMAC DEL NÚMERO (compartida)
-    # ─────────────────────────────────────────────────
+    # VERIFICACIÓN HMAC DEL NÚMERO (compartida)
+    
     def _verify_card_number(self, digits_clean: str):
         """Busca el socio cuyo HMAC coincide con el número de tarjeta dado."""
         self.db_status.configure(text="● Verificando...", text_color=AMBER)
@@ -313,8 +288,8 @@ class MemberScanner(ctk.CTk):
             try:
                 conn = get_conn()
                 cur = conn.cursor()
-                # ⚠️ Sin filtro de password_hash: todos los socios tienen número de tarjeta
-                cur.execute("SELECT id FROM reservations ORDER BY id")
+                # ⚠️ Todos los socios (users) tienen número de tarjeta
+                cur.execute("SELECT id FROM users ORDER BY id")
                 ids = [r[0] for r in cur.fetchall()]
 
                 print(f"[DEBUG] Buscando tarjeta: {digits_clean}")
@@ -384,12 +359,14 @@ class MemberScanner(ctk.CTk):
                 conn = get_conn()
                 cur = conn.cursor()
 
-                # ── Datos principales
+                # ── Datos principales (Desde la tabla users)
                 cur.execute("""
-                    SELECT id, full_name, email, phone, service, vehicle,
-                           arrival_date, arrival_time, status, created_at
-                    FROM reservations
-                    WHERE id = %s
+                    SELECT u.id, u.full_name, u.email, u.phone, u.preferred_service, 
+                           r.vehicle, r.arrival_date, r.arrival_time, u.status, u.created_at
+                    FROM users u
+                    LEFT JOIN reservations r ON u.id = r.user_id
+                    WHERE u.id = %s
+                    ORDER BY r.created_at DESC LIMIT 1
                 """, (member_id,))
                 row = cur.fetchone()
 
@@ -409,13 +386,13 @@ class MemberScanner(ctk.CTk):
                 """, (member_id,))
                 vehicles = cur.fetchall()
 
-                # ── Historial de actividad
+                # ── Historial de actividad (Desde reservations)
                 cur.execute("""
                     SELECT service, status, created_at
                     FROM reservations
-                    WHERE id != %s AND email = (SELECT email FROM reservations WHERE id = %s)
+                    WHERE user_id = %s
                     ORDER BY created_at DESC LIMIT 10
-                """, (member_id, member_id))
+                """, (member_id,))
                 activity = cur.fetchall()
 
                 card_num = generate_card_number(member_id)
@@ -496,7 +473,7 @@ class MemberScanner(ctk.CTk):
         ).grid(row=2, column=1, sticky="w", pady=(6, 0))
 
         # Badge de estado
-        status_color = {"confirmed": GREEN, "completed": GREEN, "pending": AMBER}.get(status or "pending", MUTED)
+        status_color = {"confirmed": GREEN, "completed": GREEN, "active": GREEN, "pending": AMBER}.get(status or "pending", MUTED)
         ctk.CTkLabel(
             cf_inner, text=f"  {(status or 'pending').upper()}  ",
             font=ctk.CTkFont("Helvetica", 10, "bold"),
