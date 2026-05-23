@@ -92,27 +92,69 @@ main {
   transition: background 0.5s, border-color 0.5s, box-shadow 0.5s;
 }
 
-/* ── VIP Card Tier Specific Styles ── */
+/* ── VIP Card Tier Specific Styles (MAXIMALIST) ── */
+/* SILVER */
 .vip-card.tier-silver {
-  background: linear-gradient(135deg, #2a2a2c 0%, #161618 100%);
-  border-color: rgba(192, 192, 200, 0.5);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(192, 192, 200, 0.05);
+  background: 
+    radial-gradient(circle at top right, rgba(220, 220, 230, 0.2), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(160, 160, 175, 0.15), transparent 50%),
+    linear-gradient(135deg, #2a2a2e 0%, #161618 100%);
+  border: 1px solid #dcdce6;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.8), 
+    inset 0 0 20px rgba(220, 220, 230, 0.15),
+    inset 0 0 0 2px rgba(220, 220, 230, 0.2);
 }
-.vip-card.tier-silver .card-tier { color: #c0c0c8; }
+.vip-card.tier-silver::before {
+  content: ''; position: absolute; inset: 4px; border: 1px dashed rgba(220, 220, 230, 0.4); border-radius: 12px; pointer-events: none;
+}
+.vip-card.tier-silver .card-tier { color: #dcdce6; font-weight: 700; text-shadow: 0 0 8px rgba(220, 220, 230, 0.4); }
 
+/* GOLD */
 .vip-card.tier-gold {
-  background: linear-gradient(135deg, #3a2e12 0%, #1a1508 100%);
-  border-color: rgba(212, 175, 55, 0.6);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(212, 175, 55, 0.1);
+  background: 
+    radial-gradient(circle at 80% 20%, rgba(240, 217, 136, 0.3), transparent 45%),
+    radial-gradient(circle at 20% 80%, rgba(159, 127, 37, 0.25), transparent 50%),
+    linear-gradient(135deg, #3a2e12 0%, #151005 100%);
+  border: 1px solid #f0d988;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.9), 
+    inset 0 0 25px rgba(212, 175, 55, 0.3),
+    inset 0 0 0 2px rgba(212, 175, 55, 0.35);
 }
-.vip-card.tier-gold .card-tier { color: var(--gold-soft); }
+.vip-card.tier-gold::before {
+  content: ''; position: absolute; inset: 4px; border: 1px solid rgba(212, 175, 55, 0.5); border-radius: 12px; pointer-events: none;
+}
+.vip-card.tier-gold .card-tier { color: #f0d988; font-weight: 700; text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
 
+/* PLATINUM */
 .vip-card.tier-platinum {
-  background: linear-gradient(135deg, #1a222a 0%, #0a0d11 100%);
-  border-color: rgba(176, 200, 224, 0.6);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), inset 0 0 30px rgba(176, 200, 224, 0.1);
+  background: 
+    repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(176, 200, 224, 0.04) 4px, rgba(176, 200, 224, 0.04) 8px),
+    radial-gradient(circle at 50% 50%, rgba(176, 200, 224, 0.2), transparent 60%),
+    linear-gradient(135deg, #1a222a 0%, #080a0d 50%, #1a222a 100%);
+  border: 1px solid #b0c8e0;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.9), 
+    inset 0 0 30px rgba(176, 200, 224, 0.25),
+    inset 0 0 0 2px rgba(176, 200, 224, 0.3);
 }
-.vip-card.tier-platinum .card-tier { color: #b0c8e0; }
+.vip-card.tier-platinum::before {
+  content: ''; position: absolute; inset: 6px; border: 2px double rgba(176, 200, 224, 0.5); border-radius: 10px; pointer-events: none;
+}
+.vip-card.tier-platinum .card-tier { color: #b0c8e0; font-weight: 700; text-shadow: 0 0 12px rgba(176, 200, 224, 0.6); }
+
+/* Holographic dynamic glare overlay */
+.vip-card[class*="tier-"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255,255,255,0.2) 0%, transparent 60%);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 16px;
+}
 
 /* Front face */
 .vip-card-front {
