@@ -36,6 +36,19 @@ router.post("/", requireAuth, createLimiter, async (req, res) => {
   }
 
   try {
+    // Check membership tier limit
+    const uResult = await pool.query("SELECT membership_tier FROM users WHERE id = $1", [userId]);
+    const tier = uResult.rows[0]?.membership_tier || "none";
+    const limits = { none: 0, silver: 1, gold: 2, platinum: 3 };
+    const limit = limits[tier] || 0;
+
+    const countResult = await pool.query("SELECT COUNT(*) FROM user_vehicles WHERE user_id = $1", [userId]);
+    const count = parseInt(countResult.rows[0].count, 10);
+
+    if (count >= limit) {
+      return res.status(400).json({ success: false, errors: [`Your current membership tier (${tier}) only allows up to ${limit} vehicles.`] });
+    }
+
     const result = await pool.query(
       `INSERT INTO user_vehicles (user_id, nickname, brand, model, year, color, plate, vehicle, is_primary)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)

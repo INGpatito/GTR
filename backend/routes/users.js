@@ -118,13 +118,16 @@ router.get("/:id/stats", requireAuth, async (req, res) => {
     const memberSince = new Date(u.created_at);
     const now = new Date();
     const memberDays = Math.floor((now - memberSince) / (1000 * 60 * 60 * 24));
+    const tier = u.membership_tier || "none";
+    const limits = { none: 0, silver: 1, gold: 2, platinum: 3 };
+    const maxVehicles = limits[tier] || 0;
 
     res.json({
       success: true,
       stats: {
         total_reservations: parseInt(resCountRes.rows[0].count, 10),
         vehicles_registered: parseInt(vehicleRes.rows[0].count, 10),
-        max_vehicles: 3,
+        max_vehicles: maxVehicles,
         member_since: u.created_at,
         member_days: memberDays,
         status: u.status,
@@ -172,12 +175,23 @@ router.patch("/:id/membership", requireAuth, async (req, res) => {
 
   try {
     const result = await pool.query(
-      "UPDATE users SET membership_tier=$1 WHERE id=$2 RETURNING id, membership_tier",
+      "UPDATE users SET membership_tier=$1 WHERE id=$2 RETURNING id, membership_tier, full_name, email",
       [tier, id]
     );
     if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
+    
+    const user = result.rows[0];
     console.log(`🏅 Membership updated for user #${id}: ${tier}`);
-    res.json({ success: true, membership_tier: result.rows[0].membership_tier });
+
+    // Log the upgrade as an activity by inserting into reservations
+    const nameStr = tier.charAt(0).toUpperCase() + tier.slice(1);
+    await pool.query(
+      `INSERT INTO reservations (full_name, email, service, status, user_id) 
+       VALUES ($1, $2, 'monthly', 'confirmed', $3)`,
+      [`Membership Upgraded: ${nameStr}`, user.email, id]
+    );
+
+    res.json({ success: true, membership_tier: user.membership_tier });
   } catch (err) {
     console.error("Membership update error:", err.message);
     res.status(500).json({ success: false, errors: ["Server error."] });

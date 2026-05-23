@@ -74,6 +74,13 @@
     platinum: "PLATINUM ELITE"
   };
 
+  const TIER_LIMITS = {
+    none: 0,
+    silver: 1,
+    gold: 2,
+    platinum: 3
+  };
+
   /* ── TOAST HELPER ── */
   function showToast(msg, isError = false) {
     toast.className = isError ? "form-toast error visible" : "form-toast visible";
@@ -224,7 +231,8 @@
   }
 
   function renderGarage() {
-    garageCounter.textContent = `${userVehicles.length} / 3`;
+    const limit = TIER_LIMITS[currentMembershipTier] || 0;
+    garageCounter.textContent = `${userVehicles.length} / ${limit}`;
 
     if (userVehicles.length === 0) {
       garageGrid.innerHTML = `<div class="garage-empty">No vehicles registered yet. Add your first car below.</div>`;
@@ -256,9 +264,10 @@
     }
 
     // Toggle add button state
-    if (userVehicles.length >= 3) {
+    const limit = TIER_LIMITS[currentMembershipTier] || 0;
+    if (userVehicles.length >= limit) {
       btnAddVehicle.classList.add("disabled");
-      btnAddVehicle.querySelector("span:last-child").textContent = "Garage Full (3/3)";
+      btnAddVehicle.querySelector("span:last-child").textContent = `Garage Full (${userVehicles.length}/${limit})`;
     } else {
       btnAddVehicle.classList.remove("disabled");
       btnAddVehicle.querySelector("span:last-child").textContent = "Add Vehicle";
@@ -267,7 +276,8 @@
 
   /* ── ADD VEHICLE ── */
   btnAddVehicle.addEventListener("click", () => {
-    if (userVehicles.length >= 3) return;
+    const limit = TIER_LIMITS[currentMembershipTier] || 0;
+    if (userVehicles.length >= limit) return;
     addVehiclePanel.style.display = "block";
     btnAddVehicle.style.display = "none";
     document.getElementById("vNickname").focus();
@@ -623,9 +633,36 @@
         // Update VIP card tier display
         if (cardTier) cardTier.textContent = TIER_LABELS[tier];
         
+        // Hide membership section & Show specific message
+        const memSection = document.querySelector('.membership-section');
+        if (memSection) {
+          memSection.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--gold); font-family: 'Cinzel', serif; font-size: 1.2rem;">
+            Su nivel de prestigio ha mejorado a ${name}
+          </div>`;
+        }
+        
+        // Update Garage limits display
+        renderGarage();
+
+        // Add local activity record
+        const dateStr = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+        const timeStr = new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+        const newActivity = `
+            <div class="activity-item">
+              <div class="act-dot confirmed"></div>
+              <div class="act-info">
+                <div class="act-title">Membership Upgraded: ${name}</div>
+                <div class="act-date">${dateStr} at ${timeStr}</div>
+              </div>
+              <span class="act-status confirmed">Confirmed</span>
+            </div>`;
+        if (activityList) {
+          activityList.insertAdjacentHTML('afterbegin', newActivity);
+        }
+
         showToast(currentLang === 'es' 
-          ? `Membresía ${name} activada exitosamente.` 
-          : `${name} membership activated successfully.`);
+          ? `Su nivel de prestigio ha mejorado a ${name}` 
+          : `Membership upgraded to ${name}.`);
       } else {
         showToast(data.errors?.join('. ') || 'Error updating membership.', true);
       }
