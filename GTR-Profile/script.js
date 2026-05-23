@@ -264,7 +264,6 @@
     }
 
     // Toggle add button state
-    const limit = TIER_LIMITS[currentMembershipTier] || 0;
     if (userVehicles.length >= limit) {
       btnAddVehicle.classList.add("disabled");
       btnAddVehicle.querySelector("span:last-child").textContent = `Garage Full (${userVehicles.length}/${limit})`;
