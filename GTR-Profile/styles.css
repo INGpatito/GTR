@@ -1042,109 +1042,216 @@ select option { background: #0d0d0d; color: var(--text); }
 }
 
 /* ══════════════════════════════════════════════════════
-   MEMBERSHIP PLANS SECTION
+   MEMBERSHIP PLANS — PREMIUM REDESIGN
    ══════════════════════════════════════════════════════ */
 .membership-section {
   margin-bottom: 2.5rem;
+  position: relative;
 }
 
-.membership-card-container {
-  overflow: visible !important;
+/* Section Header — matches GTR-Services page style */
+.mem-section-head {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 1.2rem;
 }
 
+.mem-kicker {
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .32em;
+  color: var(--muted);
+  margin-bottom: .45rem;
+}
+
+.mem-section-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.3rem, 3.5vw, 2rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: .06em;
+  color: var(--gold-soft);
+  text-shadow: 0 0 30px rgba(212, 175, 55, 0.25);
+}
+
+.mem-subtitle {
+  font-size: .82rem;
+  color: rgba(200, 188, 152, 0.6);
+  margin-top: .3rem;
+  letter-spacing: .04em;
+}
+
+/* Ornament Divider */
+.mem-ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .8rem;
+  margin: 0 auto 2rem;
+  max-width: 260px;
+}
+
+.mem-orn-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+.mem-orn-diamond {
+  color: var(--gold);
+  font-size: .55rem;
+  animation: pulseRule 3s ease-in-out infinite;
+}
+
+@keyframes pulseRule {
+  0%, 100% { opacity: .4; }
+  50% { opacity: 1; }
+}
+
+/* Grid */
 .membership-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  margin-top: 0.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.4rem;
+  align-items: start;
 }
 
-@media (max-width: 1000px) {
+@media (max-width: 960px) {
   .membership-grid {
     grid-template-columns: 1fr;
-    max-width: 420px;
+    max-width: 400px;
     margin-left: auto;
     margin-right: auto;
   }
 }
 
-/* ── Membership Card ──────────────────────────────── */
+/* ── Card Base ──────────────────────────────────── */
 .mem-card {
   position: relative;
-  border: 1px solid rgba(212, 175, 55, 0.15);
-  border-radius: 18px;
-  background: linear-gradient(160deg, rgba(16, 16, 16, 0.95), rgba(8, 8, 8, 0.9));
-  padding: 2rem 1.5rem 1.5rem;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 2.2rem 1.6rem 1.8rem;
+  background: linear-gradient(145deg, rgba(14, 14, 14, 0.9), rgba(6, 6, 6, 0.85));
   display: flex;
   flex-direction: column;
-  transition: all 0.4s var(--expo);
   overflow: hidden;
+  transition: transform .4s var(--expo), border-color .4s, box-shadow .4s;
 }
 
+/* Top gold line accent */
 .mem-card::before {
   content: '';
   position: absolute;
   top: 0;
   left: 0;
-  right: 0;
+  width: 100%;
   height: 3px;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
-  transition: opacity 0.4s;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
+  transform: scaleX(0);
+  transition: transform .5s var(--expo);
 }
 
 .mem-card:hover {
-  border-color: rgba(212, 175, 55, 0.4);
-  transform: translateY(-6px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(212, 175, 55, 0.08);
+  transform: translateY(-8px);
+  border-color: rgba(212, 175, 55, 0.6);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 30px rgba(212, 175, 55, 0.25);
 }
 
 .mem-card:hover::before {
+  transform: scaleX(1);
+}
+
+/* Radial glow background */
+.mem-card-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.06), transparent 60%);
+  opacity: 0;
+  transition: opacity .5s;
+  pointer-events: none;
+}
+
+.mem-card:hover .mem-card-glow {
   opacity: 1;
-  background: linear-gradient(90deg, transparent, var(--gold), transparent);
 }
 
-/* Featured Card (Gold) */
+/* Inner decorative frame */
+.mem-card-frame {
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.08);
+  border-radius: calc(var(--radius-lg) - 8px);
+  pointer-events: none;
+  transition: border-color .4s;
+}
+
+.mem-card:hover .mem-card-frame {
+  border-color: rgba(212, 175, 55, 0.18);
+}
+
+/* Shimmer sweep on hover */
+.mem-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 25%,
+    rgba(212, 175, 55, 0.06) 45%,
+    rgba(255, 255, 255, 0.04) 50%,
+    rgba(212, 175, 55, 0.06) 55%,
+    transparent 75%
+  );
+  transform: translateX(-100%);
+  pointer-events: none;
+  transition: none;
+}
+
+.mem-card:hover .mem-shimmer {
+  animation: memShimmer 1.2s ease forwards;
+}
+
+@keyframes memShimmer {
+  to { transform: translateX(100%); }
+}
+
+/* ── Featured Card (Gold) ─────────────────────── */
 .mem-card.mem-featured {
-  border-color: rgba(212, 175, 55, 0.4);
-  background: linear-gradient(160deg, rgba(26, 22, 10, 0.95), rgba(12, 10, 5, 0.95));
-  box-shadow: 0 0 40px rgba(212, 175, 55, 0.08);
-  transform: scale(1.03);
-}
-
-.mem-card.mem-featured:hover {
-  transform: scale(1.03) translateY(-6px);
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 50px rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.55);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 30px rgba(212, 175, 55, 0.25);
 }
 
 .mem-card.mem-featured::before {
+  transform: scaleX(1);
   background: linear-gradient(90deg, transparent, var(--gold), transparent);
-  height: 3px;
-  opacity: 1;
 }
 
-@media (max-width: 1000px) {
-  .mem-card.mem-featured {
-    transform: scale(1);
-  }
-  .mem-card.mem-featured:hover {
-    transform: translateY(-6px);
-  }
+.mem-card.mem-featured .mem-card-glow {
+  opacity: 1;
+  background: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.1), transparent 55%);
+}
+
+.mem-card.mem-featured .mem-card-frame {
+  border-color: rgba(212, 175, 55, 0.15);
+}
+
+.mem-card.mem-featured:hover {
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 50px rgba(212, 175, 55, 0.35);
 }
 
 /* Popular Badge */
 .mem-popular-badge {
   position: absolute;
-  top: -1px;
-  right: 1.5rem;
-  background: linear-gradient(100deg, #9f7f25, #d4af37 55%, #f0d988);
-  color: #070707;
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
+  top: 14px;
+  right: 14px;
+  font-family: 'Cinzel', serif;
+  font-size: .58rem;
+  letter-spacing: .18em;
   text-transform: uppercase;
-  padding: 0.35rem 0.9rem;
-  border-radius: 0 0 10px 10px;
+  color: #070707;
+  background: linear-gradient(100deg, #9f7f25, #d4af37, #f0d988);
+  border-radius: 999px;
+  padding: .22rem .7rem;
+  z-index: 2;
 }
 
 /* Card Inner */
@@ -1154,109 +1261,134 @@ select option { background: #0d0d0d; color: var(--text); }
   align-items: center;
   text-align: center;
   flex: 1;
+  position: relative;
+  z-index: 1;
 }
 
+/* SVG Tier Icon */
 .mem-tier-icon {
-  font-size: 2.4rem;
-  margin-bottom: 0.6rem;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  width: 48px;
+  height: 48px;
+  color: var(--gold-soft);
+  opacity: .8;
+  margin-bottom: .6rem;
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
+  transition: opacity .3s, transform .3s;
 }
 
+.mem-tier-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.mem-card:hover .mem-tier-icon {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+/* Tier Label */
+.mem-tier-label {
+  font-family: 'Montserrat', sans-serif;
+  font-size: .55rem;
+  letter-spacing: .35em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.5);
+  margin-bottom: .35rem;
+}
+
+/* Plan Name */
 .mem-name {
   font-family: 'Cinzel', serif;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--gold);
-  letter-spacing: 0.08em;
-  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: .5rem;
 }
 
+/* Price */
 .mem-price {
   font-family: 'Cinzel', serif;
-  font-size: 2.8rem;
-  font-weight: 700;
-  color: var(--text);
+  font-size: clamp(2rem, 5vw, 3rem);
+  color: var(--gold-soft);
   line-height: 1;
-  margin-bottom: 0.6rem;
+  margin-bottom: .3rem;
 }
 
 .mem-price sup {
-  font-size: 1.2rem;
+  font-size: .5em;
   vertical-align: super;
-  color: var(--gold);
-  font-weight: 400;
-  margin-right: 2px;
+  opacity: .7;
 }
 
 .mem-price sub {
-  font-size: 0.7rem;
-  color: var(--muted);
-  font-weight: 400;
-  letter-spacing: 0.05em;
+  font-size: .35em;
+  opacity: .6;
+  font-family: 'Montserrat', sans-serif;
+  letter-spacing: .08em;
 }
 
+/* Description */
 .mem-desc {
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.45);
-  line-height: 1.5;
-  margin-bottom: 1rem;
-  max-width: 260px;
+  font-size: .82rem;
+  color: rgba(200, 188, 152, 0.7);
+  margin-bottom: 1.4rem;
+  line-height: 1.55;
+  max-width: 280px;
 }
 
+/* Divider */
 .mem-divider {
-  width: 60%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
-  margin-bottom: 1rem;
+  width: 100%;
+  background: linear-gradient(to right, transparent, rgba(212, 175, 55, 0.3), transparent);
+  margin-bottom: 1.4rem;
 }
 
 /* Features List */
 .mem-features {
   list-style: none;
   padding: 0;
-  margin: 0 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: .7rem;
+  margin-bottom: 1.8rem;
   width: 100%;
   text-align: left;
 }
 
 .mem-features li {
-  position: relative;
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.65);
-  padding: 0.4rem 0 0.4rem 1.5rem;
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  font-size: .85rem;
+  color: rgba(248, 245, 237, 0.82);
   line-height: 1.4;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.06);
-}
-
-.mem-features li:last-child {
-  border-bottom: none;
 }
 
 .mem-features li::before {
   content: '◆';
-  position: absolute;
-  left: 0;
   color: var(--gold);
-  font-size: 0.45rem;
-  top: 0.55rem;
-  opacity: 0.7;
+  font-size: .45rem;
+  margin-top: .35em;
+  flex-shrink: 0;
 }
 
-/* Select Buttons */
+/* ── Buttons ──────────────────────────────────── */
 .mem-btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 0.75rem 1.5rem;
+  min-height: 46px;
   border-radius: 999px;
   font-family: 'Montserrat', sans-serif;
-  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  font-size: .78rem;
+  letter-spacing: .1em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: all 0.35s var(--expo);
+  transition: transform .3s var(--expo), box-shadow .3s, background .3s, color .3s, border-color .3s;
   margin-top: auto;
   position: relative;
   overflow: hidden;
@@ -1266,9 +1398,9 @@ select option { background: #0d0d0d; color: var(--text); }
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.18) 50%, transparent 70%);
   transform: translateX(-100%);
-  transition: transform 0.6s;
+  transition: transform .6s;
 }
 
 .mem-btn:hover::before {
@@ -1276,71 +1408,145 @@ select option { background: #0d0d0d; color: var(--text); }
 }
 
 .mem-btn-outline {
-  background: transparent;
-  border: 1px solid rgba(212, 175, 55, 0.35);
+  border: 1px solid rgba(212, 175, 55, 0.45);
   color: var(--gold-soft);
+  background: rgba(6, 6, 6, 0.5);
 }
 
 .mem-btn-outline:hover {
-  background: rgba(212, 175, 55, 0.08);
+  background: var(--gold);
+  color: #070707;
   border-color: var(--gold);
-  color: var(--gold);
-  box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.4);
   transform: translateY(-2px);
 }
 
 .mem-btn-gold {
-  background: linear-gradient(100deg, #9f7f25 0%, #d4af37 50%, #f0d988 100%);
   border: none;
   color: #070707;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35), 0 0 18px rgba(212, 175, 55, 0.2);
+  background: linear-gradient(100deg, #9f7f25, #d4af37 50%, #f0d988);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4), 0 0 14px rgba(212, 175, 55, 0.25);
 }
 
 .mem-btn-gold:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 30px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.45), 0 0 24px rgba(212, 175, 55, 0.45);
 }
 
-/* Active State */
+/* Platinum button subtle accent */
+.mem-btn-plat {
+  border-color: rgba(180, 200, 220, 0.3);
+}
+
+.mem-btn-plat:hover {
+  background: linear-gradient(100deg, #8a9bb0, #c0cfe0 55%, #e8eef5);
+  border-color: rgba(180, 200, 220, 0.8);
+  box-shadow: 0 0 18px rgba(180, 200, 220, 0.3);
+}
+
+/* ── Tier-Specific Accents ────────────────────── */
+
+/* Silver — cool silver tones */
+.mem-silver .mem-tier-icon {
+  color: #c0c0c8;
+  filter: drop-shadow(0 0 8px rgba(192, 192, 200, 0.3));
+}
+
+.mem-silver:hover {
+  border-color: rgba(192, 192, 200, 0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 25px rgba(192, 192, 200, 0.12);
+}
+
+/* Gold — warm gold */
+.mem-gold .mem-tier-icon {
+  color: var(--gold-soft);
+  filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.5));
+}
+
+/* Platinum — icy diamond tones */
+.mem-platinum .mem-tier-icon {
+  color: #b0c8e0;
+  filter: drop-shadow(0 0 10px rgba(176, 200, 224, 0.4));
+}
+
+.mem-platinum .mem-tier-label {
+  color: rgba(176, 200, 224, 0.5);
+}
+
+.mem-platinum:hover {
+  border-color: rgba(176, 200, 224, 0.4);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55), 0 0 25px rgba(176, 200, 224, 0.12);
+}
+
+/* ── Active State ─────────────────────────────── */
 .mem-card.is-active {
-  border-color: rgba(212, 175, 55, 0.6);
-  box-shadow: 0 0 30px rgba(212, 175, 55, 0.12), inset 0 0 30px rgba(212, 175, 55, 0.03);
+  border-color: rgba(212, 175, 55, 0.7) !important;
+  box-shadow: 0 0 40px rgba(212, 175, 55, 0.15), inset 0 0 40px rgba(212, 175, 55, 0.03) !important;
+  animation: activeGlow 3s ease-in-out infinite;
+}
+
+@keyframes activeGlow {
+  0%, 100% { box-shadow: 0 0 30px rgba(212, 175, 55, 0.12), inset 0 0 30px rgba(212, 175, 55, 0.02); }
+  50% { box-shadow: 0 0 50px rgba(212, 175, 55, 0.22), inset 0 0 40px rgba(212, 175, 55, 0.04); }
 }
 
 .mem-card.is-active::after {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 18px;
-  background: radial-gradient(ellipse at top center, rgba(212, 175, 55, 0.06) 0%, transparent 70%);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(ellipse at 50% 0%, rgba(212, 175, 55, 0.08), transparent 60%);
   pointer-events: none;
+  z-index: 0;
+}
+
+.mem-card.is-active .mem-card-frame {
+  border-color: rgba(212, 175, 55, 0.25);
 }
 
 .mem-card.is-active .mem-btn {
-  opacity: 0.4;
+  opacity: .35;
   pointer-events: none;
 }
 
+/* Active Badge */
 .mem-active-badge {
   display: flex !important;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  margin-top: 1rem;
-  padding: 0.5rem 1rem;
+  gap: .5rem;
+  margin-top: 1.2rem;
+  padding: .45rem 1.1rem;
   border-radius: 999px;
-  background: rgba(212, 175, 55, 0.1);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  font-family: 'Montserrat', sans-serif;
-  font-size: 0.7rem;
+  background: linear-gradient(100deg, rgba(159, 127, 37, 0.15), rgba(212, 175, 55, 0.1));
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  font-family: 'Cinzel', serif;
+  font-size: .65rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
+  letter-spacing: .18em;
   text-transform: uppercase;
   color: var(--gold);
-  animation: fadeSlide 0.4s var(--expo);
+  position: relative;
+  z-index: 1;
+  animation: fadeSlide .4s var(--expo);
+}
+
+.mem-badge-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #9f7f25, #d4af37);
+  color: #070707;
+  font-size: .6rem;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 .mem-card:not(.is-active) .mem-active-badge {
   display: none !important;
 }
+
 
