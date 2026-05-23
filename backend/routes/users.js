@@ -7,6 +7,7 @@ const { generateCardNumber } = require("../services/cryptoService");
 
 const router = express.Router();
 const BCRYPT_ROUNDS = 12;
+const VALID_MEMBERSHIPS = ["silver", "gold", "platinum"];
 
 // GET USER INFO
 router.get("/:id", requireAuth, async (req, res) => {
@@ -14,7 +15,7 @@ router.get("/:id", requireAuth, async (req, res) => {
   if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
   try {
     const result = await pool.query(
-      "SELECT id, full_name, email, phone, preferred_service, status, created_at FROM users WHERE id = $1", 
+      "SELECT id, full_name, email, phone, preferred_service, membership_tier, status, created_at FROM users WHERE id = $1", 
       [id]
     );
     if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
@@ -106,7 +107,7 @@ router.get("/:id/stats", requireAuth, async (req, res) => {
 
   try {
     const [userRes, vehicleRes, resCountRes] = await Promise.all([
-      pool.query("SELECT id, full_name, email, status, preferred_service, created_at FROM users WHERE id = $1", [id]),
+      pool.query("SELECT id, full_name, email, status, preferred_service, membership_tier, created_at FROM users WHERE id = $1", [id]),
       pool.query("SELECT COUNT(*) AS count FROM user_vehicles WHERE user_id = $1", [id]),
       pool.query("SELECT COUNT(*) AS count FROM reservations WHERE user_id = $1", [id])
     ]);
@@ -128,6 +129,7 @@ router.get("/:id/stats", requireAuth, async (req, res) => {
         member_days: memberDays,
         status: u.status,
         preferred_service: u.preferred_service || "valet",
+        membership_tier: u.membership_tier || "none",
       },
     });
   } catch (err) {
@@ -154,6 +156,30 @@ router.patch("/:id/service", requireAuth, async (req, res) => {
     if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
     res.json({ success: true, preferred_service: result.rows[0].preferred_service });
   } catch (err) {
+    res.status(500).json({ success: false, errors: ["Server error."] });
+  }
+});
+
+// UPDATE MEMBERSHIP TIER
+router.patch("/:id/membership", requireAuth, async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) return res.status(400).json({ success: false, errors: ["Invalid ID."] });
+
+  const { tier } = req.body;
+  if (!tier || !VALID_MEMBERSHIPS.includes(tier)) {
+    return res.status(400).json({ success: false, errors: [`Invalid membership tier. Must be: ${VALID_MEMBERSHIPS.join(", ")}`] });
+  }
+
+  try {
+    const result = await pool.query(
+      "UPDATE users SET membership_tier=$1 WHERE id=$2 RETURNING id, membership_tier",
+      [tier, id]
+    );
+    if (result.rowCount === 0) return res.status(404).json({ success: false, errors: ["User not found."] });
+    console.log(`🏅 Membership updated for user #${id}: ${tier}`);
+    res.json({ success: true, membership_tier: result.rows[0].membership_tier });
+  } catch (err) {
+    console.error("Membership update error:", err.message);
     res.status(500).json({ success: false, errors: ["Server error."] });
   }
 });

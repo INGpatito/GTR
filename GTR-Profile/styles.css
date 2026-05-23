@@ -1040,3 +1040,307 @@ select option { background: #0d0d0d; color: var(--text); }
 .form-toast.error {
   border-color: #e74c3c;
 }
+
+/* ══════════════════════════════════════════════════════
+   MEMBERSHIP PLANS SECTION
+   ══════════════════════════════════════════════════════ */
+.membership-section {
+  margin-bottom: 2.5rem;
+}
+
+.membership-card-container {
+  overflow: visible !important;
+}
+
+.membership-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 1000px) {
+  .membership-grid {
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* ── Membership Card ──────────────────────────────── */
+.mem-card {
+  position: relative;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(16, 16, 16, 0.95), rgba(8, 8, 8, 0.9));
+  padding: 2rem 1.5rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.4s var(--expo);
+  overflow: hidden;
+}
+
+.mem-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+  transition: opacity 0.4s;
+}
+
+.mem-card:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(212, 175, 55, 0.08);
+}
+
+.mem-card:hover::before {
+  opacity: 1;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+}
+
+/* Featured Card (Gold) */
+.mem-card.mem-featured {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: linear-gradient(160deg, rgba(26, 22, 10, 0.95), rgba(12, 10, 5, 0.95));
+  box-shadow: 0 0 40px rgba(212, 175, 55, 0.08);
+  transform: scale(1.03);
+}
+
+.mem-card.mem-featured:hover {
+  transform: scale(1.03) translateY(-6px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 50px rgba(212, 175, 55, 0.15);
+}
+
+.mem-card.mem-featured::before {
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  height: 3px;
+  opacity: 1;
+}
+
+@media (max-width: 1000px) {
+  .mem-card.mem-featured {
+    transform: scale(1);
+  }
+  .mem-card.mem-featured:hover {
+    transform: translateY(-6px);
+  }
+}
+
+/* Popular Badge */
+.mem-popular-badge {
+  position: absolute;
+  top: -1px;
+  right: 1.5rem;
+  background: linear-gradient(100deg, #9f7f25, #d4af37 55%, #f0d988);
+  color: #070707;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.9rem;
+  border-radius: 0 0 10px 10px;
+}
+
+/* Card Inner */
+.mem-card-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+}
+
+.mem-tier-icon {
+  font-size: 2.4rem;
+  margin-bottom: 0.6rem;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.mem-name {
+  font-family: 'Cinzel', serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  margin-bottom: 0.5rem;
+}
+
+.mem-price {
+  font-family: 'Cinzel', serif;
+  font-size: 2.8rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 0.6rem;
+}
+
+.mem-price sup {
+  font-size: 1.2rem;
+  vertical-align: super;
+  color: var(--gold);
+  font-weight: 400;
+  margin-right: 2px;
+}
+
+.mem-price sub {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}
+
+.mem-desc {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  max-width: 260px;
+}
+
+.mem-divider {
+  width: 60%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+  margin-bottom: 1rem;
+}
+
+/* Features List */
+.mem-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  width: 100%;
+  text-align: left;
+}
+
+.mem-features li {
+  position: relative;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 0.4rem 0 0.4rem 1.5rem;
+  line-height: 1.4;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.06);
+}
+
+.mem-features li:last-child {
+  border-bottom: none;
+}
+
+.mem-features li::before {
+  content: '◆';
+  position: absolute;
+  left: 0;
+  color: var(--gold);
+  font-size: 0.45rem;
+  top: 0.55rem;
+  opacity: 0.7;
+}
+
+/* Select Buttons */
+.mem-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  border-radius: 999px;
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.35s var(--expo);
+  margin-top: auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.mem-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.mem-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.mem-btn-outline {
+  background: transparent;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: var(--gold-soft);
+}
+
+.mem-btn-outline:hover {
+  background: rgba(212, 175, 55, 0.08);
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+  transform: translateY(-2px);
+}
+
+.mem-btn-gold {
+  background: linear-gradient(100deg, #9f7f25 0%, #d4af37 50%, #f0d988 100%);
+  border: none;
+  color: #070707;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35), 0 0 18px rgba(212, 175, 55, 0.2);
+}
+
+.mem-btn-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 30px rgba(212, 175, 55, 0.35);
+}
+
+/* Active State */
+.mem-card.is-active {
+  border-color: rgba(212, 175, 55, 0.6);
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.12), inset 0 0 30px rgba(212, 175, 55, 0.03);
+}
+
+.mem-card.is-active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: radial-gradient(ellipse at top center, rgba(212, 175, 55, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.mem-card.is-active .mem-btn {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.mem-active-badge {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  animation: fadeSlide 0.4s var(--expo);
+}
+
+.mem-card:not(.is-active) .mem-active-badge {
+  display: none !important;
+}
+

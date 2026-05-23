@@ -65,6 +65,14 @@
   const vaultValue = document.getElementById("vaultValue");
 
   let userVehicles = [];
+  let currentMembershipTier = "none";
+
+  const TIER_LABELS = {
+    none: "MEMBER",
+    silver: "SILVER",
+    gold: "GOLD PRESTIGE",
+    platinum: "PLATINUM ELITE"
+  };
 
   /* ── TOAST HELPER ── */
   function showToast(msg, isError = false) {
@@ -125,6 +133,10 @@
         const svcRadio = document.querySelector(`input[name="preferred_service"][value="${svcValue}"]`);
         if (svcRadio) svcRadio.checked = true;
         
+        // Set membership tier
+        currentMembershipTier = u.membership_tier || "none";
+        updateMembershipUI(currentMembershipTier);
+        
         updateVIPCard(u);
       } else {
         alert("Session expired or invalid.");
@@ -144,7 +156,8 @@
     if (welcomeName) welcomeName.textContent = `Welcome, ${name.split(" ")[0]}`;
     
     const svc = u.preferred_service || u.service || "valet";
-    cardTier.textContent = SERVICE_MAP[svc] || "MEMBER";
+    const tier = u.membership_tier || currentMembershipTier || "none";
+    cardTier.textContent = tier !== "none" ? TIER_LABELS[tier] : (SERVICE_MAP[svc] || "MEMBER");
     
     // Use the server-generated encrypted card number
     userCardNumber = u.card_number || "0000 0000 0000 0000";
@@ -559,6 +572,68 @@
   loadVehicles();
   loadActivity();
 
+  /* ══════════════════════════════════════════════════
+     MEMBERSHIP TIER SELECTION
+     ══════════════════════════════════════════════════ */
+  function updateMembershipUI(tier) {
+    const allCards = document.querySelectorAll('.mem-card');
+    allCards.forEach(card => {
+      const cardTierValue = card.getAttribute('data-tier');
+      if (cardTierValue === tier) {
+        card.classList.add('is-active');
+      } else {
+        card.classList.remove('is-active');
+      }
+    });
+  }
+
+  async function selectMembership(tier) {
+    if (tier === currentMembershipTier) return;
+    
+    const tierNames = { silver: 'Silver Access', gold: 'Gold Prestige', platinum: 'Platinum Elite' };
+    const tierNamesES = { silver: 'Acceso Silver', gold: 'Gold Prestigio', platinum: 'Platinum Elite' };
+    const name = currentLang === 'es' ? tierNamesES[tier] : tierNames[tier];
+    
+    if (!confirm(currentLang === 'es' 
+      ? `¿Deseas activar la membresía ${name}?` 
+      : `Activate ${name} membership?`)) return;
+
+    try {
+      const res = await fetch(`${API}/api/user/${userId}/membership`, {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ tier })
+      });
+      const data = await res.json();
+      if (handleAuthError(res)) return;
+      
+      if (res.ok && data.success) {
+        currentMembershipTier = tier;
+        updateMembershipUI(tier);
+        
+        // Update VIP card tier display
+        if (cardTier) cardTier.textContent = TIER_LABELS[tier];
+        
+        showToast(currentLang === 'es' 
+          ? `Membresía ${name} activada exitosamente.` 
+          : `${name} membership activated successfully.`);
+      } else {
+        showToast(data.errors?.join('. ') || 'Error updating membership.', true);
+      }
+    } catch (err) {
+      console.error('Membership error:', err);
+      showToast(currentLang === 'es' ? 'Error de red.' : 'Network error.', true);
+    }
+  }
+
+  // Attach click listeners to membership buttons
+  document.querySelectorAll('.mem-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tier = btn.getAttribute('data-tier');
+      if (tier) selectMembership(tier);
+    });
+  });
+
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   initCustomCursor(prefersReducedMotion);
   initParticles(prefersReducedMotion);
@@ -746,7 +821,39 @@
       changePw: "Change Password",
       currentPw: "Current Password",
       newPw: "New Password",
-      updatePw: "Update Password"
+      updatePw: "Update Password",
+      // Membership
+      memTitle: "Membership Plans",
+      memDesc: "Choose your level of prestige. Upgrade anytime to unlock premium benefits.",
+      memActive: "Active Plan",
+      memPopular: "Most Popular",
+      memSilverName: "Silver Access",
+      memSilverDesc: "Perfect for the discerning driver who visits multiple times a week.",
+      memSilverBtn: "Select Silver",
+      memSilverF1: "Standard valet service",
+      memSilverF2: "Up to 12 visits/month",
+      memSilverF3: "Covered parking bay",
+      memSilverF4: "Mobile app retrieval",
+      memSilverF5: "24/7 support line",
+      memGoldName: "Gold Prestige",
+      memGoldDesc: "The preferred choice for executives and enthusiasts who demand excellence daily.",
+      memGoldBtn: "Select Gold",
+      memGoldF1: "Unlimited white-glove valet",
+      memGoldF2: "Dedicated reserved bay",
+      memGoldF3: "Priority express exit",
+      memGoldF4: "EV charging included",
+      memGoldF5: "Exterior detailing (2×/mo)",
+      memGoldF6: "Dedicated account manager",
+      memPlatName: "Platinum Elite",
+      memPlatDesc: "The ultimate GTR experience — limitless, uncompromising, bespoke.",
+      memPlatBtn: "Select Platinum",
+      memPlatF1: "Everything in Gold",
+      memPlatF2: "Multi-vehicle coverage (up to 3)",
+      memPlatF3: "Full interior & exterior detail (4×/mo)",
+      memPlatF4: "VIP event parking access",
+      memPlatF5: "Chauffeur coordination",
+      memPlatF6: "Concierge personal assistant",
+      memPlatF7: "Premium insurance coverage"
     },
     es: {
       langBtn: "🌐 EN",
@@ -776,7 +883,39 @@
       changePw: "Cambiar Contraseña",
       currentPw: "Contraseña Actual",
       newPw: "Nueva Contraseña",
-      updatePw: "Actualizar Contraseña"
+      updatePw: "Actualizar Contraseña",
+      // Membership
+      memTitle: "Planes de Membresía",
+      memDesc: "Elige tu nivel de prestigio. Actualiza en cualquier momento para desbloquear beneficios premium.",
+      memActive: "Plan Activo",
+      memPopular: "Más Popular",
+      memSilverName: "Acceso Silver",
+      memSilverDesc: "Perfecto para el conductor exigente que visita varias veces por semana.",
+      memSilverBtn: "Seleccionar Silver",
+      memSilverF1: "Servicio valet estándar",
+      memSilverF2: "Hasta 12 visitas/mes",
+      memSilverF3: "Estacionamiento cubierto",
+      memSilverF4: "Recuperación por app móvil",
+      memSilverF5: "Línea de soporte 24/7",
+      memGoldName: "Gold Prestigio",
+      memGoldDesc: "La opción preferida para ejecutivos y entusiastas que exigen excelencia diaria.",
+      memGoldBtn: "Seleccionar Gold",
+      memGoldF1: "Valet premium ilimitado",
+      memGoldF2: "Bahía reservada dedicada",
+      memGoldF3: "Salida express prioritaria",
+      memGoldF4: "Carga EV incluida",
+      memGoldF5: "Detallado exterior (2×/mes)",
+      memGoldF6: "Gerente de cuenta dedicado",
+      memPlatName: "Platinum Elite",
+      memPlatDesc: "La experiencia GTR definitiva — sin límites, sin compromisos, a medida.",
+      memPlatBtn: "Seleccionar Platinum",
+      memPlatF1: "Todo lo de Gold",
+      memPlatF2: "Cobertura multi-vehículo (hasta 3)",
+      memPlatF3: "Detallado interior y exterior completo (4×/mes)",
+      memPlatF4: "Acceso a estacionamiento VIP en eventos",
+      memPlatF5: "Coordinación de chofer",
+      memPlatF6: "Asistente personal concierge",
+      memPlatF7: "Cobertura de seguro premium"
     }
   };
 
@@ -847,6 +986,60 @@
     if (lblNewPw) lblNewPw.textContent = t.newPw;
     const btnPwSpan = document.querySelector('#btnChangePw span');
     if (btnPwSpan) btnPwSpan.textContent = t.updatePw;
+
+    // Membership section translations
+    const memTitle = document.getElementById('membershipTitle');
+    if (memTitle) memTitle.textContent = t.memTitle;
+    const memDesc = document.getElementById('membershipDesc');
+    if (memDesc) memDesc.textContent = t.memDesc;
+    
+    // Popular badge
+    const popBadge = document.querySelector('.mem-popular-badge');
+    if (popBadge) popBadge.textContent = t.memPopular;
+    
+    // Active badges
+    document.querySelectorAll('.mem-active-badge [data-i18n-mem="active"]').forEach(el => {
+      el.textContent = t.memActive;
+    });
+
+    // Silver
+    const sN = document.querySelector('[data-i18n-mem="silver.name"]');
+    if (sN) sN.textContent = t.memSilverName;
+    const sD = document.querySelector('[data-i18n-mem="silver.desc"]');
+    if (sD) sD.textContent = t.memSilverDesc;
+    const sB = document.querySelector('[data-i18n-mem="silver.btn"]');
+    if (sB) sB.textContent = t.memSilverBtn;
+    const silverFeatures = ['memSilverF1','memSilverF2','memSilverF3','memSilverF4','memSilverF5'];
+    silverFeatures.forEach((key, i) => {
+      const el = document.querySelector(`[data-i18n-mem="silver.f${i+1}"]`);
+      if (el) el.textContent = t[key];
+    });
+
+    // Gold
+    const gN = document.querySelector('[data-i18n-mem="gold.name"]');
+    if (gN) gN.textContent = t.memGoldName;
+    const gD = document.querySelector('[data-i18n-mem="gold.desc"]');
+    if (gD) gD.textContent = t.memGoldDesc;
+    const gB = document.querySelector('[data-i18n-mem="gold.btn"]');
+    if (gB) gB.textContent = t.memGoldBtn;
+    const goldFeatures = ['memGoldF1','memGoldF2','memGoldF3','memGoldF4','memGoldF5','memGoldF6'];
+    goldFeatures.forEach((key, i) => {
+      const el = document.querySelector(`[data-i18n-mem="gold.f${i+1}"]`);
+      if (el) el.textContent = t[key];
+    });
+
+    // Platinum
+    const pN = document.querySelector('[data-i18n-mem="platinum.name"]');
+    if (pN) pN.textContent = t.memPlatName;
+    const pD = document.querySelector('[data-i18n-mem="platinum.desc"]');
+    if (pD) pD.textContent = t.memPlatDesc;
+    const pB = document.querySelector('[data-i18n-mem="platinum.btn"]');
+    if (pB) pB.textContent = t.memPlatBtn;
+    const platFeatures = ['memPlatF1','memPlatF2','memPlatF3','memPlatF4','memPlatF5','memPlatF6','memPlatF7'];
+    platFeatures.forEach((key, i) => {
+      const el = document.querySelector(`[data-i18n-mem="platinum.f${i+1}"]`);
+      if (el) el.textContent = t[key];
+    });
   }
 
   // Initial call
