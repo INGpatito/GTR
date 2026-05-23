@@ -585,13 +585,30 @@
      MEMBERSHIP TIER SELECTION
      ══════════════════════════════════════════════════ */
   function updateMembershipUI(tier) {
+    const hierarchy = { none: 0, silver: 1, gold: 2, platinum: 3 };
+    const currentLevel = hierarchy[tier] || 0;
+
     const allCards = document.querySelectorAll('.mem-card');
     allCards.forEach(card => {
       const cardTierValue = card.getAttribute('data-tier');
+      const cardLevel = hierarchy[cardTierValue];
+      const btn = card.querySelector('.mem-btn span');
+      const btnWrapper = card.querySelector('.mem-btn');
+      const activeBadge = card.querySelector('.mem-active-badge');
+
+      // Reset displays
+      if (btnWrapper) btnWrapper.style.display = 'block';
+      if (activeBadge) activeBadge.style.display = 'none';
+      card.classList.remove('is-active');
+
       if (cardTierValue === tier) {
         card.classList.add('is-active');
+        if (btnWrapper) btnWrapper.style.display = 'none';
+        if (activeBadge) activeBadge.style.display = 'flex';
+      } else if (cardLevel > currentLevel) {
+        if (btn) btn.textContent = currentLang === 'es' ? `Mejorar a ${cardTierValue.toUpperCase()}` : `Upgrade to ${cardTierValue.toUpperCase()}`;
       } else {
-        card.classList.remove('is-active');
+        if (btn) btn.textContent = currentLang === 'es' ? `Bajar a ${cardTierValue.toUpperCase()}` : `Downgrade to ${cardTierValue.toUpperCase()}`;
       }
     });
 
@@ -632,13 +649,8 @@
         // Update VIP card tier display
         if (cardTier) cardTier.textContent = TIER_LABELS[tier];
         
-        // Hide membership section & Show specific message
-        const memSection = document.querySelector('.membership-section');
-        if (memSection) {
-          memSection.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--gold); font-family: 'Cinzel', serif; font-size: 1.2rem;">
-            Su nivel de prestigio ha mejorado a ${name}
-          </div>`;
-        }
+        // Removed the code that destroys the membership section.
+        // The updateMembershipUI(tier) call above now elegantly handles showing 'Active Plan' and 'Upgrade' buttons.
         
         // Update Garage limits display
         renderGarage();
