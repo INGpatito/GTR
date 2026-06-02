@@ -1,7 +1,8 @@
 """
 Parking GTR — Vehicle Service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Consultas sobre la tabla ``user_vehicles`` (usada por Member Scanner).
+Consultas sobre la tabla ``user_vehicles`` y actividad.
+Usado principalmente por Member Scanner.
 """
 
 from core.database import db_cursor
@@ -23,10 +24,12 @@ def get_user_vehicles(user_id: int) -> list[tuple]:
         return cur.fetchall()
 
 
-def get_activity_history(member_id: int, limit: int = 10) -> list[tuple]:
+def get_activity_history(user_id: int, limit: int = 10) -> list[tuple]:
     """Obtiene el historial de actividad reciente de un socio.
 
-    Busca otras reservaciones del mismo email (excluyendo la actual).
+    Args:
+        user_id: ID del socio en la tabla users.
+        limit: Número máximo de registros a retornar.
 
     Returns:
         Lista de tuplas (service, status, created_at).
@@ -35,8 +38,8 @@ def get_activity_history(member_id: int, limit: int = 10) -> list[tuple]:
         cur.execute(
             "SELECT service, status, created_at "
             "FROM reservations "
-            "WHERE id != %s AND email = (SELECT email FROM reservations WHERE id = %s) "
+            "WHERE user_id = %s "
             "ORDER BY created_at DESC LIMIT %s",
-            (member_id, member_id, limit),
+            (user_id, limit),
         )
         return cur.fetchall()

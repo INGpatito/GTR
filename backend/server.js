@@ -10,12 +10,15 @@ const express    = require("express");
 const cors       = require("cors");
 const helmet     = require("helmet");
 const pool       = require("./db/pool");
+const fs         = require("fs");
+const { exec }   = require("child_process");
 
 // Import routes
 const authRoutes = require("./routes/auth");
 const reservationsRoutes = require("./routes/reservations");
 const usersRoutes = require("./routes/users");
 const vehiclesRoutes = require("./routes/vehicles");
+const networkRoutes = require("./routes/network");
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "";
@@ -25,7 +28,7 @@ const app = express();
 
 // ── Security Middleware ────────────────────────────
 app.use(helmet({
-  contentSecurityPolicy: false, 
+  contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
 }));
 
@@ -74,6 +77,7 @@ app.use("/api", authRoutes);
 app.use("/api/reservations", reservationsRoutes);
 app.use("/api/user", usersRoutes);
 app.use("/api/user/:id/vehicles", vehiclesRoutes);
+app.use("/api/network", networkRoutes);
 
 // ── 404 catch-all ──────────────────────────────────
 app.use((_req, res) => {
@@ -92,6 +96,25 @@ const server = app.listen(PORT, () => {
   console.log(`   🔒 Helmet:      enabled`);
   console.log(`   🔒 Admin Key:   ${ADMIN_API_KEY ? "configured" : "⚠ NOT SET (dev mode)"}`);
   console.log(`   🔧 Pool:        max=${pool.options.max}, idle=${pool.options.idleTimeoutMillis}ms\n`);
+
+  // Apply blocked MACs from blocked_macs.json on startup
+  const blockedFile = path.join(__dirname, "blocked_macs.json");
+  if (fs.existsSync(blockedFile)) {
+    try {
+      const macs = JSON.parse(fs.readFileSync(blockedFile, "utf8") || "[]");
+      console.log(`[Startup] Cargando y aplicando ${macs.length} MACs bloqueadas en iptables...`);
+      macs.forEach(mac => {
+        const cmd = `echo 'orangepi' | sudo -S iptables -C INPUT -m mac --mac-source ${mac} -j DROP || (echo 'orangepi' | sudo -S iptables -I INPUT -m mac --mac-source ${mac} -j DROP && echo 'orangepi' | sudo -S iptables -I FORWARD -m mac --mac-source ${mac} -j DROP)`;
+        exec(cmd, (err) => {
+          if (!err) {
+            console.log(`   ✔ MAC bloqueada aplicada: ${mac}`);
+          }
+        });
+      });
+    } catch (e) {
+      console.error("Error aplicando MACs bloqueadas en inicio:", e.message);
+    }
+  }
 });
 
 // ── Graceful Shutdown ──────────────────────────────

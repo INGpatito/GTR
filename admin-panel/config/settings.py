@@ -13,15 +13,20 @@ _PACKAGE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(os.path.join(_PACKAGE_DIR, ".env"))
 
 # ── Base de Datos (PostgreSQL en Orange Pi) ────────────
-# IPs de la OrangePi: Tailscale (VPN) y LAN (red local)
-_TAILSCALE_HOST = os.getenv("DB_HOST_TAILSCALE", "100.89.43.30")
-_LAN_HOST       = os.getenv("DB_HOST_LAN",       "192.168.100.61")
+# Candidatos a hosts para autodetectar
+_CANDIDATE_HOSTS = [
+    ("10.42.0.1", "Hotspot GTR"),
+    ("orangepi4pro.local", "mDNS Local"),
+    ("192.168.100.16", "Nueva LAN (MiWiFi)"),
+    ("100.89.43.30", "Tailscale (VPN)"),
+    ("192.168.100.61", "Antigua LAN")
+]
 
 
 def _resolve_db_host() -> str:
-    """Intenta conectar vía Tailscale primero, luego LAN.
+    """Intenta conectar a los diferentes candidatos de host en orden.
 
-    Prueba cada host con un socket TCP rápido (timeout 2s).
+    Prueba cada host con un socket TCP rápido (timeout 1s).
     Retorna el primer host que responda en el puerto 5432.
     """
     import socket
@@ -31,19 +36,18 @@ def _resolve_db_host() -> str:
         # Si hay un host explícito en .env, usarlo directamente
         return env_host
 
-    for host, label in [(_TAILSCALE_HOST, "Tailscale"), (_LAN_HOST, "LAN")]:
+    for host, label in _CANDIDATE_HOSTS:
         try:
-            sock = socket.create_connection((host, 5432), timeout=2)
+            sock = socket.create_connection((host, 5432), timeout=1.0)
             sock.close()
             print(f"  [OK] DB conectada via {label}: {host}")
             return host
         except (socket.timeout, ConnectionRefusedError, OSError):
-            print(f"  [WARN] DB {label} ({host}) no disponible, probando siguiente...")
             continue
 
-    # Fallback: usar Tailscale de todas formas (fallará en psycopg2 con mejor error)
-    print("  [ERROR] Ningun host de DB disponible, usando Tailscale como fallback")
-    return _TAILSCALE_HOST
+    # Fallback: si nada responde, usar el mDNS como fallback
+    print("  [ERROR] Ningun host de DB disponible, usando orangepi4pro.local como fallback")
+    return "orangepi4pro.local"
 
 
 _DB_HOST = _resolve_db_host()

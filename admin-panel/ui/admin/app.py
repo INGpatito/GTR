@@ -3,6 +3,9 @@ Parking GTR — Admin Panel Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ventana principal del panel de administración.
 Coordina sidebar, tabs, y operaciones de datos.
+
+Alineado con la BD actual (users, user_vehicles, reservations)
+y con la estructura de GTR-Profile.
 """
 
 import datetime
@@ -11,6 +14,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 
 from config.theme import setup_ctk_theme, GREEN, RED, AMBER
+from core.crypto import generate_card_number
 from core.email_service import send_approval_email
 from services import reservation_service, member_service
 from ui.admin.sidebar import AdminSidebar
@@ -27,8 +31,9 @@ class ParkingAdmin(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Parking GTR - Admin Panel")
-        self.geometry("1000x600")
+        self.title("Parking GTR — Admin Panel")
+        self.geometry("1100x700")
+        self.minsize(900, 600)
 
         # ── Layout Grid ──
         self.grid_columnconfigure(1, weight=1)
@@ -68,6 +73,7 @@ class ParkingAdmin(ctk.CTk):
             on_select_member=self._on_member_selected,
             on_delete_member=self._delete_member,
             on_security=self._prompt_security,
+            on_change_membership=self._change_membership,
         )
 
         # ── Carga inicial ──
@@ -98,10 +104,15 @@ class ParkingAdmin(ctk.CTk):
                     (row[0], row[1], row[2], row[3], date_time, estado)
                 )
 
-            # Tab 2: Socios
+            # Tab 2: Socios (desde tabla users)
+            # get_members_summary retorna: (id, full_name, email, membership_tier, vehicle_count, status)
             users = member_service.get_members_summary()
             for u in users:
-                self.members_tab.insert_row((u[0], u[1], u[2], u[3]))
+                tier_display = (u[3] or "none").upper()
+                status_display = (u[5] or "pending").upper()
+                self.members_tab.insert_row(
+                    (u[0], u[1], u[2], tier_display, u[4], status_display)
+                )
 
             now = datetime.datetime.now().strftime("%H:%M:%S")
             self.sidebar.status.set_status(f"Estado: Listo ({now})", GREEN)
@@ -111,29 +122,85 @@ class ParkingAdmin(ctk.CTk):
             messagebox.showerror("Error de Conexión", f"No se pudo conectar.\n{exc}")
 
     # ══════════════════════════════════════════════════
-    #  MEMBER DETAILS
+    #  MEMBER DETAILS (por user_id)
     # ══════════════════════════════════════════════════
-    def _on_member_selected(self, email: str) -> None:
-        """Callback cuando se selecciona un socio en la tabla."""
+    def _on_member_selected(self, user_id: int) -> None:
+        """Callback cuando se selecciona un socio en la tabla.
+        
+        Carga datos completos: info de usuario, vehículos, actividad.
+        """
         try:
-            historial = member_service.get_member_details(email)
-            if not historial:
+            # Datos principales del usuario
+            user = member_service.get_member_by_id(user_id)
+            if not user:
                 self.members_tab.show_empty_details()
                 return
 
-            latest = historial[0]
+            # user = (id, full_name, email, phone, preferred_service, membership_tier, status, created_at)
+            uid, full_name, email, phone, pref_service, tier, status, created_at = user
+
+            # Vehículos del usuario (desde user_vehicles)
+            vehicles = member_service.get_member_vehicles(uid)
+
+            # Actividad reciente (desde reservations)
+            activity = member_service.get_member_activity(uid)
+
+            # Número de tarjeta cifrado (mismo algoritmo que GTR-Profile)
+            card_number = generate_card_number(uid)
+
             self.members_tab.show_member_details(
-                email=email,
-                nombre=latest[0] if latest[0] else "Socio Sin Nombre",
-                telefono=latest[1] if latest[1] else "No provisto",
-                sub_nivel=latest[2].upper() if latest[2] else "NINGUNO",
-                total_coches=len(historial),
-                historial=historial,
+                user_id=uid,
+                nombre=full_name or "Socio Sin Nombre",
+                email=email or "",
+                telefono=phone or "",
+                membership_tier=tier or "none",
+                preferred_service=pref_service or "valet",
+                status=status or "pending",
+                created_at=created_at,
+                card_number=card_number,
+                vehicles=vehicles,
+                activity=activity,
             )
+
         except Exception as exc:
             messagebox.showerror(
                 "Error SQL", f"No se pudo cargar detalles del socio.\n{exc}"
             )
+
+    # ══════════════════════════════════════════════════
+    #  MEMBERSHIP MANAGEMENT
+    # ══════════════════════════════════════════════════
+    def _change_membership(self, user_id: int, tier: str) -> None:
+        """Cambia el tier de membresía de un socio."""
+        tier_names = {
+            "none": "Ninguno (Free)",
+            "silver": "Silver Access",
+            "gold": "Gold Prestige",
+            "platinum": "Platinum Elite",
+        }
+        name = tier_names.get(tier, tier)
+
+        if not messagebox.askyesno(
+            "Confirmar Cambio de Membresía",
+            f"¿Cambiar la membresía del socio a {name}?\n\n"
+            f"Esto actualizará su nivel de acceso y límites de vehículos.",
+        ):
+            return
+
+        try:
+            success = member_service.update_membership_tier(user_id, tier)
+            if success:
+                messagebox.showinfo(
+                    "Éxito",
+                    f"Membresía actualizada a {name}.",
+                )
+                # Refrescar el detalle y la tabla
+                self.load_data()
+                self._on_member_selected(user_id)
+            else:
+                messagebox.showwarning("Atención", "No se encontró el socio.")
+        except Exception as exc:
+            messagebox.showerror("Error SQL", f"No se pudo actualizar.\n{exc}")
 
     # ══════════════════════════════════════════════════
     #  ACTIONS

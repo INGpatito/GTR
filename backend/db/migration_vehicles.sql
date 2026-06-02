@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS user_vehicles (
   plate       VARCHAR(20),
   vehicle     vehicle_type   DEFAULT 'sports',
   is_primary  BOOLEAN        DEFAULT FALSE,
-  created_at  TIMESTAMPTZ    DEFAULT NOW()
+  created_at  TIMESTAMPTZ  2  DEFAULT NOW()
 );
 
 CREATE INDEX idx_user_vehicles_user ON user_vehicles (user_id);

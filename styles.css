@@ -13,7 +13,7 @@
   --color-glass: rgba(18, 18, 18, 0.56);
   --color-line: rgba(212, 175, 55, 0.42);
   --shadow-soft: 0 20px 45px rgba(0, 0, 0, 0.5);
-  --shadow-gold: 0 0 35px rgba(212, 175, 55, 0.28);
+  --shadow-gold: 0 0 35px rgba(212, 175, 55,   0.28);
   --radius-lg: 24px;
   --radius-md: 16px;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
