@@ -288,52 +288,52 @@ public class MainActivity extends AppCompatActivity {
         welcomeContainer.setVisibility(View.GONE);
     }
 
-    /**
-     * Shows "Bienvenido, [name]" with fade-in animation,
-     * then returns to logo after WELCOME_DURATION_MS.
-     */
     private void showWelcome(String memberName) {
         isShowingWelcome = true;
 
         // Set the member name
         memberNameText.setText(memberName);
 
-        // Fade out logo → then fade in welcome
+        // Cancel any running animations to prevent glitches
+        logoContainer.animate().cancel();
+        welcomeContainer.animate().cancel();
+
+        // 1. Fade out logo
         logoContainer.animate()
                 .alpha(0f)
                 .setDuration(400)
-                .withEndAction(() -> {
-                    logoContainer.setVisibility(View.GONE);
+                .withEndAction(() -> logoContainer.setVisibility(View.GONE))
+                .start();
 
-                    // Prepare and fade in welcome
-                    welcomeContainer.setAlpha(0f);
-                    welcomeContainer.setVisibility(View.VISIBLE);
-                    welcomeContainer.animate()
-                            .alpha(1f)
-                            .setDuration(600)
-                            .start();
-                })
+        // 2. Fade in welcome container simultaneously
+        welcomeContainer.setAlpha(0f);
+        welcomeContainer.setVisibility(View.VISIBLE);
+        welcomeContainer.animate()
+                .alpha(1f)
+                .setDuration(500)
                 .start();
 
         // Schedule return to logo after duration
         handler.postDelayed(() -> {
+            logoContainer.animate().cancel();
+            welcomeContainer.animate().cancel();
+
+            // 1. Fade out welcome container
             welcomeContainer.animate()
                     .alpha(0f)
                     .setDuration(400)
-                    .withEndAction(() -> {
-                        welcomeContainer.setVisibility(View.GONE);
-
-                        // Fade in logo
-                        logoContainer.setAlpha(0f);
-                        logoContainer.setVisibility(View.VISIBLE);
-                        logoContainer.animate()
-                                .alpha(1f)
-                                .setDuration(600)
-                                .start();
-
-                        isShowingWelcome = false;
-                    })
+                    .withEndAction(() -> welcomeContainer.setVisibility(View.GONE))
                     .start();
+
+            // 2. Fade in logo simultaneously
+            logoContainer.setAlpha(0f);
+            logoContainer.setVisibility(View.VISIBLE);
+            logoContainer.animate()
+                    .alpha(1f)
+                    .setDuration(500)
+                    .start();
+
+            isShowingWelcome = false;
         }, WELCOME_DURATION_MS);
     }
 }
