@@ -136,6 +136,25 @@ class ScannerSidebar(ctk.CTkFrame):
             command=callbacks.get("simulate", lambda: None),
         ).pack(padx=12, pady=(0, 10), fill="x")
 
+        # ── Sección: Red Orange Pi ──
+        SidebarSection(self, text="RED ORANGE PI").grid(
+            row=10, column=0, padx=20, pady=(8, 0), sticky="w"
+        )
+
+        ctk.CTkButton(
+            self,
+            text="📡  Configurar Red GTR",
+            height=34,
+            corner_radius=8,
+            fg_color="#1d2d44",
+            text_color="#8ecae6",
+            hover_color="#0d1b2a",
+            border_color="#457b9d",
+            border_width=1,
+            font=ctk.CTkFont("Helvetica", 11, "bold"),
+            command=self._on_open_network_admin,
+        ).grid(row=11, column=0, padx=16, pady=(4, 24), sticky="ew")
+
         # ── Estado DB ──
         self.db_status = StatusLabel(
             self,
@@ -151,3 +170,15 @@ class ScannerSidebar(ctk.CTkFrame):
     def _on_id_submit(self) -> None:
         value = self.id_entry.get().strip()
         self._on_search_id(value)
+
+    def _on_open_network_admin(self) -> None:
+        import webbrowser
+        from urllib.parse import urlparse
+        from config.settings import API_BASE_URL
+        try:
+            parsed = urlparse(API_BASE_URL)
+            host = parsed.hostname or "100.89.43.30"
+            url = f"http://{host}/admin-network.html"
+            webbrowser.open(url)
+        except Exception as e:
+            print(f"Error abriendo panel de red: {e}")

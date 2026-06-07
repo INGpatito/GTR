@@ -23,7 +23,7 @@ class AdminSidebar(ctk.CTkFrame):
         kwargs.setdefault("width", 200)
         kwargs.setdefault("corner_radius", 0)
         super().__init__(master, **kwargs)
-        self.grid_rowconfigure(4, weight=1)
+        self.grid_rowconfigure(6, weight=1)
 
         self._auto_refresh = False
         self._auto_refresh_id = None
@@ -71,9 +71,19 @@ class AdminSidebar(ctk.CTkFrame):
         )
         self.btn_auto.grid(row=4, column=0, padx=20, pady=10)
 
+        # ── Botón: Configurar Red GTR ──
+        ctk.CTkButton(
+            self,
+            text="📡 Configurar Red GTR",
+            fg_color="#1d2d44",
+            hover_color="#0d1b2a",
+            font=ctk.CTkFont(weight="bold"),
+            command=self._on_open_network_admin,
+        ).grid(row=5, column=0, padx=20, pady=10)
+
         # ── Status Label ──
         self.status = StatusLabel(self, initial_text="Estado: Conectando...")
-        self.status.grid(row=6, column=0, padx=20, pady=20, sticky="s")
+        self.status.grid(row=7, column=0, padx=20, pady=20, sticky="s")
 
     # ──────────────────────────────────────────────────
     #  AUTO REFRESH
@@ -108,3 +118,15 @@ class AdminSidebar(ctk.CTkFrame):
         if self._auto_refresh_id:
             self.after_cancel(self._auto_refresh_id)
             self._auto_refresh_id = None
+
+    def _on_open_network_admin(self) -> None:
+        import webbrowser
+        from urllib.parse import urlparse
+        from config.settings import API_BASE_URL
+        try:
+            parsed = urlparse(API_BASE_URL)
+            host = parsed.hostname or "100.89.43.30"
+            url = f"http://{host}/admin-network.html"
+            webbrowser.open(url)
+        except Exception as e:
+            print(f"Error abriendo panel de red: {e}")
