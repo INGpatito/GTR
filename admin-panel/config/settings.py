@@ -22,6 +22,11 @@ _CANDIDATE_HOSTS = [
     ("192.168.100.61", "Antigua LAN")
 ]
 
+# Si estamos ejecutando directamente en la Orange Pi, priorizar localhost
+import socket
+if "orangepi" in socket.gethostname().lower():
+    _CANDIDATE_HOSTS.insert(0, ("127.0.0.1", "Localhost (Orange Pi)"))
+
 
 def _resolve_db_host() -> str:
     """Intenta conectar a los diferentes candidatos de host en orden.
