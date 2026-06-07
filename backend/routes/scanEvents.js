@@ -9,6 +9,8 @@
 
 const express = require("express");
 const { requireAdminKey } = require("../middleware/auth");
+const { generateCardNumber } = require("../services/cryptoService");
+const pool = require("../db/pool");
 
 const router = express.Router();
 
@@ -35,6 +37,53 @@ router.post("/", requireAdminKey, (req, res) => {
 
   console.log(`📡 Scan event received: ${lastScanEvent.member_name}`);
   res.json({ success: true, event: lastScanEvent });
+});
+
+/**
+ * POST /api/scan-event/card
+ * Resolves a 16-digit card number to a member name and triggers a scan event.
+ * Public for display convenience.
+ */
+router.post("/card", async (req, res) => {
+  const { card_number } = req.body;
+  if (!card_number) {
+    return res.status(400).json({ success: false, errors: ["card_number is required."] });
+  }
+
+  const cleanCard = card_number.replace(/\s+/g, "").replace(/-/g, "");
+  if (cleanCard.length !== 16 || !/^\d+$/.test(cleanCard)) {
+    return res.status(400).json({ success: false, errors: ["El número de tarjeta debe tener 16 dígitos."] });
+  }
+
+  try {
+    const result = await pool.query(
+      "SELECT id, full_name, status FROM users WHERE status IN ('active', 'confirmed', 'completed')"
+    );
+
+    let matchedUser = null;
+    for (const user of result.rows) {
+      const generated = generateCardNumber(user.id).replace(/\s+/g, "");
+      if (generated === cleanCard) {
+        matchedUser = user;
+        break;
+      }
+    }
+
+    if (!matchedUser) {
+      return res.status(404).json({ success: false, errors: ["Tarjeta no reconocida o socio inactivo."] });
+    }
+
+    lastScanEvent = {
+      member_name: matchedUser.full_name,
+      timestamp: Date.now(),
+    };
+
+    console.log(`📡 Scan event triggered via card number lookup: ${lastScanEvent.member_name}`);
+    res.json({ success: true, member_name: lastScanEvent.member_name });
+  } catch (err) {
+    console.error("Error resolving card number:", err);
+    res.status(500).json({ success: false, errors: ["Error interno del servidor."] });
+  }
 });
 
 /**

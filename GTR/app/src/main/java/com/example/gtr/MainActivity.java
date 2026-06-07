@@ -1,14 +1,21 @@
 package com.example.gtr;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.InputType;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -18,8 +25,10 @@ import java.io.IOException;
 
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
@@ -60,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
     private volatile boolean isShowingWelcome = false;
     private long lastEventTimestamp = 0;
     private volatile boolean isResolvingHost = false;
+    private final StringBuilder keyAccumulator = new StringBuilder();
 
     // ── UI ──
     private LinearLayout logoContainer;
@@ -104,6 +114,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Show logo state
         showLogo();
+
+        // Setup manual entry click listener
+        findViewById(R.id.rootLayout).setOnClickListener(v -> showManualInputDialog());
 
         Log.i(TAG, "Parking GTR Display started — resolving API host...");
     }
@@ -335,5 +348,138 @@ public class MainActivity extends AppCompatActivity {
 
             isShowingWelcome = false;
         }, WELCOME_DURATION_MS);
+    }
+
+    // ═══════════════════════════════════════════════════
+    //  MANUAL ENTRY & KEYBOARD SCANNER SIMULATION
+    // ═══════════════════════════════════════════════════
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+            
+            // Accumulate numbers
+            if (keyCode >= KeyEvent.KEYCODE_0 && keyCode <= KeyEvent.KEYCODE_9) {
+                char digit = (char) ('0' + (keyCode - KeyEvent.KEYCODE_0));
+                keyAccumulator.append(digit);
+                if (keyAccumulator.length() > 32) {
+                    keyAccumulator.setLength(0);
+                }
+                return true;
+            }
+            
+            if (keyCode >= KeyEvent.KEYCODE_NUMPAD_0 && keyCode <= KeyEvent.KEYCODE_NUMPAD_9) {
+                char digit = (char) ('0' + (keyCode - KeyEvent.KEYCODE_NUMPAD_0));
+                keyAccumulator.append(digit);
+                if (keyAccumulator.length() > 32) {
+                    keyAccumulator.setLength(0);
+                }
+                return true;
+            }
+            
+            // Trigger submit on Enter key from scanner
+            if (keyCode == KeyEvent.KEYCODE_ENTER || keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                String cardNumber = keyAccumulator.toString().trim();
+                keyAccumulator.setLength(0); // clear
+                
+                if (cardNumber.length() == 16) {
+                    submitCardNumber(cardNumber);
+                } else if (!cardNumber.isEmpty()) {
+                    Log.w(TAG, "Ignored key event card number length: " + cardNumber.length());
+                }
+                return true;
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
+    private void showManualInputDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Simular Escaneo");
+        builder.setMessage("Ingresa el número de tarjeta (16 dígitos):");
+
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER);
+        
+        FrameLayout container = new FrameLayout(this);
+        int paddingPx = (int) (24 * getResources().getDisplayMetrics().density);
+        container.setPadding(paddingPx, paddingPx / 2, paddingPx, paddingPx / 2);
+        
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        input.setLayoutParams(params);
+        container.addView(input);
+        builder.setView(container);
+
+        builder.setPositiveButton("Simular", (dialog, which) -> {
+            String cardNumber = input.getText().toString().trim().replace(" ", "").replace("-", "");
+            if (cardNumber.length() == 16) {
+                submitCardNumber(cardNumber);
+            } else {
+                Toast.makeText(MainActivity.this, "El número debe tener 16 dígitos", Toast.LENGTH_SHORT).show();
+            }
+        });
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+
+    private void submitCardNumber(String cardNumber) {
+        if (apiBaseUrl == null) {
+            Toast.makeText(this, "API no resuelta. Intentando reconectar...", Toast.LENGTH_SHORT).show();
+            resolveApiHost();
+            return;
+        }
+
+        String url = apiBaseUrl + "/api/scan-event/card";
+        JSONObject json = new JSONObject();
+        try {
+            json.put("card_number", cardNumber);
+        } catch (Exception e) {
+            Log.e(TAG, "Error building JSON: " + e.getMessage());
+            return;
+        }
+
+        RequestBody body = RequestBody.create(
+                json.toString(),
+                MediaType.parse("application/json; charset=utf-8")
+        );
+
+        Request request = new Request.Builder()
+                .url(url)
+                .post(body)
+                .build();
+
+        httpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                Log.e(TAG, "Failed to submit card: " + e.getMessage());
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "Error de red al conectar con el servidor", Toast.LENGTH_SHORT).show());
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    String responseBody = response.body().string();
+                    if (response.isSuccessful()) {
+                        JSONObject respJson = new JSONObject(responseBody);
+                        String memberName = respJson.getString("member_name");
+                        Log.i(TAG, "Card verified: " + memberName);
+                        runOnUiThread(() -> showWelcome(memberName));
+                    } else {
+                        JSONObject respJson = new JSONObject(responseBody);
+                        String errorMsg = respJson.getJSONArray("errors").getString(0);
+                        runOnUiThread(() -> Toast.makeText(MainActivity.this, errorMsg, Toast.LENGTH_LONG).show());
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error parsing response: " + e.getMessage());
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Respuesta inválida del servidor", Toast.LENGTH_SHORT).show());
+                } finally {
+                    response.close();
+                }
+            }
+        });
     }
 }

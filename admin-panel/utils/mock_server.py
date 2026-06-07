@@ -79,6 +79,48 @@ class GtrMockServer(http.server.BaseHTTPRequestHandler):
                 self.send_response(400)
                 self.end_headers()
                 self.wfile.write(str(e).encode("utf-8"))
+        elif self.path == "/api/scan-event/card":
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data.decode("utf-8"))
+                card_number = data.get("card_number", "")
+                clean_card = card_number.replace(" ", "").replace("-", "")
+                
+                member_name = None
+                try:
+                    from services import member_service
+                    from core.crypto import generate_card_number
+                    ids = member_service.get_all_member_ids()
+                    for mid in ids:
+                        generated = generate_card_number(mid).replace(" ", "")
+                        if generated == clean_card:
+                            row = member_service.get_member_profile_by_user_id(mid)
+                            if row:
+                                member_name = row[1]
+                            break
+                except Exception as db_err:
+                    print(f"[MOCK-SERVER] Error accediendo a DB para tarjeta: {db_err}")
+                
+                if not member_name:
+                    member_name = f"Socio Simulado ({clean_card[-4:] if len(clean_card) >= 4 else 'GTR'})"
+                
+                with _latest_event_lock:
+                    latest_scan_event = {
+                        "member_name": member_name,
+                        "timestamp": int(time.time() * 1000)
+                    }
+                
+                print(f"[MOCK-SERVER] Evento via tarjeta recibido: {member_name}")
+                
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({"success": True, "member_name": member_name}).encode("utf-8"))
+            except Exception as e:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
         else:
             self.send_response(404)
             self.end_headers()
