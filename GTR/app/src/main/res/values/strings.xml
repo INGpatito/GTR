@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Parking GTR</string>
+    <string name="welcome_text">Bienvenido</string>
+    <string name="tagline">Luxury Parking Experience</string>
+    <string name="brand_gtr">GTR</string>
+    <string name="brand_parking">PARKING</string>
+</resources>

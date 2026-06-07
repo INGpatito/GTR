@@ -125,7 +125,11 @@
       reveals.forEach(el => revObs.observe(el));
 
       /* ── API config ── */
-      const API_URL = "/api/reservations";
+      const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:3000"
+        : (window.location.protocol === "file:" ? "https://papoys.me" : "");
+      
+      const API_URL = `${API_BASE}/api/reservations`;
 
       /* ── Form submit ── */
       const form = document.getElementById("contactForm");

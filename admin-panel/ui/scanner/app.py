@@ -5,18 +5,22 @@ Ventana principal del scanner de socios.
 Busca miembros por número de tarjeta, ID, o sensor.
 """
 
+import json
 import threading
+import urllib.request
+import urllib.error
 
 import customtkinter as ctk
 from tkinter import messagebox
 
-from config.settings import print_startup_banner
+from config.settings import print_startup_banner, ADMIN_API_KEY, API_BASE_URL
 from config.theme import AMBER, DARK_BG, GREEN, RED, setup_ctk_theme
 from core.crypto import generate_card_number
 from services import reservation_service, member_service, vehicle_service
 from ui.scanner.sidebar import ScannerSidebar
 from ui.scanner.profile_view import ProfileView
 from utils.sound import play_chime
+from utils.mock_server import start_mock_server_background
 
 # Configurar tema global
 setup_ctk_theme()
@@ -28,6 +32,9 @@ class MemberScanner(ctk.CTk):
     def __init__(self):
         super().__init__()
         print_startup_banner("Member Scanner")
+
+        # Iniciar servidor mock provisional para sincronización con Android
+        start_mock_server_background(3001)
 
         self.title("Parking GTR — Member Scanner")
         self.geometry("1100x720")
@@ -157,7 +164,7 @@ class MemberScanner(ctk.CTk):
 
         def _load():
             try:
-                row = reservation_service.get_reservation_by_id(member_id)
+                row = member_service.get_member_profile_by_user_id(member_id)
                 if not row:
                     self.after(0, lambda: [
                         self.sidebar.db_status.set_status("● No encontrado", RED),
@@ -186,8 +193,12 @@ class MemberScanner(ctk.CTk):
     def _render_profile(self, row, vehicles, activity, card_num) -> None:
         """Renderiza el perfil y actualiza estado."""
         uid = row[0]
+        full_name = row[1]
         self.current_member_id = uid
         play_chime()
+
+        # Notify Android display via backend API
+        self._notify_scan_event(full_name)
 
         self.sidebar.db_status.set_status(
             f"● GTR-{str(uid).zfill(4)} cargado", GREEN
@@ -198,6 +209,42 @@ class MemberScanner(ctk.CTk):
             on_checkin=self._checkin,
             on_checkout=self._checkout,
         )
+
+    def _notify_scan_event(self, member_name: str) -> None:
+        """Sends scan event to backend and local mock server for Android display."""
+        import time as _time
+        from utils.mock_server import latest_scan_event, _latest_event_lock
+        import utils.mock_server as _mock
+
+        # 1. Escribir directamente en el mock server local (mismo proceso)
+        with _latest_event_lock:
+            _mock.latest_scan_event = {
+                "member_name": member_name,
+                "timestamp": int(_time.time() * 1000),
+            }
+        print(f"[SCAN-EVENT] Evento local registrado: {member_name}")
+
+        # 2. También intentar notificar al backend remoto (si existe)
+        def _send():
+            try:
+                url = f"{API_BASE_URL}/api/scan-event"
+                data = json.dumps({"member_name": member_name}).encode("utf-8")
+                req = urllib.request.Request(
+                    url,
+                    data=data,
+                    headers={
+                        "Content-Type": "application/json",
+                        "X-API-Key": ADMIN_API_KEY,
+                    },
+                    method="POST",
+                )
+                with urllib.request.urlopen(req, timeout=3) as resp:
+                    print(f"[SCAN-EVENT] Backend remoto notificado: {member_name} → {resp.status}")
+            except Exception as e:
+                # No es crítico si el backend remoto no está disponible
+                pass
+
+        threading.Thread(target=_send, daemon=True).start()
 
     # ══════════════════════════════════════════════════
     #  CHECK-IN / CHECK-OUT
@@ -220,7 +267,7 @@ class MemberScanner(ctk.CTk):
     def _update_status(self, uid: int, new_status: str, msg: str) -> None:
         def _do():
             try:
-                reservation_service.update_status(uid, new_status)
+                member_service.update_member_status_and_latest_reservation(uid, new_status)
                 self.after(0, lambda: [
                     messagebox.showinfo("Actualizado", msg),
                     self._fetch_and_show(uid),

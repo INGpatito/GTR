@@ -31,3 +31,7 @@ npm-debug.log*
 
 # ── OS ──────────────────────────────────
 desktop.ini
+
+# ── Custom Ignores ──────────────────────
+/.txt
+/ANDROID_STUDIO_INFO.txt

@@ -52,6 +52,26 @@ def get_member_by_id(user_id: int) -> tuple | None:
         return cur.fetchone()
 
 
+def get_member_profile_by_user_id(user_id: int) -> tuple | None:
+    """Obtiene el perfil completo de un socio (unido a su última reservación) por su user ID.
+
+    Returns:
+        Tupla (id, full_name, email, phone, service, vehicle,
+               arrival_date, arrival_time, status, created_at) o None.
+    """
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT u.id, u.full_name, u.email, u.phone, u.preferred_service, 
+                   r.vehicle, r.arrival_date, r.arrival_time, u.status, u.created_at
+            FROM users u
+            LEFT JOIN reservations r ON u.id = r.user_id
+            WHERE u.id = %s
+            ORDER BY r.created_at DESC LIMIT 1
+        """, (user_id,))
+        return cur.fetchone()
+
+
+
 def get_member_by_email(email: str) -> tuple | None:
     """Obtiene los datos principales de un socio por su email.
 
@@ -130,6 +150,31 @@ def update_membership_tier(user_id: int, tier: str) -> bool:
             (tier, user_id),
         )
         return cur.rowcount > 0
+
+
+def update_member_status_and_latest_reservation(user_id: int, new_status: str) -> None:
+    """Actualiza el status del usuario y de su última reservación (si existe)."""
+    with db_cursor() as cur:
+        # 1. Actualizar el status del usuario en la tabla users
+        cur.execute(
+            "UPDATE users SET status = %s WHERE id = %s",
+            (new_status, user_id),
+        )
+        
+        # 2. Buscar la última reservación del usuario
+        cur.execute(
+            "SELECT id FROM reservations WHERE user_id = %s ORDER BY created_at DESC LIMIT 1",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if row:
+            res_id = row[0]
+            # 3. Actualizar el status de esa última reservación
+            cur.execute(
+                "UPDATE reservations SET status = %s WHERE id = %s",
+                (new_status, res_id),
+            )
+
 
 
 # ══════════════════════════════════════════════════════

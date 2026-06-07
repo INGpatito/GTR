@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="300dp"
+    android:height="100dp"
+    android:viewportWidth="600"
+    android:viewportHeight="200">
+
+    <!-- ═══ GTR Monogram - Bold, Evenly Distributed, Prestigious ═══ -->
+    <!-- Thicker strokes (10) for more presence, perfect optical distribution -->
+
+    <!-- G -->
+    <path
+        android:pathData="
+            M 162, 68 
+            A 45,45 0 1,0 175,100 
+            L 140, 100
+            L 140, 125"
+        android:strokeWidth="10"
+        android:strokeColor="#E8C86A"
+        android:fillColor="#00000000"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="miter" />
+
+    <!-- T -->
+    <path
+        android:pathData="
+            M 250, 55 L 350, 55
+            M 300, 55 L 300, 145"
+        android:strokeWidth="10"
+        android:strokeColor="#E8C86A"
+        android:fillColor="#00000000"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="miter" />
+
+    <!-- R -->
+    <path
+        android:pathData="
+            M 430, 145 L 430, 55 L 475, 55
+            A 25,25 0 0,1 475, 105
+            L 430, 105
+            M 455, 105 L 510, 145"
+        android:strokeWidth="10"
+        android:strokeColor="#E8C86A"
+        android:fillColor="#00000000"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="miter" />
+
+</vector>

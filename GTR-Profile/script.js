@@ -3,7 +3,7 @@
 
   // Check auth
   const userId = sessionStorage.getItem("gtr_user_id");
-  const token  = sessionStorage.getItem("gtr_token");
+  const token = sessionStorage.getItem("gtr_token");
   if (!userId || !token) {
     window.location.href = "../GTR-Login/index.html";
     return;
@@ -11,7 +11,7 @@
 
   const API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:3000"
-    : "";
+    : (window.location.protocol === "file:" ? "https://papoys.me" : "");
 
   // Auth headers for all protected requests
   const authHeaders = {
@@ -34,14 +34,14 @@
   const inputName = document.getElementById("inputName");
   const inputEmail = document.getElementById("inputEmail");
   const inputPhone = document.getElementById("inputPhone");
-  
+
   const cardName = document.getElementById("cardName");
   const cardSince = document.getElementById("cardSince");
   const cardTier = document.getElementById("cardTier");
   const cardNum = document.getElementById("cardNum");
   const welcomeName = document.getElementById("welcomeName");
   const memberId = document.getElementById("memberId");
-  
+
   const btnLogout = document.getElementById("btnLogout");
   const toast = document.getElementById("profileToast");
   const toastMsg = document.getElementById("toastMsg");
@@ -98,23 +98,23 @@
   const cardWrapper = document.getElementById("vipCard");
   if (cardWrapper) {
     const card = cardWrapper.querySelector(".vip-card-front");
-    
+
     cardWrapper.addEventListener("mousemove", (e) => {
       if (cardWrapper.classList.contains("is-flipped")) return;
       const rect = cardWrapper.getBoundingClientRect();
-      const x = e.clientX - rect.left; 
+      const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       const xPct = x / rect.width;
       const yPct = y / rect.height;
-      const rotateY = (xPct - 0.5) * 30; 
-      const rotateX = (0.5 - yPct) * 30; 
+      const rotateY = (xPct - 0.5) * 30;
+      const rotateX = (0.5 - yPct) * 30;
       cardWrapper.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
       if (card) {
         card.style.setProperty("--gx", `${xPct * 100}%`);
         card.style.setProperty("--gy", `${yPct * 100}%`);
       }
     });
-    
+
     cardWrapper.addEventListener("mouseleave", () => {
       if (cardWrapper.classList.contains("is-flipped")) return;
       cardWrapper.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg)`;
@@ -134,16 +134,16 @@
         inputName.value = u.full_name || "";
         inputEmail.value = u.email || "";
         inputPhone.value = u.phone || "";
-        
+
         // Set service chip
         const svcValue = u.preferred_service || u.service || "valet";
         const svcRadio = document.querySelector(`input[name="preferred_service"][value="${svcValue}"]`);
         if (svcRadio) svcRadio.checked = true;
-        
+
         // Set membership tier
         currentMembershipTier = u.membership_tier || "none";
         updateMembershipUI(currentMembershipTier);
-        
+
         updateVIPCard(u);
       } else {
         alert("Session expired or invalid.");
@@ -161,18 +161,18 @@
     const name = u.full_name || "MEMBER";
     cardName.textContent = name;
     if (welcomeName) welcomeName.textContent = `Welcome, ${name.split(" ")[0]}`;
-    
+
     const svc = u.preferred_service || u.service || "valet";
     const tier = u.membership_tier || currentMembershipTier || "none";
     cardTier.textContent = tier !== "none" ? TIER_LABELS[tier] : (SERVICE_MAP[svc] || "MEMBER");
-    
+
     // Use the server-generated encrypted card number
     userCardNumber = u.card_number || "0000 0000 0000 0000";
     cardNum.textContent = userCardNumber;
 
     const paddedId = String(u.id).padStart(4, "0");
     if (memberId) memberId.textContent = `GTR-${paddedId}`;
-    
+
     // Member since
     if (u.created_at && cardSince) {
       const d = new Date(u.created_at);
@@ -330,7 +330,7 @@
   });
 
   /* ── DELETE VEHICLE ── */
-  window.deleteVehicle = async function(vid, name) {
+  window.deleteVehicle = async function (vid, name) {
     if (!confirm(`Remove "${name}" from your garage?`)) return;
     try {
       const res = await fetch(`${API}/api/user/${userId}/vehicles/${vid}`, { method: "DELETE", headers: authHeaders });
@@ -348,7 +348,7 @@
   };
 
   /* ── SET PRIMARY ── */
-  window.setPrimary = async function(vid) {
+  window.setPrimary = async function (vid) {
     try {
       const veh = userVehicles.find(v => v.id === vid);
       const res = await fetch(`${API}/api/user/${userId}/vehicles/${vid}`, {
@@ -375,14 +375,14 @@
       const data = await res.json();
       if (res.ok && data.success && data.activity.length > 0) {
         const items = data.activity;
-        
+
         activityList.innerHTML = items.map(a => {
           const date = new Date(a.created_at);
           const dateStr = date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
           const timeStr = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
           const svc = SERVICE_MAP[a.service] || a.service || "RESERVATION";
           const status = a.status || "pending";
-          
+
           return `
             <div class="activity-item">
               <div class="act-dot ${status}"></div>
@@ -418,9 +418,9 @@
     btn.disabled = true;
     btn.style.opacity = "0.7";
     btn.querySelector("span").textContent = "Saving...";
-    
+
     const selectedService = document.querySelector('input[name="preferred_service"]:checked')?.value || "valet";
-    
+
     const payload = {
       name: inputName.value.trim(),
       phone: inputPhone.value.trim(),
@@ -430,7 +430,7 @@
       time: "",
       message: ""
     };
-    
+
     try {
       const res = await fetch(`${API}/api/user/${userId}`, {
         method: "PUT",
@@ -438,14 +438,14 @@
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      
+
       // Update preferred service
       await fetch(`${API}/api/user/${userId}/service`, {
         method: "PATCH",
         headers: authHeaders,
         body: JSON.stringify({ service: selectedService })
       });
-      
+
       if (res.ok && data.success) {
         showToast("Profile updated securely in Vault.");
         updateVIPCard({ ...data.user, preferred_service: selectedService });
@@ -624,13 +624,13 @@
 
   async function selectMembership(tier) {
     if (tier === currentMembershipTier) return;
-    
+
     const tierNames = { silver: 'Silver Access', gold: 'Gold Prestige', platinum: 'Platinum Elite' };
     const tierNamesES = { silver: 'Acceso Silver', gold: 'Gold Prestigio', platinum: 'Platinum Elite' };
     const name = currentLang === 'es' ? tierNamesES[tier] : tierNames[tier];
-    
-    if (!confirm(currentLang === 'es' 
-      ? `¿Deseas activar la membresía ${name}?` 
+
+    if (!confirm(currentLang === 'es'
+      ? `¿Deseas activar la membresía ${name}?`
       : `Activate ${name} membership?`)) return;
 
     try {
@@ -641,17 +641,17 @@
       });
       const data = await res.json();
       if (handleAuthError(res)) return;
-      
+
       if (res.ok && data.success) {
         currentMembershipTier = tier;
         updateMembershipUI(tier);
-        
+
         // Update VIP card tier display
         if (cardTier) cardTier.textContent = TIER_LABELS[tier];
-        
+
         // Removed the code that destroys the membership section.
         // The updateMembershipUI(tier) call above now elegantly handles showing 'Active Plan' and 'Upgrade' buttons.
-        
+
         // Update Garage limits display
         renderGarage();
 
@@ -671,8 +671,8 @@
           activityList.insertAdjacentHTML('afterbegin', newActivity);
         }
 
-        showToast(currentLang === 'es' 
-          ? `Su nivel de prestigio ha mejorado a ${name}` 
+        showToast(currentLang === 'es'
+          ? `Su nivel de prestigio ha mejorado a ${name}`
           : `Membership upgraded to ${name}.`);
       } else {
         showToast(data.errors?.join('. ') || 'Error updating membership.', true);
@@ -702,21 +702,21 @@
     const hasFinePinter = window.matchMedia("(pointer: fine)").matches;
     if (!hasFinePinter || prefersReducedMotion) return;
 
-    const dot  = document.getElementById("cursorDot");
+    const dot = document.getElementById("cursorDot");
     const ring = document.getElementById("cursorRing");
     if (!dot || !ring) return;
 
     let mouseX = -200, mouseY = -200;
-    let ringX  = -200, ringY  = -200;
+    let ringX = -200, ringY = -200;
     let rafId;
 
     function tick() {
       ringX += (mouseX - ringX) * 0.12;
       ringY += (mouseY - ringY) * 0.12;
-      dot.style.left  = mouseX + "px";
-      dot.style.top   = mouseY + "px";
+      dot.style.left = mouseX + "px";
+      dot.style.top = mouseY + "px";
       ring.style.left = Math.round(ringX) + "px";
-      ring.style.top  = Math.round(ringY) + "px";
+      ring.style.top = Math.round(ringY) + "px";
       rafId = requestAnimationFrame(tick);
     }
     tick();
@@ -740,7 +740,7 @@
     });
 
     document.addEventListener("mousedown", () => document.body.classList.add("cursor-click"));
-    document.addEventListener("mouseup",   () => document.body.classList.remove("cursor-click"));
+    document.addEventListener("mouseup", () => document.body.classList.remove("cursor-click"));
   }
 
   /* ═══════════════════════════════════════════════════
@@ -998,34 +998,34 @@
   function applyTranslations() {
     const t = TEXTS[currentLang];
     if (btnLogout) btnLogout.textContent = t.signOut;
-    
+
     document.querySelector("#statsGrid .stat-box:nth-child(1) .stat-label").textContent = t.reservations;
     document.querySelector("#statsGrid .stat-box:nth-child(2) .stat-label").textContent = t.vehicles;
     document.querySelector("#statsGrid .stat-box:nth-child(3) .stat-label").textContent = t.daysMember;
     document.querySelector("#statsGrid .stat-box:nth-child(4) .stat-label").textContent = t.accStatus;
-    
+
     document.querySelector(".mid-label").textContent = t.memberId;
-    
+
     document.querySelector(".dash-card:nth-child(1) .dash-title").textContent = t.profSettings;
     document.querySelector(".dash-card:nth-child(1) .dash-desc").textContent = t.profDesc;
-    
+
     document.querySelector('label[for="inputName"]').textContent = t.fName;
     document.querySelector('label[for="inputPhone"]').textContent = t.fPhone;
     document.querySelector('.form-group.full:nth-of-type(4) label').textContent = t.fPrefServ;
     document.querySelector('#btnUpdateProfile span').textContent = t.fSave;
-    
+
     document.querySelector(".dash-card:nth-child(2) .dash-title").textContent = t.notifTitle;
     document.querySelector(".dash-card:nth-child(2) .dash-desc").textContent = t.notifDesc;
-    
+
     const rightCards = document.querySelectorAll('.dash-col:nth-child(2) .dash-card');
-    if(rightCards[0]) {
-       rightCards[0].querySelector('.dash-title').textContent = t.garTitle;
-       rightCards[0].querySelector('.dash-desc').textContent = t.garDesc;
-       rightCards[0].querySelector('#btnAddVehicle span:last-child').textContent = userVehicles.length >= 3 ? (currentLang==='es'?"Garaje Lleno":"Garage Full") : t.addBtn;
+    if (rightCards[0]) {
+      rightCards[0].querySelector('.dash-title').textContent = t.garTitle;
+      rightCards[0].querySelector('.dash-desc').textContent = t.garDesc;
+      rightCards[0].querySelector('#btnAddVehicle span:last-child').textContent = userVehicles.length >= 3 ? (currentLang === 'es' ? "Garaje Lleno" : "Garage Full") : t.addBtn;
     }
-    if(rightCards[1]) {
-       rightCards[1].querySelector('.dash-title').textContent = t.actTitle;
-       rightCards[1].querySelector('.dash-desc').textContent = t.actDesc;
+    if (rightCards[1]) {
+      rightCards[1].querySelector('.dash-title').textContent = t.actTitle;
+      rightCards[1].querySelector('.dash-desc').textContent = t.actDesc;
     }
 
     // Flip button
@@ -1049,11 +1049,11 @@
     if (memTitle) memTitle.textContent = t.memTitle;
     const memDesc = document.getElementById('membershipDesc');
     if (memDesc) memDesc.textContent = t.memDesc;
-    
+
     // Popular badge
     const popBadge = document.querySelector('.mem-popular-badge');
     if (popBadge) popBadge.textContent = t.memPopular;
-    
+
     // Active badges
     document.querySelectorAll('.mem-active-badge [data-i18n-mem="active"]').forEach(el => {
       el.textContent = t.memActive;
@@ -1066,9 +1066,9 @@
     if (sD) sD.textContent = t.memSilverDesc;
     const sB = document.querySelector('[data-i18n-mem="silver.btn"]');
     if (sB) sB.textContent = t.memSilverBtn;
-    const silverFeatures = ['memSilverF1','memSilverF2','memSilverF3','memSilverF4','memSilverF5'];
+    const silverFeatures = ['memSilverF1', 'memSilverF2', 'memSilverF3', 'memSilverF4', 'memSilverF5'];
     silverFeatures.forEach((key, i) => {
-      const el = document.querySelector(`[data-i18n-mem="silver.f${i+1}"]`);
+      const el = document.querySelector(`[data-i18n-mem="silver.f${i + 1}"]`);
       if (el) el.textContent = t[key];
     });
 
@@ -1079,9 +1079,9 @@
     if (gD) gD.textContent = t.memGoldDesc;
     const gB = document.querySelector('[data-i18n-mem="gold.btn"]');
     if (gB) gB.textContent = t.memGoldBtn;
-    const goldFeatures = ['memGoldF1','memGoldF2','memGoldF3','memGoldF4','memGoldF5','memGoldF6'];
+    const goldFeatures = ['memGoldF1', 'memGoldF2', 'memGoldF3', 'memGoldF4', 'memGoldF5', 'memGoldF6'];
     goldFeatures.forEach((key, i) => {
-      const el = document.querySelector(`[data-i18n-mem="gold.f${i+1}"]`);
+      const el = document.querySelector(`[data-i18n-mem="gold.f${i + 1}"]`);
       if (el) el.textContent = t[key];
     });
 
@@ -1092,9 +1092,9 @@
     if (pD) pD.textContent = t.memPlatDesc;
     const pB = document.querySelector('[data-i18n-mem="platinum.btn"]');
     if (pB) pB.textContent = t.memPlatBtn;
-    const platFeatures = ['memPlatF1','memPlatF2','memPlatF3','memPlatF4','memPlatF5','memPlatF6','memPlatF7'];
+    const platFeatures = ['memPlatF1', 'memPlatF2', 'memPlatF3', 'memPlatF4', 'memPlatF5', 'memPlatF6', 'memPlatF7'];
     platFeatures.forEach((key, i) => {
-      const el = document.querySelector(`[data-i18n-mem="platinum.f${i+1}"]`);
+      const el = document.querySelector(`[data-i18n-mem="platinum.f${i + 1}"]`);
       if (el) el.textContent = t[key];
     });
   }

@@ -19,6 +19,7 @@ const reservationsRoutes = require("./routes/reservations");
 const usersRoutes = require("./routes/users");
 const vehiclesRoutes = require("./routes/vehicles");
 const networkRoutes = require("./routes/network");
+const scanEventsRoutes = require("./routes/scanEvents");
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "";
@@ -78,6 +79,7 @@ app.use("/api/reservations", reservationsRoutes);
 app.use("/api/user", usersRoutes);
 app.use("/api/user/:id/vehicles", vehiclesRoutes);
 app.use("/api/network", networkRoutes);
+app.use("/api/scan-event", scanEventsRoutes);
 
 // ── 404 catch-all ──────────────────────────────────
 app.use((_req, res) => {

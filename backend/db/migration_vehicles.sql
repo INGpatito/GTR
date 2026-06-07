@@ -46,7 +46,7 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS check_max_vehicles ON user_vehicles;
 CREATE TRIGGER check_max_vehicles
   BEFORE INSERT ON user_vehicles
-  FOR EACH ROW
+  FOR EACH ROW 
   EXECUTE FUNCTION enforce_max_vehicles();
 
 -- ── FUNCTION: ensure only one primary per user ─────

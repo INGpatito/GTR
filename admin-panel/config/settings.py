@@ -63,6 +63,18 @@ DB_PARAMS: dict = {
 # ── Seguridad ──────────────────────────────────────────
 JWT_SECRET: str         = os.getenv("JWT_SECRET", "fallback_dev_secret_change_me")
 ADMIN_UNLOCK_PASS: str  = os.getenv("ADMIN_UNLOCK_PASS", "admin123")
+ADMIN_API_KEY: str      = os.getenv("ADMIN_API_KEY", "")
+
+# ── Backend API (para notificar al display Android) ────
+def _resolve_api_url() -> str:
+    """Resuelve la URL base del API backend usando el mismo host que la DB."""
+    explicit = os.getenv("API_BASE_URL")
+    if explicit:
+        return explicit.rstrip("/")
+    port = os.getenv("API_PORT", "3001")
+    return f"http://{_DB_HOST}:{port}"
+
+API_BASE_URL: str = _resolve_api_url()
 
 # ── APIs externas ──────────────────────────────────────
 CARSXE_API_KEY: str     = os.getenv("CARSXE_API_KEY", "")

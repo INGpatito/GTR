@@ -141,8 +141,12 @@
       });
 
       /* ── API config ── */
-      const API_URL = "/api/reservations";
-      const LOGIN_URL = "/api/login";
+      const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://localhost:3000"
+        : (window.location.protocol === "file:" ? "https://papoys.me" : "");
+      
+      const API_URL = `${API_BASE}/api/reservations`;
+      const LOGIN_URL = `${API_BASE}/api/login`;
 
       /* ── Login Form ── */
       const loginForm = document.getElementById("loginForm");
