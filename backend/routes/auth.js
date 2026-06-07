@@ -26,7 +26,8 @@ router.post("/login", createLimiter, async (req, res) => {
     if (!match) return res.status(401).json({ success: false, errors: ["Invalid credentials."] });
 
     // Only active (approved) users can log in
-    if (user.status !== 'active') {
+    const allowedStatuses = ['active', 'confirmed', 'completed'];
+    if (!allowedStatuses.includes(user.status)) {
       return res.status(403).json({ 
         success: false, 
         reason: "inactive",
