@@ -166,17 +166,31 @@ public class MainActivity extends AppCompatActivity {
                 for (String host : CANDIDATE_HOSTS) {
                     if (apiBaseUrl != null) break;
 
-                    String url = "http://" + host + ":" + API_PORT + "/api/health";
-                    Request request = new Request.Builder().url(url).build();
+                    int[] ports = {3001, 3000, 80};
+                    for (int port : ports) {
+                        if (apiBaseUrl != null) break;
 
-                    try (Response response = httpClient.newCall(request).execute()) {
-                        if (response.isSuccessful()) {
-                            apiBaseUrl = "http://" + host + ":" + API_PORT;
-                            Log.i(TAG, "✓ API host resolved: " + apiBaseUrl);
-                            return;
+                        String url = "http://" + host;
+                        if (port != 80) {
+                            url += ":" + port;
                         }
-                    } catch (IOException e) {
-                        Log.v(TAG, "Host " + host + " unreachable");
+                        url += "/api/health";
+
+                        Request request = new Request.Builder().url(url).build();
+
+                        try (Response response = httpClient.newCall(request).execute()) {
+                            if (response.isSuccessful()) {
+                                String resolvedUrl = "http://" + host;
+                                if (port != 80) {
+                                    resolvedUrl += ":" + port;
+                                }
+                                apiBaseUrl = resolvedUrl;
+                                Log.i(TAG, "✓ API host resolved: " + apiBaseUrl);
+                                return;
+                            }
+                        } catch (IOException e) {
+                            Log.v(TAG, "Host " + host + " on port " + port + " unreachable");
+                        }
                     }
                 }
                 if (apiBaseUrl == null) {

@@ -71,7 +71,7 @@ def _resolve_api_url() -> str:
     explicit = os.getenv("API_BASE_URL")
     if explicit:
         return explicit.rstrip("/")
-    port = os.getenv("API_PORT", "3001")
+    port = os.getenv("API_PORT", "3000")
     return f"http://{_DB_HOST}:{port}"
 
 API_BASE_URL: str = _resolve_api_url()
