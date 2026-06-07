@@ -730,7 +730,7 @@
     document.addEventListener("mouseleave", () => document.body.classList.add("cursor-out"));
     document.addEventListener("mouseenter", () => document.body.classList.remove("cursor-out"));
 
-    const interactiveSelector = "a, button, [role='button'], input, select, textarea, .vip-card-wrapper, .btn, .vehicle-card, .svc-chip, .notif-toggle";
+    const interactiveSelector = "a, button, [role='button'], input, select, textarea, .vip-card-wrapper, .btn, .vehicle-card, .svc-chip";
 
     document.addEventListener("mouseover", (e) => {
       if (e.target.closest(interactiveSelector)) document.body.classList.add("cursor-hover");
@@ -864,8 +864,6 @@
       fPhone: "Phone",
       fPrefServ: "Preferred Service",
       fSave: "Save Profile",
-      notifTitle: "Notification Preferences",
-      notifDesc: "Choose how you'd like to receive alerts when your vehicle is ready.",
       garTitle: "My Garage",
       garDesc: "Register up to 3 vehicles. Set one as primary for automatic valet recognition.",
       addBtn: "Add Vehicle",
@@ -926,8 +924,6 @@
       fPhone: "Teléfono",
       fPrefServ: "Servicio Preferido",
       fSave: "Guardar Perfil",
-      notifTitle: "Preferencias de Notificaciones",
-      notifDesc: "Elige cómo deseas recibir alertas cuando tu vehículo esté listo.",
       garTitle: "Mi Garaje",
       garDesc: "Registra hasta 3 vehículos. Fija uno como principal para el valet.",
       addBtn: "Añadir Vehículo",
@@ -1013,9 +1009,6 @@
     document.querySelector('label[for="inputPhone"]').textContent = t.fPhone;
     document.querySelector('.form-group.full:nth-of-type(4) label').textContent = t.fPrefServ;
     document.querySelector('#btnUpdateProfile span').textContent = t.fSave;
-
-    document.querySelector(".dash-card:nth-child(2) .dash-title").textContent = t.notifTitle;
-    document.querySelector(".dash-card:nth-child(2) .dash-desc").textContent = t.notifDesc;
 
     const rightCards = document.querySelectorAll('.dash-col:nth-child(2) .dash-card');
     if (rightCards[0]) {
