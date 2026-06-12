@@ -1,15 +1,18 @@
 """
-Parking GTR — ESP32 Serial Controller
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Gestiona la comunicación USB-Serial bidireccional con la placa ESP32.
-Incluye reconexión automática y fallback a modo simulado (MOCK) si no hay hardware.
+Parking GTR — ESP32 Serial & WiFi Controller
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Gestiona la comunicación USB-Serial bidireccional y WiFi con la placa ESP32.
+Prioriza la conexión WiFi por HTTP si está disponible, con fallback automático a USB-Serial
+y modo simulado (MOCK) si no hay hardware conectado.
 """
 
+import os
 import json
 import time
 import threading
 import sys
 import glob
+import requests
 
 try:
     import serial
@@ -18,7 +21,7 @@ except ImportError:
 
 
 class ESP32Controller:
-    """Clase thread-safe para comunicarse con la ESP32 vía USB-Serial."""
+    """Clase thread-safe para comunicarse con la ESP32 vía WiFi (HTTP) o USB-Serial."""
 
     _instance = None
     _lock = threading.Lock()
@@ -44,8 +47,18 @@ class ESP32Controller:
         self.connected = False
         self.mock_mode = True
         
+        # Dirección IP de la ESP32 (cargada de .env u obtenida por registro dinámico)
+        self.wifi_ip = os.getenv("ESP32_IP")
+        if self.wifi_ip:
+            print(f"[ESP32] IP de WiFi pre-configurada desde .env: {self.wifi_ip}")
+            
         self.write_lock = threading.Lock()
         self.thread = None
+
+    def set_wifi_ip(self, ip):
+        """Asigna la dirección IP de la ESP32 de forma dinámica."""
+        self.wifi_ip = ip.strip()
+        print(f"[ESP32] IP de WiFi configurada dinámicamente: {self.wifi_ip}")
 
     def start(self):
         """Inicia el hilo de monitoreo y conexión serial."""
@@ -72,7 +85,6 @@ class ESP32Controller:
         if sys.platform.startswith('win'):
             ports = [f'COM{i}' for i in range(1, 256)]
         elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
-            # Encontrar puertos ttyUSB o ttyACM
             ports = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*')
         elif sys.platform.startswith('darwin'):
             ports = glob.glob('/dev/tty.usb*')
@@ -82,7 +94,6 @@ class ESP32Controller:
         available_ports = []
         for p in ports:
             try:
-                # Comprobar si se puede abrir el puerto de forma rápida
                 if serial:
                     s = serial.Serial(p)
                     s.close()
@@ -92,21 +103,22 @@ class ESP32Controller:
         return available_ports
 
     def _connection_loop(self):
-        """Bucle de conexión y reconexión automática en segundo plano."""
-        print("[ESP32] Iniciando bucle de conexión de hardware...")
+        """Bucle de conexión y reconexión automática serial en segundo plano."""
+        print("[ESP32] Iniciando bucle de monitoreo serial...")
         while self.running:
             if not self.connected:
                 if serial is None:
                     if self.mock_mode:
-                        print("[ESP32] Pyserial no instalado. Ejecutando en modo SIMULADO.")
-                        self.mock_mode = True
+                        # Si no hay pyserial pero tenemos WiFi, no molestamos con logs de simulación
+                        if not self.wifi_ip:
+                            print("[ESP32] Pyserial no instalado y no hay IP configurada. Ejecutando en modo SIMULADO.")
                         time.sleep(5)
                         continue
                 
                 ports = self._find_serial_ports()
                 if ports:
                     self.port = ports[0]
-                    print(f"[ESP32] Intentando conectar al puerto: {self.port}...")
+                    print(f"[ESP32] Puerto serial encontrado: {self.port}. Intentando conectar...")
                     try:
                         self.ser = serial.Serial(
                             port=self.port,
@@ -114,26 +126,22 @@ class ESP32Controller:
                             timeout=1.0,
                             write_timeout=2.0
                         )
-                        # Dar tiempo a la ESP32 para reiniciar/estabilizar conexión
-                        time.sleep(2)
-                        
+                        time.sleep(2)  # Reinicio físico de ESP32
                         self.connected = True
                         self.mock_mode = False
-                        print(f"[ESP32] ¡Conexión exitosa en {self.port}!")
+                        print(f"[ESP32] ¡Conexión serial exitosa en {self.port}!")
                         
-                        # Vaciar buffers
                         self.ser.reset_input_buffer()
                         self.ser.reset_output_buffer()
                     except Exception as e:
-                        print(f"[ESP32] Error abriendo puerto {self.port}: {e}")
+                        print(f"[ESP32] Error abriendo puerto serial {self.port}: {e}")
                         self.connected = False
                         self.ser = None
                 else:
-                    if not self.mock_mode:
-                        print("[ESP32] No se detectó ninguna placa ESP32 por USB. Modo SIMULADO activo.")
+                    if not self.mock_mode and not self.wifi_ip:
+                        print("[ESP32] Sin puerto serial y sin WiFi. Modo SIMULADO activo.")
                         self.mock_mode = True
                     
-            # Si estamos conectados, escuchar respuestas entrantes
             if self.connected and self.ser:
                 try:
                     if self.ser.in_waiting > 0:
@@ -141,7 +149,7 @@ class ESP32Controller:
                         if line:
                             self._handle_response(line)
                 except Exception as e:
-                    print(f"[ESP32] Conexión perdida: {e}")
+                    print(f"[ESP32] Conexión serial perdida: {e}")
                     self.connected = False
                     if self.ser:
                         try:
@@ -169,32 +177,54 @@ class ESP32Controller:
             elif status == "pong":
                 print("[HARDWARE] Latencia OK (Pong recibido de ESP32).")
         except Exception:
-            # Respuesta no JSON, loguear como texto plano
             print(f"[ESP32 TXT] -> {line}")
 
     def send_command(self, cmd_dict):
-        """Envía un comando JSON de forma segura y thread-safe."""
-        payload = json.dumps(cmd_dict) + "\n"
+        """Envía un comando. Intenta WiFi y hace fallback a Serial y luego a Mock."""
+        cmd = cmd_dict.get("command")
         
-        if self.mock_mode or not self.connected or not self.ser:
-            # Imular comportamiento físico
-            threading.Thread(
-                target=self._simulate_physical_response,
-                args=(cmd_dict,),
-                daemon=True
-            ).start()
-            return True
-
-        with self.write_lock:
+        # --- Canal 1: WiFi (HTTP) ---
+        if self.wifi_ip:
             try:
-                self.ser.write(payload.encode('utf-8'))
-                self.ser.flush()
-                print(f"[ESP32 CMD SEND] <- {payload.strip()}")
-                return True
-            except Exception as e:
-                print(f"[ESP32 CMD ERROR] Fallo al enviar comando: {e}")
-                self.connected = False
-                return False
+                if cmd == "open_gate":
+                    pin = cmd_dict.get("pin", 2)
+                    dur = cmd_dict.get("duration", 2000)
+                    url = f"http://{self.wifi_ip}/api/gate?pin={pin}&duration={dur}"
+                    print(f"[ESP32 HTTP GET] <- {url}")
+                    r = requests.get(url, timeout=2.5)
+                    if r.status_code == 200:
+                        print(f"[ESP32 HTTP RES] -> {r.text.strip()}")
+                        return True
+                elif cmd == "ping":
+                    url = f"http://{self.wifi_ip}/api/status"
+                    print(f"[ESP32 HTTP GET] <- {url}")
+                    r = requests.get(url, timeout=2.5)
+                    if r.status_code == 200:
+                        print(f"[ESP32 HTTP RES] -> {r.text.strip()}")
+                        return True
+            except Exception as wifi_err:
+                print(f"[ESP32 WiFi ERROR] Fallo al conectar por WiFi: {wifi_err}. Reintentando por Serial...")
+
+        # --- Canal 2: USB-Serial ---
+        if self.connected and self.ser:
+            payload = json.dumps(cmd_dict) + "\n"
+            with self.write_lock:
+                try:
+                    self.ser.write(payload.encode('utf-8'))
+                    self.ser.flush()
+                    print(f"[ESP32 SERIAL CMD] <- {payload.strip()}")
+                    return True
+                except Exception as e:
+                    print(f"[ESP32 SERIAL ERROR] Fallo al enviar comando por cable: {e}")
+                    self.connected = False
+
+        # --- Canal 3: Mock/Simulado ---
+        threading.Thread(
+            target=self._simulate_physical_response,
+            args=(cmd_dict,),
+            daemon=True
+        ).start()
+        return True
 
     def open_gate(self, pin=2, duration_ms=2000):
         """Instrucción para abrir físicamente el portón/pluma de parking."""
@@ -204,6 +234,39 @@ class ESP32Controller:
             "duration": duration_ms
         }
         return self.send_command(cmd)
+
+    def set_led(self, state):
+        """Enciende o apaga el LED de prueba (state = 1 o 0)."""
+        state_val = 1 if state else 0
+        
+        # --- Canal 1: WiFi ---
+        if self.wifi_ip:
+            try:
+                url = f"http://{self.wifi_ip}/api/led?state={state_val}"
+                print(f"[ESP32 HTTP GET] <- {url}")
+                r = requests.get(url, timeout=2.5)
+                if r.status_code == 200:
+                    print(f"[ESP32 HTTP RES] -> {r.text.strip()}")
+                    return True
+            except Exception as wifi_err:
+                print(f"[ESP32 WiFi ERROR] Fallo al apagar/prender LED: {wifi_err}. Reintentando por Serial...")
+
+        # --- Canal 2: Serial ---
+        if self.connected and self.ser:
+            payload = f"LED:{state_val}\n"
+            with self.write_lock:
+                try:
+                    self.ser.write(payload.encode('utf-8'))
+                    self.ser.flush()
+                    print(f"[ESP32 SERIAL CMD] <- {payload.strip()}")
+                    return True
+                except Exception as e:
+                    print(f"[ESP32 SERIAL ERROR] Fallo al cambiar LED por cable: {e}")
+                    self.connected = False
+
+        # --- Canal 3: Mock ---
+        print(f"[SIMULADO] [HARDWARE] LED de prueba (GPIO 2) cambiado a estado: {state_val}")
+        return True
 
     def ping(self):
         """Verifica la conectividad de la placa."""

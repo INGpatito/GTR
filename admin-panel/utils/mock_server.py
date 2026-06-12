@@ -92,6 +92,22 @@ class GtrMockServer(http.server.BaseHTTPRequestHandler):
         elif self.path == "/api/parking/request":
             self._handle_create_parking_request()
 
+        elif self.path == "/api/esp32/register":
+            try:
+                data = self._read_body()
+                esp_ip = data.get("ip", "")
+                if esp_ip:
+                    from utils.esp32_controller import ESP32Controller
+                    ESP32Controller.get_instance().set_wifi_ip(esp_ip)
+                    print(f"[MOCK-SERVER] ESP32 registrada vía WiFi en IP: {esp_ip}")
+                    self._send_json({"success": True})
+                else:
+                    self._send_json({"success": False, "error": "IP missing"}, 400)
+            except Exception as e:
+                self.send_response(500)
+                self.end_headers()
+                self.wfile.write(str(e).encode("utf-8"))
+
         elif self.path.startswith("/api/parking/checkout/"):
             self._handle_checkout_spot()
 
