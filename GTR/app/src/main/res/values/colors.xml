@@ -10,6 +10,15 @@
     <color name="black">#FF000000</color>
     <color name="text_muted">#FF666666</color>
 
+    <!-- Parking Colors -->
+    <color name="green_available">#FF2ECC71</color>
+    <color name="green_hover">#FF27AE60</color>
+    <color name="red_occupied">#FFE74C3C</color>
+    <color name="amber_pending">#FFF39C12</color>
+    <color name="panel_bg">#FF1E1E1E</color>
+    <color name="card_surface">#FF161616</color>
+    <color name="muted_border">#FF333333</color>
+
     <!-- Legacy (keep for compatibility) -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>

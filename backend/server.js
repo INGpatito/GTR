@@ -20,6 +20,7 @@ const usersRoutes = require("./routes/users");
 const vehiclesRoutes = require("./routes/vehicles");
 const networkRoutes = require("./routes/network");
 const scanEventsRoutes = require("./routes/scanEvents");
+const parkingRoutes = require("./routes/parking");
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "";
@@ -38,15 +39,39 @@ const allowedOrigins = (process.env.CORS_ORIGINS || "")
   .map(s => s.trim())
   .filter(Boolean);
 
-app.use(cors({
-  origin: allowedOrigins.length
-    ? (origin, cb) => {
-        if (!origin || allowedOrigins.includes(origin)) cb(null, true);
-        else cb(new Error("CORS: origin not allowed"));
+app.use(cors((req, callback) => {
+  const origin = req.header('Origin');
+  const corsOptions = {
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "X-API-Key", "Authorization"],
+  };
+
+  if (!origin) {
+    corsOptions.origin = true;
+  } else {
+    try {
+      const originUrl = new URL(origin);
+      const hostNameAndPort = originUrl.host;
+      const host = req.header('Host');
+
+      const isSameOrigin = hostNameAndPort === host;
+      const isAllowedList = allowedOrigins.includes(origin);
+      const isLocal = originUrl.hostname === 'localhost' ||
+                      originUrl.hostname === '127.0.0.1' ||
+                      originUrl.hostname.startsWith('192.168.') ||
+                      originUrl.hostname.startsWith('10.') ||
+                      originUrl.hostname.startsWith('100.');
+
+      if (isSameOrigin || isAllowedList || isLocal) {
+        corsOptions.origin = origin;
+      } else {
+        corsOptions.origin = false;
       }
-    : true,
-  methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "X-API-Key", "Authorization"],
+    } catch (e) {
+      corsOptions.origin = false;
+    }
+  }
+  callback(null, corsOptions);
 }));
 
 app.use(express.json({ limit: "16kb" }));
@@ -80,6 +105,7 @@ app.use("/api/user", usersRoutes);
 app.use("/api/user/:id/vehicles", vehiclesRoutes);
 app.use("/api/network", networkRoutes);
 app.use("/api/scan-event", scanEventsRoutes);
+app.use("/api/parking", parkingRoutes);
 
 // ── 404 catch-all ──────────────────────────────────
 app.use((_req, res) => {

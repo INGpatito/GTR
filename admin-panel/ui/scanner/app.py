@@ -3,6 +3,7 @@ Parking GTR — Member Scanner Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Ventana principal del scanner de socios.
 Busca miembros por número de tarjeta, ID, o sensor.
+Integra el sistema de estacionamiento con 24 espacios en 3 pisos.
 """
 
 import json
@@ -17,6 +18,7 @@ from config.settings import print_startup_banner, ADMIN_API_KEY, API_BASE_URL
 from config.theme import AMBER, DARK_BG, GREEN, RED, setup_ctk_theme
 from core.crypto import generate_card_number
 from services import reservation_service, member_service, vehicle_service
+from services import parking_service
 from ui.scanner.sidebar import ScannerSidebar
 from ui.scanner.profile_view import ProfileView
 from utils.sound import play_chime
@@ -28,6 +30,9 @@ setup_ctk_theme()
 
 class MemberScanner(ctk.CTk):
     """Ventana principal del scanner de socios de Parking GTR."""
+
+    # Polling interval for pending parking requests (ms)
+    _PARKING_POLL_MS = 1000
 
     def __init__(self):
         super().__init__()
@@ -42,6 +47,11 @@ class MemberScanner(ctk.CTk):
         self.configure(fg_color=DARK_BG)
 
         self.current_member_id: int | None = None
+        self._show_spots_for_uid: int | None = None
+        self._current_row = None
+        self._current_vehicles = None
+        self._current_activity = None
+        self._current_card_num = None
 
         # ── Layout ──
         self.grid_columnconfigure(0, weight=0)
@@ -67,6 +77,9 @@ class MemberScanner(ctk.CTk):
 
         self.profile_view = ProfileView(main_frame)
         self.profile_view.show_welcome()
+
+        # Start polling for pending parking requests
+        self._start_parking_poll()
 
     # ══════════════════════════════════════════════════
     #  BÚSQUEDA POR TARJETA
@@ -157,7 +170,7 @@ class MemberScanner(ctk.CTk):
     # ══════════════════════════════════════════════════
     #  FETCH & RENDER
     # ══════════════════════════════════════════════════
-    def _fetch_and_show(self, member_id: int) -> None:
+    def _fetch_and_show(self, member_id: int, show_spots: bool = False) -> None:
         """Carga datos del socio y renderiza su perfil."""
         self.sidebar.db_status.set_status("● Conectando...", AMBER)
         self.update()
@@ -179,7 +192,23 @@ class MemberScanner(ctk.CTk):
                 activity = vehicle_service.get_activity_history(member_id)
                 card_num = generate_card_number(member_id)
 
-                self.after(0, lambda: self._render_profile(row, vehicles, activity, card_num))
+                # Get pending parking requests
+                try:
+                    pending = parking_service.get_pending_requests()
+                except Exception:
+                    pending = []
+
+                # Get parking spots if requested
+                spots = None
+                if show_spots:
+                    try:
+                        spots = parking_service.get_all_spots()
+                    except Exception:
+                        spots = []
+
+                self.after(0, lambda: self._render_profile(
+                    row, vehicles, activity, card_num, pending, spots
+                ))
 
             except Exception as exc:
                 err_msg = str(exc)
@@ -190,11 +219,16 @@ class MemberScanner(ctk.CTk):
 
         threading.Thread(target=_load, daemon=True).start()
 
-    def _render_profile(self, row, vehicles, activity, card_num) -> None:
+    def _render_profile(self, row, vehicles, activity, card_num,
+                        pending_requests=None, parking_spots=None) -> None:
         """Renderiza el perfil y actualiza estado."""
         uid = row[0]
         full_name = row[1]
         self.current_member_id = uid
+        self._current_row = row
+        self._current_vehicles = vehicles
+        self._current_activity = activity
+        self._current_card_num = card_num
         play_chime()
 
         # Notify Android display via backend API
@@ -206,14 +240,19 @@ class MemberScanner(ctk.CTk):
 
         self.profile_view.render(
             row, vehicles, activity, card_num,
-            on_checkin=self._checkin,
+            on_checkin=self._skip,
             on_checkout=self._checkout,
+            on_close=self._close_profile,
+            on_approve_request=self._approve_parking_request,
+            on_reject_request=self._reject_parking_request,
+            pending_requests=pending_requests,
+            parking_spots=parking_spots,
         )
 
     def _notify_scan_event(self, member_name: str) -> None:
         """Sends scan event to backend and local mock server for Android display."""
         import time as _time
-        from utils.mock_server import latest_scan_event, _latest_event_lock
+        from utils.mock_server import _latest_event_lock
         import utils.mock_server as _mock
 
         # 1. Escribir directamente en el mock server local (mismo proceso)
@@ -247,23 +286,135 @@ class MemberScanner(ctk.CTk):
         threading.Thread(target=_send, daemon=True).start()
 
     # ══════════════════════════════════════════════════
-    #  CHECK-IN / CHECK-OUT
+    #  SKIP / CHECK-OUT / CLOSE
     # ══════════════════════════════════════════════════
-    def _checkin(self, uid: int, current_status: str) -> None:
-        if current_status == "confirmed":
-            messagebox.showinfo("Ya en Vault", "Este socio ya tiene un check-in activo.")
-            return
-        self._update_status(
-            uid, "confirmed",
-            f"✅ Check-In registrado para GTR-{str(uid).zfill(4)}.",
-        )
+    def _skip(self, uid: int, current_status: str) -> None:
+        """Skip — descarta el perfil actual sin acción de check-in."""
+        self._close_profile()
 
     def _checkout(self, uid: int) -> None:
-        self._update_status(
-            uid, "completed",
-            f"🚪 Check-Out registrado para GTR-{str(uid).zfill(4)}.",
+        """Check-Out — muestra el selector de spots para asignar o liberar."""
+        self._fetch_and_show(uid, show_spots=True)
+
+    def _close_profile(self) -> None:
+        """Cierra el perfil y vuelve a la pantalla de bienvenida."""
+        self.current_member_id = None
+        self._current_row = None
+        self._current_vehicles = None
+        self._current_activity = None
+        self._current_card_num = None
+        self._show_spots_for_uid = None
+        self.sidebar.db_status.set_status("● Sin conexión", "#666666")
+        self.profile_view.show_welcome()
+
+    # ══════════════════════════════════════════════════
+    #  PARKING REQUESTS — APPROVE / REJECT
+    # ══════════════════════════════════════════════════
+    def _approve_parking_request(self, request_id: int, spot_id: int = None) -> None:
+        """Aprueba una solicitud de parking. Si es check_in y no hay spot, muestra selector."""
+        if spot_id is None:
+            # Necesitamos mostrar el selector de spots
+            # Re-render con spots visibles
+            if self.current_member_id:
+                self._fetch_and_show(self.current_member_id, show_spots=True)
+            return
+
+        def _do():
+            try:
+                result = parking_service.approve_request(request_id, spot_id)
+                if result:
+                    self.after(0, lambda: [
+                        messagebox.showinfo("Aprobado", "Solicitud de parking aprobada."),
+                        self._fetch_and_show(self.current_member_id, show_spots=True)
+                        if self.current_member_id else None,
+                    ])
+                else:
+                    self.after(0, lambda: messagebox.showerror(
+                        "Error", "No se pudo aprobar la solicitud."
+                    ))
+            except Exception as exc:
+                self.after(0, lambda: messagebox.showerror("Error DB", str(exc)))
+
+        threading.Thread(target=_do, daemon=True).start()
+
+    def _reject_parking_request(self, request_id: int) -> None:
+        """Rechaza una solicitud de parking."""
+        def _do():
+            try:
+                result = parking_service.reject_request(request_id)
+                if result:
+                    self.after(0, lambda: [
+                        messagebox.showinfo("Rechazada", "Solicitud rechazada."),
+                        self._fetch_and_show(self.current_member_id)
+                        if self.current_member_id else None,
+                    ])
+                else:
+                    self.after(0, lambda: messagebox.showerror(
+                        "Error", "No se pudo rechazar la solicitud."
+                    ))
+            except Exception as exc:
+                self.after(0, lambda: messagebox.showerror("Error DB", str(exc)))
+
+        threading.Thread(target=_do, daemon=True).start()
+
+    # ══════════════════════════════════════════════════
+    #  PARKING POLLING — Notificar cuando hay solicitudes
+    # ══════════════════════════════════════════════════
+    def _start_parking_poll(self) -> None:
+        """Inicia polling periódico para solicitudes pendientes de parking."""
+        self._check_parking_requests()
+
+    def _check_parking_requests(self) -> None:
+        """Verifica si hay solicitudes pendientes y actualiza la UI."""
+        def _poll():
+            try:
+                pending = parking_service.get_pending_requests()
+                if pending:
+                    # Si hay solicitudes pendientes, obtener el user_id de la primera
+                    first_req = pending[0]
+                    req_user_id = first_req[1]
+
+                    if self.current_member_id != req_user_id:
+                        # Cargar y abrir de inmediato la información de este socio mostrando spots
+                        self.after(0, lambda: self._fetch_and_show(req_user_id, show_spots=True))
+                    else:
+                        # Si ya está en pantalla, refrescar el panel y los spots con la info de la solicitud
+                        self.after(0, lambda: self._refresh_with_pending(pending))
+                else:
+                    pass
+            except Exception:
+                pass  # DB no disponible
+
+        threading.Thread(target=_poll, daemon=True).start()
+        # Programar siguiente consulta rápida
+        self.after(self._PARKING_POLL_MS, self._check_parking_requests)
+
+    def _refresh_with_pending(self, pending_requests) -> None:
+        """Re-renderiza el perfil actual con las solicitudes pendientes."""
+        if not self._current_row:
+            return
+
+        # Don't re-render if we're on the welcome screen
+        try:
+            spots = parking_service.get_all_spots()
+        except Exception:
+            spots = None
+
+        self.profile_view.render(
+            self._current_row, self._current_vehicles,
+            self._current_activity, self._current_card_num,
+            on_checkin=self._skip,
+            on_checkout=self._checkout,
+            on_close=self._close_profile,
+            on_approve_request=self._approve_parking_request,
+            on_reject_request=self._reject_parking_request,
+            pending_requests=pending_requests,
+            parking_spots=spots,
         )
 
+    # ══════════════════════════════════════════════════
+    #  LEGACY CHECK-IN/OUT (for compatibility)
+    # ══════════════════════════════════════════════════
     def _update_status(self, uid: int, new_status: str, msg: str) -> None:
         def _do():
             try:

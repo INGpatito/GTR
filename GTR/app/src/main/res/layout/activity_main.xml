@@ -93,4 +93,258 @@
             android:letterSpacing="0.4" />
     </LinearLayout>
 
+    <!-- ═══ PARKING STATE: User Garage Interface ═══ -->
+    <ScrollView
+        android:id="@+id/parkingContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:alpha="0"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="32dp">
+
+            <!-- ═══ PARKING IDLE STATE ═══ -->
+            <LinearLayout
+                android:id="@+id/parkingIdleView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:paddingTop="60dp"
+                android:visibility="visible">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🅿️"
+                    android:textSize="80sp"
+                    android:layout_marginBottom="24dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GTR PARKING"
+                    android:textColor="@color/gold"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.2"
+                    android:fontFamily="sans-serif-medium" />
+
+                <View
+                    android:layout_width="100dp"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="16dp"
+                    android:layout_marginBottom="24dp"
+                    android:background="@color/gold_dark" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Escanee su tarjeta de socio para comenzar"
+                    android:textColor="@color/text_muted"
+                    android:textSize="16sp"
+                    android:gravity="center"
+                    android:fontFamily="sans-serif-light" />
+
+                <!-- Manual Input & Exit buttons -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="48dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/btnParkingManualInput"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:text="TECLADO"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        android:gravity="center"
+                        android:background="@color/card_bg"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginEnd="12dp" />
+
+                    <TextView
+                        android:id="@+id/btnParkingExitMode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:text="SALIR"
+                        android:textColor="@color/text_muted"
+                        android:textSize="12sp"
+                        android:gravity="center"
+                        android:background="@color/card_bg"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ═══ PARKING ACTIVE STATE ═══ -->
+            <LinearLayout
+                android:id="@+id/parkingActiveView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <!-- Header: User Info Card -->
+                <LinearLayout
+                    android:id="@+id/parkingUserCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:background="@color/card_bg"
+                    android:padding="20dp"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="◆"
+                        android:textColor="@color/gold"
+                        android:textSize="28sp"
+                        android:layout_marginEnd="16dp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/parkingUserName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/gold"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:fontFamily="sans-serif-medium" />
+
+                        <TextView
+                            android:id="@+id/parkingUserInfo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/text_muted"
+                            android:textSize="12sp"
+                            android:layout_marginTop="4dp"
+                            android:letterSpacing="0.1" />
+                    </LinearLayout>
+
+                    <!-- Close button -->
+                    <TextView
+                        android:id="@+id/parkingCloseBtn"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:text="✕"
+                        android:textColor="@color/text_muted"
+                        android:textSize="20sp"
+                        android:gravity="center"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Section: Mi Garaje -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="12dp"
+                    android:text="🚗  MI GARAJE"
+                    android:textColor="@color/gold"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.15" />
+
+                <LinearLayout
+                    android:id="@+id/parkingVehiclesList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <!-- No vehicles placeholder -->
+                <TextView
+                    android:id="@+id/parkingNoVehicles"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/parking_no_vehicles"
+                    android:textColor="@color/text_muted"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:padding="24dp"
+                    android:visibility="gone" />
+
+                <!-- Action Buttons Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/btnParkingEnter"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="🅿️  INGRESAR AUTO"
+                        android:textColor="@color/black"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:background="@color/green_available"
+                        android:clickable="true"
+                        android:focusable="true" />
+
+                    <TextView
+                        android:id="@+id/btnParkingWithdraw"
+                        android:layout_width="0dp"
+                        android:layout_height="56dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="🚪  RETIRAR AUTO"
+                        android:textColor="@color/white"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:background="@color/amber_pending"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <!-- Request Status Indicator -->
+                <LinearLayout
+                    android:id="@+id/parkingRequestStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="@color/card_bg"
+                    android:padding="16dp"
+                    android:gravity="center"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/parkingStatusText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/amber_pending"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
 </FrameLayout>

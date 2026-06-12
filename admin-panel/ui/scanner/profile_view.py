@@ -2,7 +2,8 @@
 Parking GTR — Profile View
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Renderizado del perfil VIP completo de un socio,
-incluyendo tarjeta, garaje, historial, y botones de check-in/out.
+incluyendo tarjeta, garaje, historial, botones de parking,
+y selector visual de 24 espacios en 3 pisos.
 """
 
 import customtkinter as ctk
@@ -10,7 +11,7 @@ from tkinter import messagebox
 
 from config.theme import (
     AMBER, DARK_BG, GOLD, GOLD_SOFT, GREEN, GREEN_HOVER,
-    MUTED, PANEL_BG, TIER_EMOJI, VEHICLE_EMOJI,
+    MUTED, PANEL_BG, TIER_EMOJI, VEHICLE_EMOJI, RED, RED_HOVER,
 )
 
 
@@ -19,6 +20,7 @@ class ProfileView:
 
     def __init__(self, main_frame: ctk.CTkFrame):
         self.main = main_frame
+        self._pending_requests_widgets = []
 
     def show_welcome(self) -> None:
         """Muestra la pantalla de bienvenida."""
@@ -48,7 +50,11 @@ class ProfileView:
             justify="center",
         ).pack(pady=(12, 0))
 
-    def render(self, row, vehicles, activity, card_num, on_checkin=None, on_checkout=None):
+    def render(self, row, vehicles, activity, card_num,
+               on_checkin=None, on_checkout=None, on_close=None,
+               on_show_spots=None, parking_spots=None,
+               pending_requests=None, on_approve_request=None,
+               on_reject_request=None):
         """Renderiza el perfil completo del socio.
 
         Args:
@@ -57,8 +63,14 @@ class ProfileView:
             vehicles: Lista de vehículos del garaje.
             activity: Historial de actividad reciente.
             card_num: Número de tarjeta formateado.
-            on_checkin: Callback(uid, status) para check-in.
+            on_checkin: Callback(uid, status) para Skip.
             on_checkout: Callback(uid) para check-out.
+            on_close: Callback() para cerrar y volver a bienvenida.
+            on_show_spots: Callback(uid, vehicle_id) para mostrar selector de spots.
+            parking_spots: Lista de spots para el selector visual.
+            pending_requests: Lista de solicitudes pendientes del Android.
+            on_approve_request: Callback(request_id, spot_id) para aprobar.
+            on_reject_request: Callback(request_id) para rechazar.
         """
         (uid, full_name, email, phone, service, vehicle,
          arr_date, arr_time, status, created_at) = row
@@ -74,16 +86,28 @@ class ProfileView:
         # ── 1. TARJETA VIP ──
         self._render_vip_card(scroll, uid, full_name, service, card_num, status)
 
-        # ── 2. INFO PERSONAL + CHECK-IN ──
+        # ── 2. INFO PERSONAL + BOTONES ──
         self._render_info_panel(
             scroll, uid, email, phone, service, status, created_at,
-            on_checkin, on_checkout,
+            on_checkin, on_checkout, on_close,
         )
 
         # ── 3. GARAJE ──
         self._render_garage(scroll, vehicles)
 
-        # ── 4. HISTORIAL ──
+        # ── 4. SOLICITUDES PENDIENTES ──
+        if pending_requests:
+            self._render_pending_requests(
+                scroll, pending_requests, on_approve_request, on_reject_request
+            )
+
+        # ── 5. SELECTOR DE SPOTS (si se pidió) ──
+        if parking_spots is not None:
+            self._render_spots_selector(
+                scroll, parking_spots, on_approve_request, pending_requests
+            )
+
+        # ── 6. HISTORIAL ──
         self._render_activity(scroll, activity)
 
     # ──────────────────────────────────────────────────
@@ -136,7 +160,8 @@ class ProfileView:
             text_color="#000", fg_color=color, corner_radius=8,
         ).grid(row=0, column=2, sticky="ne", padx=(8, 0))
 
-    def _render_info_panel(self, parent, uid, email, phone, service, status, created_at, on_checkin, on_checkout):
+    def _render_info_panel(self, parent, uid, email, phone, service, status,
+                           created_at, on_checkin, on_checkout, on_close):
         frame = ctk.CTkFrame(parent, fg_color=PANEL_BG, corner_radius=12)
         frame.grid(row=1, column=0, padx=(0, 10), pady=(0, 16), sticky="nsew")
 
@@ -165,25 +190,33 @@ class ProfileView:
                 font=ctk.CTkFont("Helvetica", 12), anchor="w",
             ).pack(side="left")
 
-        # Botones
+        # Botones — Skip + Check-Out + Cerrar
         btn_row = ctk.CTkFrame(frame, fg_color="transparent")
         btn_row.pack(fill="x", padx=16, pady=(16, 16))
 
         ctk.CTkButton(
-            btn_row, text="✅  Check-In",
+            btn_row, text="⏭  Skip",
             height=36, corner_radius=8,
-            fg_color=GREEN, hover_color=GREEN_HOVER, text_color="#000",
-            font=ctk.CTkFont("Helvetica", 12, "bold"),
+            fg_color="#333", hover_color="#444",
+            font=ctk.CTkFont("Helvetica", 12),
             command=lambda: on_checkin(uid, status) if on_checkin else None,
-        ).pack(side="left", expand=True, fill="x", padx=(0, 6))
+        ).pack(side="left", expand=True, fill="x", padx=(0, 4))
 
         ctk.CTkButton(
             btn_row, text="🚪  Check-Out",
             height=36, corner_radius=8,
-            fg_color="#333", hover_color="#444",
-            font=ctk.CTkFont("Helvetica", 12),
+            fg_color=GREEN, hover_color=GREEN_HOVER, text_color="#000",
+            font=ctk.CTkFont("Helvetica", 12, "bold"),
             command=lambda: on_checkout(uid) if on_checkout else None,
-        ).pack(side="left", expand=True, fill="x", padx=(6, 0))
+        ).pack(side="left", expand=True, fill="x", padx=(4, 4))
+
+        ctk.CTkButton(
+            btn_row, text="✕  Cerrar",
+            height=36, corner_radius=8,
+            fg_color=RED, hover_color=RED_HOVER, text_color="#fff",
+            font=ctk.CTkFont("Helvetica", 12, "bold"),
+            command=lambda: on_close() if on_close else None,
+        ).pack(side="left", expand=True, fill="x", padx=(4, 0))
 
     def _render_garage(self, parent, vehicles):
         frame = ctk.CTkFrame(parent, fg_color=PANEL_BG, corner_radius=12)
@@ -240,9 +273,182 @@ class ProfileView:
                     font=ctk.CTkFont("Helvetica", 10), text_color=GOLD,
                 ).pack(side="right")
 
+    def _render_pending_requests(self, parent, pending_requests, on_approve, on_reject):
+        """Renderiza solicitudes pendientes del Android."""
+        frame = ctk.CTkFrame(parent, fg_color="#1a0f0f", corner_radius=12,
+                             border_width=2, border_color=AMBER)
+        frame.grid(row=2, column=0, columnspan=2, pady=(0, 16), sticky="ew")
+
+        ctk.CTkLabel(
+            frame, text="🔔  Solicitudes Pendientes del Android",
+            font=ctk.CTkFont("Helvetica", 14, "bold"), text_color=AMBER,
+        ).pack(anchor="w", padx=16, pady=(16, 10))
+
+        for req in pending_requests:
+            # req: (id, user_id, vehicle_id, request_type, status, created_at,
+            #        full_name, email, vehicle_nickname, brand, model, plate, vehicle_type)
+            req_id = req[0]
+            req_type = req[3]
+            full_name = req[6]
+            veh_nick = req[8] or "—"
+            veh_brand = req[9] or ""
+            veh_model = req[10] or ""
+            veh_plate = req[11] or "—"
+
+            type_label = "🅿️ INGRESAR" if req_type == "check_in" else "🚪 RETIRAR"
+            type_color = GREEN if req_type == "check_in" else AMBER
+
+            req_frame = ctk.CTkFrame(frame, fg_color="#252525", corner_radius=8)
+            req_frame.pack(fill="x", padx=16, pady=5)
+
+            req_inner = ctk.CTkFrame(req_frame, fg_color="transparent")
+            req_inner.pack(fill="x", padx=12, pady=10)
+
+            # Info
+            info_col = ctk.CTkFrame(req_inner, fg_color="transparent")
+            info_col.pack(side="left", fill="x", expand=True)
+
+            ctk.CTkLabel(
+                info_col, text=f"{full_name}  —  {type_label}",
+                font=ctk.CTkFont("Helvetica", 13, "bold"),
+                text_color=type_color, anchor="w",
+            ).pack(anchor="w")
+
+            ctk.CTkLabel(
+                info_col,
+                text=f"Vehículo: {veh_nick} ({veh_brand} {veh_model})  •  Placa: {veh_plate}",
+                font=ctk.CTkFont("Helvetica", 11),
+                text_color=MUTED, anchor="w",
+            ).pack(anchor="w")
+
+            # Buttons
+            btn_col = ctk.CTkFrame(req_inner, fg_color="transparent")
+            btn_col.pack(side="right")
+
+            if req_type == "check_in":
+                ctk.CTkButton(
+                    btn_col, text="✅ Asignar Lugar",
+                    height=30, corner_radius=6,
+                    fg_color=GREEN, hover_color=GREEN_HOVER, text_color="#000",
+                    font=ctk.CTkFont("Helvetica", 11, "bold"),
+                    command=lambda rid=req_id: on_approve(rid, None) if on_approve else None,
+                ).pack(side="left", padx=(0, 4))
+            else:
+                ctk.CTkButton(
+                    btn_col, text="✅ Aprobar Retiro",
+                    height=30, corner_radius=6,
+                    fg_color=GREEN, hover_color=GREEN_HOVER, text_color="#000",
+                    font=ctk.CTkFont("Helvetica", 11, "bold"),
+                    command=lambda rid=req_id: on_approve(rid, None) if on_approve else None,
+                ).pack(side="left", padx=(0, 4))
+
+            ctk.CTkButton(
+                btn_col, text="❌ Rechazar",
+                height=30, corner_radius=6,
+                fg_color=RED, hover_color=RED_HOVER, text_color="#fff",
+                font=ctk.CTkFont("Helvetica", 11),
+                command=lambda rid=req_id: on_reject(rid) if on_reject else None,
+            ).pack(side="left")
+
+        ctk.CTkFrame(frame, fg_color="transparent", height=8).pack()
+
+    def _render_spots_selector(self, parent, spots, on_select_spot, pending_requests):
+        """Renderiza el selector visual de 24 spots en 3 pisos."""
+        frame = ctk.CTkFrame(parent, fg_color=PANEL_BG, corner_radius=12)
+        frame.grid(row=3, column=0, columnspan=2, pady=(0, 16), sticky="ew")
+
+        ctk.CTkLabel(
+            frame, text="🅿️  Mapa de Estacionamiento  —  24 Espacios",
+            font=ctk.CTkFont("Helvetica", 14, "bold"), text_color=GOLD,
+        ).pack(anchor="w", padx=16, pady=(16, 4))
+
+        ctk.CTkLabel(
+            frame,
+            text="🟢 Disponible    🔴 Ocupado    ⚙️ Mantenimiento",
+            font=ctk.CTkFont("Helvetica", 10),
+            text_color=MUTED,
+        ).pack(anchor="w", padx=16, pady=(0, 10))
+
+        # Get the first pending check_in request ID for the approve callback
+        pending_checkin_id = None
+        if pending_requests:
+            for req in pending_requests:
+                if req[3] == "check_in":
+                    pending_checkin_id = req[0]
+                    break
+
+        # Organize spots by floor
+        floors = {1: [], 2: [], 3: []}
+        for spot in spots:
+            # spot: (id, spot_number, floor, spot_label, status, ...)
+            spot_floor = spot[2]
+            if spot_floor in floors:
+                floors[spot_floor].append(spot)
+
+        for floor_num in [1, 2, 3]:
+            floor_frame = ctk.CTkFrame(frame, fg_color="#1a1a1a", corner_radius=8)
+            floor_frame.pack(fill="x", padx=16, pady=5)
+
+            ctk.CTkLabel(
+                floor_frame,
+                text=f"PISO {floor_num}",
+                font=ctk.CTkFont("Helvetica", 11, "bold"),
+                text_color=GOLD,
+            ).pack(anchor="w", padx=12, pady=(8, 4))
+
+            spots_row = ctk.CTkFrame(floor_frame, fg_color="transparent")
+            spots_row.pack(fill="x", padx=12, pady=(0, 8))
+
+            for spot in floors.get(floor_num, []):
+                spot_id = spot[0]
+                spot_label = spot[3]
+                spot_status = spot[4]
+                user_name = spot[8] if len(spot) > 8 else None
+                vehicle_nick = spot[9] if len(spot) > 9 else None
+
+                if spot_status == "available":
+                    bg_color = GREEN
+                    hover_color = GREEN_HOVER
+                    text_col = "#000"
+                    label_text = f"🚗\n{spot_label}"
+                    clickable = True
+                elif spot_status == "occupied":
+                    bg_color = RED
+                    hover_color = RED_HOVER
+                    text_col = "#fff"
+                    occ_name = (user_name or "")[:8]
+                    label_text = f"🔒\n{spot_label}\n{occ_name}"
+                    clickable = False
+                else:
+                    bg_color = "#555"
+                    hover_color = "#666"
+                    text_col = "#ccc"
+                    label_text = f"⚙️\n{spot_label}"
+                    clickable = False
+
+                btn = ctk.CTkButton(
+                    spots_row,
+                    text=label_text,
+                    width=90, height=70,
+                    corner_radius=8,
+                    fg_color=bg_color,
+                    hover_color=hover_color if clickable else bg_color,
+                    text_color=text_col,
+                    font=ctk.CTkFont("Helvetica", 10, "bold"),
+                    command=(
+                        (lambda sid=spot_id, pcid=pending_checkin_id:
+                         on_select_spot(pcid, sid) if on_select_spot and pcid else None)
+                        if clickable else lambda: None
+                    ),
+                    state="normal" if clickable else "disabled",
+                )
+                btn.pack(side="left", padx=3, pady=2)
+
+        ctk.CTkFrame(frame, fg_color="transparent", height=8).pack()
+
     def _render_activity(self, parent, activity):
         frame = ctk.CTkFrame(parent, fg_color=PANEL_BG, corner_radius=12)
-        frame.grid(row=2, column=0, columnspan=2, pady=(0, 16), sticky="ew")
+        frame.grid(row=4, column=0, columnspan=2, pady=(0, 16), sticky="ew")
 
         ctk.CTkLabel(
             frame, text="📋  Historial Reciente",
