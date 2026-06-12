@@ -1,4 +1,4 @@
-1import paramiko
+import paramiko
 
 def get_logs():
     ssh = paramiko.SSHClient()

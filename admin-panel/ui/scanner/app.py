@@ -23,6 +23,7 @@ from ui.scanner.sidebar import ScannerSidebar
 from ui.scanner.profile_view import ProfileView
 from utils.sound import play_chime
 from utils.mock_server import start_mock_server_background
+from utils.esp32_controller import ESP32Controller
 
 # Configurar tema global
 setup_ctk_theme()
@@ -77,6 +78,13 @@ class MemberScanner(ctk.CTk):
 
         self.profile_view = ProfileView(main_frame)
         self.profile_view.show_welcome()
+
+        # Iniciar controlador de hardware ESP32
+        self.esp32 = ESP32Controller.get_instance()
+        self.esp32.start()
+
+        # Manejar cierre de ventana
+        self.protocol("WM_DELETE_WINDOW", self._on_closing)
 
         # Start polling for pending parking requests
         self._start_parking_poll()
@@ -323,6 +331,7 @@ class MemberScanner(ctk.CTk):
             try:
                 result = parking_service.approve_request(request_id, spot_id)
                 if result:
+                    self.esp32.open_gate(pin=2, duration_ms=2000)
                     self.after(0, lambda: [
                         messagebox.showinfo("Aprobado", "Solicitud de parking aprobada."),
                         self._fetch_and_show(self.current_member_id, show_spots=True)
@@ -419,6 +428,7 @@ class MemberScanner(ctk.CTk):
         def _do():
             try:
                 member_service.update_member_status_and_latest_reservation(uid, new_status)
+                self.esp32.open_gate(pin=2, duration_ms=2000)
                 self.after(0, lambda: [
                     messagebox.showinfo("Actualizado", msg),
                     self._fetch_and_show(uid),
@@ -427,3 +437,8 @@ class MemberScanner(ctk.CTk):
                 self.after(0, lambda: messagebox.showerror("Error DB", str(exc)))
 
         threading.Thread(target=_do, daemon=True).start()
+
+    def _on_closing(self):
+        """Manejador al cerrar la ventana principal del scanner."""
+        self.esp32.stop()
+        self.destroy()
