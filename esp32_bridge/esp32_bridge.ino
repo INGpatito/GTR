@@ -18,8 +18,7 @@
 #include <HTTPClient.h>
 
 // --- Configuración de Red WiFi ---
-#define WIFI_SSID "GTR"
-#define WIFI_PASSWORD "orangepi123" // Cambia esto por la contraseña de tu red/hotspot GTR
+#define WIFI_SSID "GTR"  // Red abierta (sin contraseña)
 
 // --- Servidor de Registro en la Orange Pi ---
 // 10.42.0.1 es la IP por defecto de la Orange Pi en su modo HotspotLocal.
@@ -72,7 +71,7 @@ void setupWiFi() {
   Serial.print(WIFI_SSID);
   Serial.println("\"}");
   
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(WIFI_SSID);  // Red abierta, sin contraseña
   
   // Esperar conexión con timeout de 10 segundos
   int retries = 0;
