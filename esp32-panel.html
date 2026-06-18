@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTR — ESP32 Control Panel</title>
+    <meta name="description" content="Panel de control ESP32 para el sistema GTR Parking">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root{--bg:#0f1016;--card:rgba(22,25,37,.7);--border:rgba(255,255,255,.08);--accent:#3b82f6;--danger:#ef4444;--success:#10b981;--warn:#f59e0b;--text:#f3f4f6;--text2:#9ca3af;--shadow:0 8px 32px rgba(0,0,0,.37)}
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Outfit',sans-serif}
+        body{background:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(at 10% 20%,rgba(59,130,246,.08) 0,transparent 50%),radial-gradient(at 90% 80%,rgba(16,185,129,.05) 0,transparent 50%);background-attachment:fixed;padding:1.5rem 1rem}
+        .container{max-width:1100px;margin:0 auto}
+        header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:1rem}
+        .logo h1{font-size:2.2rem;font-weight:800;letter-spacing:-1px;background:linear-gradient(to right,#3b82f6,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .logo p{color:var(--text2);font-size:.85rem;margin-top:.2rem}
+        .btn-back{background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text);padding:.5rem 1rem;border-radius:12px;cursor:pointer;text-decoration:none;font-weight:600;font-size:.85rem;transition:all .3s}
+        .btn-back:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
+        .grid{display:grid;grid-template-columns:1fr 1.6fr;gap:1.5rem}
+        @media(max-width:900px){.grid{grid-template-columns:1fr}}
+        .card{background:var(--card);backdrop-filter:blur(16px);border:1px solid var(--border);border-radius:20px;padding:1.5rem;box-shadow:var(--shadow);transition:all .3s;margin-bottom:1.5rem}
+        .card:hover{border-color:rgba(255,255,255,.15)}
+        .card-title{font-size:1.15rem;font-weight:600;margin-bottom:1.2rem;display:flex;align-items:center;gap:.5rem}
+        .status-row{display:flex;justify-content:space-between;align-items:center;padding:.75rem 0;border-bottom:1px solid rgba(255,255,255,.04)}
+        .status-row:last-child{border-bottom:none}
+        .status-label{color:var(--text2);font-weight:500;font-size:.9rem}
+        .status-val{font-weight:600;display:flex;align-items:center;gap:.4rem;font-size:.9rem}
+        .badge{padding:.2rem .6rem;border-radius:9999px;font-size:.7rem;font-weight:600;text-transform:uppercase}
+        .badge-ok{background:rgba(16,185,129,.15);color:var(--success);border:1px solid rgba(16,185,129,.3)}
+        .badge-err{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)}
+        .badge-warn{background:rgba(245,158,11,.15);color:var(--warn);border:1px solid rgba(245,158,11,.3)}
+        .badge-info{background:rgba(59,130,246,.15);color:var(--accent);border:1px solid rgba(59,130,246,.3)}
+
+        /* Connection indicator */
+        .conn-indicator{text-align:center;padding:1.5rem 0}
+        .conn-dot{width:80px;height:80px;border-radius:50%;margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;font-size:2rem;transition:all .5s}
+        .conn-dot.online{background:rgba(16,185,129,.15);box-shadow:0 0 30px rgba(16,185,129,.3);animation:pulse 2s infinite}
+        .conn-dot.offline{background:rgba(239,68,68,.15);box-shadow:0 0 20px rgba(239,68,68,.2)}
+        .conn-dot.waiting{background:rgba(245,158,11,.15);box-shadow:0 0 20px rgba(245,158,11,.2);animation:pulse 1.5s infinite}
+        @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85}}
+        .conn-text{font-size:1.1rem;font-weight:600}
+        .conn-sub{color:var(--text2);font-size:.8rem;margin-top:.3rem}
+
+        /* Control buttons */
+        .ctrl-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+        .btn-ctrl{padding:.9rem;border-radius:14px;border:1px solid var(--border);background:rgba(255,255,255,.03);color:var(--text);font-weight:600;font-size:.85rem;cursor:pointer;transition:all .3s;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.3rem}
+        .btn-ctrl:hover{background:rgba(255,255,255,.08);transform:scale(1.03)}
+        .btn-ctrl:active{transform:scale(.97)}
+        .btn-ctrl.active-led{background:linear-gradient(135deg,#10b981,#059669);border-color:transparent;box-shadow:0 4px 15px rgba(16,185,129,.4)}
+        .btn-ctrl .icon{font-size:1.5rem}
+        .btn-ctrl.danger{border-color:rgba(239,68,68,.3)}
+        .btn-ctrl.danger:hover{background:rgba(239,68,68,.15)}
+
+        /* Gate params */
+        .param-row{display:flex;gap:.5rem;margin-top:.75rem;align-items:center}
+        .param-row label{color:var(--text2);font-size:.8rem;white-space:nowrap}
+        .param-row input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:.4rem .6rem;color:var(--text);font-size:.85rem;font-family:monospace}
+        .param-row input:focus{outline:none;border-color:var(--accent)}
+
+        /* Console */
+        .console{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:1rem;font-family:'Courier New',monospace;font-size:.75rem;max-height:280px;overflow-y:auto;line-height:1.6;color:#a0aec0}
+        .console .ts{color:#4a5568}.console .ok{color:#68d391}.console .err{color:#fc8181}.console .cmd{color:#63b3ed}
+        .console::-webkit-scrollbar{width:4px}.console::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px}
+
+        /* Network info */
+        .net-box{background:rgba(59,130,246,.05);border:1px solid rgba(59,130,246,.15);border-radius:12px;padding:.8rem 1rem;margin-top:.5rem;font-size:.8rem;color:var(--text2);line-height:1.7}
+        .net-box code{background:rgba(255,255,255,.08);padding:.15rem .4rem;border-radius:4px;color:var(--accent);font-size:.78rem}
+
+        /* Toast */
+        .toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1e293b;color:#fff;padding:.8rem 1.2rem;border-radius:14px;box-shadow:0 10px 25px rgba(0,0,0,.5);display:flex;align-items:center;gap:.5rem;transform:translateY(150%);transition:transform .4s cubic-bezier(.175,.885,.32,1.275);z-index:1000;border-left:4px solid var(--accent);font-size:.85rem}
+        .toast.show{transform:translateY(0)}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <h1>ESP32 Control</h1>
+                <p>Panel de monitoreo y control — Hardware Bridge GTR</p>
+            </div>
+            <a href="/" class="btn-back">← Portal GTR</a>
+        </header>
+
+        <div class="grid">
+            <!-- LEFT: Status -->
+            <div class="sidebar">
+                <div class="card">
+                    <div class="conn-indicator">
+                        <div class="conn-dot waiting" id="conn-dot">⏳</div>
+                        <div class="conn-text" id="conn-text">Buscando ESP32...</div>
+                        <div class="conn-sub" id="conn-sub">Conectando a la red GTR</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📊 Estado del Dispositivo</div>
+                    <div class="status-row"><span class="status-label">IP en Red GTR</span><span class="status-val" id="s-ip">—</span></div>
+                    <div class="status-row"><span class="status-label">MAC Address</span><span class="status-val" id="s-mac">—</span></div>
+                    <div class="status-row"><span class="status-label">Señal WiFi</span><span class="status-val" id="s-rssi">—</span></div>
+                    <div class="status-row"><span class="status-label">Latencia</span><span class="status-val" id="s-lat">—</span></div>
+                    <div class="status-row"><span class="status-label">Uptime</span><span class="status-val" id="s-up">—</span></div>
+                    <div class="status-row"><span class="status-label">Memoria Libre</span><span class="status-val" id="s-mem">—</span></div>
+                    <div class="status-row"><span class="status-label">LED Estado</span><span class="status-val" id="s-led">—</span></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">🌐 Acceso al Panel</div>
+                    <div class="net-box">
+                        <strong style="color:var(--text)">Desde la red GTR (AP):</strong><br>
+                        <code>http://10.42.0.1:3001/esp32-panel</code><br><br>
+                        <strong style="color:var(--text)">Desde Tailscale (VPN):</strong><br>
+                        <code>http://100.89.43.30:3001/esp32-panel</code>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Controls + Console -->
+            <div class="main">
+                <div class="card">
+                    <div class="card-title">🎮 Controles de Hardware</div>
+                    <div class="ctrl-grid">
+                        <button class="btn-ctrl" id="btn-gate" onclick="sendCmd('open_gate')">
+                            <span class="icon">🚧</span>Abrir Pluma
+                        </button>
+                        <button class="btn-ctrl" id="btn-led" onclick="toggleLed()">
+                            <span class="icon">💡</span><span id="led-label">Encender LED</span>
+                        </button>
+                        <button class="btn-ctrl" onclick="sendCmd('ping')">
+                            <span class="icon">📡</span>Ping ESP32
+                        </button>
+                        <button class="btn-ctrl" onclick="doHeartbeat()">
+                            <span class="icon">❤️</span>Heartbeat
+                        </button>
+                    </div>
+                    <div class="param-row">
+                        <label>Pin GPIO:</label>
+                        <input type="number" id="gate-pin" value="2" min="0" max="39">
+                        <label>Duración (ms):</label>
+                        <input type="number" id="gate-dur" value="2000" min="100" max="30000" step="100">
+                    </div>
+                </div>
+
+                <div class="card" style="flex:1">
+                    <div class="card-title" style="justify-content:space-between">
+                        <span>🖥️ Consola en Vivo</span>
+                        <button onclick="clearConsole()" style="background:none;border:1px solid var(--border);color:var(--text2);padding:.3rem .6rem;border-radius:8px;cursor:pointer;font-size:.7rem">Limpiar</button>
+                    </div>
+                    <div class="console" id="console"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"><span id="toast-msg">—</span></div>
+
+    <!-- Config banner -->
+    <div id="cfg-bar" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);border-radius:12px;padding:.6rem 1rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;font-size:.8rem;color:#9ca3af">
+        <span>🔌 Servidor: <code id="cfg-url-label" style="color:#60a5fa;background:rgba(255,255,255,.07);padding:.15rem .4rem;border-radius:4px"></code></span>
+        <button onclick="changeServer()" style="background:rgba(59,130,246,.2);border:1px solid rgba(59,130,246,.3);color:#93c5fd;padding:.3rem .7rem;border-radius:8px;cursor:pointer;font-size:.75rem">⚙️ Cambiar</button>
+    </div>
+
+    <script>
+        let ledOn = false;
+
+        // ── Configurable API server URL ──────────────
+        // Guardado en localStorage para persistir entre sesiones.
+        // Cuando el panel se sirve desde la OrangePi, '' (mismo origen) es suficiente.
+        // Desde otra máquina, usa la IP de la OrangePi: http://10.42.0.1:3000
+        const DEFAULT_API = window.location.origin.includes('file:') || window.location.origin === 'null'
+            ? 'http://10.42.0.1:3000'
+            : '';
+
+        let API = localStorage.getItem('gtr_api_server') || DEFAULT_API;
+
+        function updateCfgBar() {
+            document.getElementById('cfg-url-label').textContent = API || '(mismo origen)';
+        }
+        updateCfgBar();
+
+        function changeServer() {
+            const current = API || window.location.origin;
+            const newUrl = prompt(
+                '🔌 Ingresa la URL base del servidor GTR:\n\n' +
+                '• Red GTR (AP):     http://10.42.0.1:3000\n' +
+                '• Tailscale (VPN):  http://100.89.43.30:3000\n' +
+                '• LAN local:        http://192.168.100.61:3000\n' +
+                '• Mismo origen:     (deja vacío)',
+                current
+            );
+            if (newUrl === null) return; // cancelado
+            API = newUrl.trim().replace(/\/$/, '');
+            localStorage.setItem('gtr_api_server', API);
+            updateCfgBar();
+            log('🔧 Servidor cambiado a: ' + (API || 'mismo origen'), 'cmd');
+            fetchStatus();
+            doHeartbeat();
+        }
+
+        function log(msg, type = '') {
+            const c = document.getElementById('console');
+            const now = new Date().toLocaleTimeString('es-MX');
+            c.innerHTML += `<div><span class="ts">[${now}]</span> <span class="${type}">${msg}</span></div>`;
+            c.scrollTop = c.scrollHeight;
+        }
+        function clearConsole() { document.getElementById('console').innerHTML = ''; }
+
+        function toast(msg, err = false) {
+            const t = document.getElementById('toast');
+            t.style.borderLeftColor = err ? 'var(--danger)' : 'var(--success)';
+            document.getElementById('toast-msg').textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        function rssiIcon(rssi) {
+            if (rssi >= -50) return '📶 Excelente';
+            if (rssi >= -65) return '📶 Buena';
+            if (rssi >= -75) return '📶 Regular';
+            return '📶 Débil';
+        }
+
+        function updateUI(esp) {
+            const dot = document.getElementById('conn-dot');
+            const txt = document.getElementById('conn-text');
+            const sub = document.getElementById('conn-sub');
+
+            if (esp.connected) {
+                dot.className = 'conn-dot online';
+                dot.textContent = '✓';
+                txt.textContent = 'ESP32 Conectada';
+                sub.textContent = `IP ${esp.ip} — Red GTR`;
+            } else if (esp.ip) {
+                dot.className = 'conn-dot waiting';
+                dot.textContent = '⏳';
+                txt.textContent = 'Sin Respuesta';
+                sub.textContent = `Última IP conocida: ${esp.ip}`;
+            } else {
+                dot.className = 'conn-dot offline';
+                dot.textContent = '✗';
+                txt.textContent = 'ESP32 No Registrada';
+                sub.textContent = 'Esperando que la ESP32 se conecte a la red GTR...';
+            }
+
+            document.getElementById('s-ip').textContent = esp.ip || '—';
+
+            const info = esp.info;
+            if (info) {
+                document.getElementById('s-mac').textContent = info.mac || '—';
+                document.getElementById('s-rssi').textContent = info.rssi != null ? `${info.rssi} dBm (${rssiIcon(info.rssi)})` : '—';
+                document.getElementById('s-up').textContent = info.uptime_str || '—';
+                document.getElementById('s-mem').textContent = info.free_heap ? `${(info.free_heap / 1024).toFixed(1)} KB` : '—';
+                const ls = info.led_state;
+                document.getElementById('s-led').innerHTML = ls === 1 ? '<span class="badge badge-ok">ON</span>' : '<span class="badge badge-err">OFF</span>';
+                ledOn = ls === 1;
+                updateLedBtn();
+            }
+            document.getElementById('s-lat').textContent = esp.last_latency_ms != null ? `${esp.last_latency_ms} ms` : '—';
+        }
+
+        function updateLedBtn() {
+            const btn = document.getElementById('btn-led');
+            const lbl = document.getElementById('led-label');
+            if (ledOn) {
+                btn.classList.add('active-led');
+                lbl.textContent = 'Apagar LED';
+            } else {
+                btn.classList.remove('active-led');
+                lbl.textContent = 'Encender LED';
+            }
+        }
+
+        async function fetchStatus() {
+            try {
+                const r = await fetch(API + '/api/esp32/status');
+                const d = await r.json();
+                if (d.success) updateUI(d.esp32);
+            } catch (e) {
+                console.error('Status fetch error', e);
+            }
+        }
+
+        async function doHeartbeat() {
+            log('Enviando heartbeat a ESP32...', 'cmd');
+            try {
+                const r = await fetch(API + '/api/esp32/heartbeat');
+                const d = await r.json();
+                if (d.success) {
+                    log(`❤️ Heartbeat OK — Latencia: ${d.latency_ms}ms | Uptime: ${d.esp32_data.uptime_ms}ms`, 'ok');
+                    toast(`Heartbeat OK — ${d.latency_ms}ms`);
+                    fetchStatus();
+                } else {
+                    log(`❌ Heartbeat falló: ${d.error}`, 'err');
+                    toast(d.error, true);
+                }
+            } catch (e) {
+                log(`❌ Error de red: ${e.message}`, 'err');
+                toast('Error de conexión', true);
+            }
+        }
+
+        async function sendCmd(command) {
+            const params = {};
+            if (command === 'open_gate') {
+                params.pin = parseInt(document.getElementById('gate-pin').value) || 2;
+                params.duration = parseInt(document.getElementById('gate-dur').value) || 2000;
+            }
+
+            const label = {open_gate: '🚧 Abrir Pluma', led_on: '💡 LED ON', led_off: '💡 LED OFF', ping: '📡 Ping'}[command] || command;
+            log(`Enviando: ${label}...`, 'cmd');
+
+            try {
+                const r = await fetch(API + '/api/esp32/command', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({command, params})
+                });
+                const d = await r.json();
+                if (d.success) {
+                    log(`✅ ${label} — Respuesta: ${d.esp32_response} (${d.latency_ms}ms)`, 'ok');
+                    toast(`${label} ejecutado (${d.latency_ms}ms)`);
+                    fetchStatus();
+                } else {
+                    log(`❌ ${label} falló: ${d.error}`, 'err');
+                    toast(d.error, true);
+                }
+            } catch (e) {
+                log(`❌ Error: ${e.message}`, 'err');
+                toast('Error de conexión', true);
+            }
+        }
+
+        function toggleLed() {
+            sendCmd(ledOn ? 'led_off' : 'led_on');
+        }
+
+        // Init
+        log('Panel ESP32 iniciado. Conectando...', 'cmd');
+        fetchStatus();
+        doHeartbeat();
+        setInterval(fetchStatus, 4000);
+        setInterval(doHeartbeat, 15000);
+    </script>
+</body>
+</html>

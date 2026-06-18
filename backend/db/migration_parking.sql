@@ -6,14 +6,14 @@
 -- ── PARKING SPOTS TABLE (24 spots, 3 floors, 8 per floor) ──
 CREATE TABLE IF NOT EXISTS parking_spots (
   id                  SERIAL PRIMARY KEY,
-  spot_number         INTEGER      NOT NULL,
-  floor               INTEGER      NOT NULL,
-  spot_label          VARCHAR(10)  NOT NULL,
+  spot_number       NOT NULL,
   status              VARCHAR(20)  DEFAULT 'available',
   occupied_by_user_id    INTEGER   REFERENCES users(id) ON DELETE SET NULL,
   occupied_by_vehicle_id INTEGER   REFERENCES user_vehicles(id) ON DELETE SET NULL,
   occupied_at         TIMESTAMPTZ,
-  created_at          TIMESTAMPTZ  DEFAULT NOW()
+  created_at          TIMESTAMPTZ  INTEGER      NOT NULL,
+  floor               INTEGER      NOT NULL,
+  spot_label          VARCHAR(10)    DEFAULT NOW()
 );
 
 -- Constraint: spot_number + floor must be unique

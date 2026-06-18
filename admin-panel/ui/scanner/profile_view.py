@@ -71,6 +71,7 @@ class ProfileView:
             pending_requests: Lista de solicitudes pendientes del Android.
             on_approve_request: Callback(request_id, spot_id) para aprobar.
             on_reject_request: Callback(request_id) para rechazar.
+            on_free_spot: Callback(spot_id) para liberar un spot manualmente.
         """
         (uid, full_name, email, phone, service, vehicle,
          arr_date, arr_time, status, created_at) = row
@@ -104,7 +105,7 @@ class ProfileView:
         # ── 5. SELECTOR DE SPOTS (si se pidió) ──
         if parking_spots is not None:
             self._render_spots_selector(
-                scroll, parking_spots, on_approve_request, pending_requests
+                scroll, parking_spots, on_approve_request, pending_requests, uid, on_free_spot
             )
 
         # ── 6. HISTORIAL ──
@@ -325,22 +326,13 @@ class ProfileView:
             btn_col = ctk.CTkFrame(req_inner, fg_color="transparent")
             btn_col.pack(side="right")
 
-            if req_type == "check_in":
-                ctk.CTkButton(
-                    btn_col, text="✅ Asignar Lugar",
-                    height=30, corner_radius=6,
-                    fg_color=GREEN, hover_color=GREEN_HOVER, text_color="#000",
-                    font=ctk.CTkFont("Helvetica", 11, "bold"),
-                    command=lambda rid=req_id: on_approve(rid, None) if on_approve else None,
-                ).pack(side="left", padx=(0, 4))
-            else:
-                ctk.CTkButton(
-                    btn_col, text="✅ Aprobar Retiro",
-                    height=30, corner_radius=6,
-                    fg_color=GREEN, hover_color=GREEN_HOVER, text_color="#000",
-                    font=ctk.CTkFont("Helvetica", 11, "bold"),
-                    command=lambda rid=req_id: on_approve(rid, None) if on_approve else None,
-                ).pack(side="left", padx=(0, 4))
+            ctk.CTkButton(
+                btn_col, text="✅ Aceptar",
+                height=30, corner_radius=6,
+                fg_color=GREEN, hover_color=GREEN_HOVER, text_color="#000",
+                font=ctk.CTkFont("Helvetica", 11, "bold"),
+                command=lambda rid=req_id, rtype=req_type: on_approve(rid, rtype, None) if on_approve else None,
+            ).pack(side="left", padx=(0, 4))
 
             ctk.CTkButton(
                 btn_col, text="❌ Rechazar",
@@ -352,7 +344,7 @@ class ProfileView:
 
         ctk.CTkFrame(frame, fg_color="transparent", height=8).pack()
 
-    def _render_spots_selector(self, parent, spots, on_select_spot, pending_requests):
+    def _render_spots_selector(self, parent, spots, on_select_spot, pending_requests, current_uid, on_free_spot):
         """Renderiza el selector visual de 24 spots en 3 pisos."""
         frame = ctk.CTkFrame(parent, fg_color=PANEL_BG, corner_radius=12)
         frame.grid(row=3, column=0, columnspan=2, pady=(0, 16), sticky="ew")
@@ -412,19 +404,29 @@ class ProfileView:
                     text_col = "#000"
                     label_text = f"🚗\n{spot_label}"
                     clickable = True
+                    btn_cmd = (lambda sid=spot_id, pcid=pending_checkin_id:
+                               on_select_spot(pcid, "check_in", sid) if on_select_spot and pcid else None)
                 elif spot_status == "occupied":
                     bg_color = RED
                     hover_color = RED_HOVER
                     text_col = "#fff"
                     occ_name = (user_name or "")[:8]
                     label_text = f"🔒\n{spot_label}\n{occ_name}"
-                    clickable = False
+                    
+                    occupied_by_uid = spot[5]
+                    if occupied_by_uid == current_uid and on_free_spot:
+                        clickable = True
+                        btn_cmd = (lambda sid=spot_id: on_free_spot(sid))
+                    else:
+                        clickable = False
+                        btn_cmd = lambda: None
                 else:
                     bg_color = "#555"
                     hover_color = "#666"
                     text_col = "#ccc"
                     label_text = f"⚙️\n{spot_label}"
                     clickable = False
+                    btn_cmd = lambda: None
 
                 btn = ctk.CTkButton(
                     spots_row,
@@ -435,11 +437,7 @@ class ProfileView:
                     hover_color=hover_color if clickable else bg_color,
                     text_color=text_col,
                     font=ctk.CTkFont("Helvetica", 10, "bold"),
-                    command=(
-                        (lambda sid=spot_id, pcid=pending_checkin_id:
-                         on_select_spot(pcid, sid) if on_select_spot and pcid else None)
-                        if clickable else lambda: None
-                    ),
+                    command=btn_cmd if clickable else lambda: None,
                     state="normal" if clickable else "disabled",
                 )
                 btn.pack(side="left", padx=3, pady=2)

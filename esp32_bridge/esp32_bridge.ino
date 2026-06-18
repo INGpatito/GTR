@@ -11,6 +11,8 @@
  * - GET http://<esp32_ip>/api/led?state=1                 -> Enciende el LED de prueba (GPIO 2).
  * - GET http://<esp32_ip>/api/led?state=0                 -> Apaga el LED de prueba (GPIO 2).
  * - GET http://<esp32_ip>/api/status                      -> Consulta el estado del ESP32.
+ * - GET http://<esp32_ip>/api/heartbeat                   -> Health-check rápido.
+ * - GET http://<esp32_ip>/api/info                        -> Info detallada (uptime, memoria, señal).
  */
 
 #include <WiFi.h>
@@ -21,13 +23,25 @@
 #define WIFI_SSID "GTR"  // Red abierta (sin contraseña)
 
 // --- Servidor de Registro en la Orange Pi ---
-// 10.42.0.1 es la IP por defecto de la Orange Pi en su modo HotspotLocal.
+// 10.42.0.1 es la IP por defecto de la Orange Pi en su modo Hotspot Local.
 #define REGISTRATION_URL "http://10.42.0.1:3001/api/esp32/register"
 
 // Pin del relevador / LED por defecto
 #define DEFAULT_RELAY_PIN 2
 
+// Intervalos (ms)
+#define WIFI_RECONNECT_INTERVAL 15000   // Reintentar WiFi cada 15s si se pierde
+#define REGISTRATION_RETRY_INTERVAL 10000 // Reintentar registro cada 10s si falla
+#define HEARTBEAT_LOG_INTERVAL 60000    // Log de heartbeat cada 60s
+
 WebServer server(80);
+
+// Estado global
+unsigned long bootTime = 0;
+unsigned long lastWifiReconnectAttempt = 0;
+unsigned long lastRegistrationAttempt = 0;
+bool registrationDone = false;
+int ledState = 0;
 
 void executeOpenGate(int pin, int durationMs);
 void setupWiFi();
@@ -38,9 +52,12 @@ void handleRoot();
 void handleGate();
 void handleLed();
 void handleStatus();
+void handleHeartbeat();
+void handleInfo();
 
 void setup() {
   Serial.begin(115200);
+  bootTime = millis();
   
   // Configurar Pin del Relevador/LED
   pinMode(DEFAULT_RELAY_PIN, OUTPUT);
@@ -56,6 +73,8 @@ void setup() {
   server.on("/api/gate", HTTP_GET, handleGate);
   server.on("/api/led", HTTP_GET, handleLed);
   server.on("/api/status", HTTP_GET, handleStatus);
+  server.on("/api/heartbeat", HTTP_GET, handleHeartbeat);
+  server.on("/api/info", HTTP_GET, handleInfo);
   server.begin();
   
   Serial.println("{\"status\":\"ready\",\"device\":\"GTR-ESP32-Bridge\"}");
@@ -86,6 +105,7 @@ void setupWiFi() {
   
   // Asegurar que el LED regrese a apagado al terminar
   digitalWrite(DEFAULT_RELAY_PIN, LOW);
+  ledState = 0;
   
   if (WiFi.status() == WL_CONNECTED) {
     Serial.print("{\"status\":\"wifi_connected\",\"ip\":\"");
@@ -127,12 +147,15 @@ void registerWithOrangePi() {
     Serial.print(",\"response\":");
     Serial.print(response);
     Serial.println("}");
+    registrationDone = true;
   } else {
     Serial.print("{\"status\":\"registration_failed\",\"error\":\"");
     Serial.print(http.errorToString(httpCode));
     Serial.println("\"}");
+    registrationDone = false;
   }
   http.end();
+  lastRegistrationAttempt = millis();
 }
 
 void executeOpenGate(int pin, int durationMs) {
@@ -189,6 +212,7 @@ void handleLed() {
   
   pinMode(DEFAULT_RELAY_PIN, OUTPUT);
   digitalWrite(DEFAULT_RELAY_PIN, state == 1 ? HIGH : LOW);
+  ledState = state;
   
   String json = "{\"status\":\"success\",\"led_state\":" + String(state) + "}";
   server.send(200, "application/json", json);
@@ -203,7 +227,70 @@ void handleStatus() {
   server.send(200, "application/json", json);
 }
 
+void handleHeartbeat() {
+  // Health-check ultraligero — la Orange Pi lo usa para medir latencia
+  String json = "{\"alive\":true,\"uptime_ms\":" + String(millis() - bootTime) + ",\"led_state\":" + String(ledState) + "}";
+  server.send(200, "application/json", json);
+}
+
+void handleInfo() {
+  // Info detallada del ESP32
+  unsigned long uptimeMs = millis() - bootTime;
+  unsigned long uptimeSec = uptimeMs / 1000;
+  unsigned long hours = uptimeSec / 3600;
+  unsigned long minutes = (uptimeSec % 3600) / 60;
+  unsigned long seconds = uptimeSec % 60;
+  
+  String uptimeStr = String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s";
+  
+  String json = "{";
+  json += "\"device\":\"GTR-ESP32-Bridge\"";
+  json += ",\"ip\":\"" + WiFi.localIP().toString() + "\"";
+  json += ",\"mac\":\"" + WiFi.macAddress() + "\"";
+  json += ",\"ssid\":\"" + String(WIFI_SSID) + "\"";
+  json += ",\"rssi\":" + String(WiFi.RSSI());
+  json += ",\"uptime_ms\":" + String(uptimeMs);
+  json += ",\"uptime_str\":\"" + uptimeStr + "\"";
+  json += ",\"free_heap\":" + String(ESP.getFreeHeap());
+  json += ",\"led_state\":" + String(ledState);
+  json += ",\"registered\":" + String(registrationDone ? "true" : "false");
+  json += "}";
+  
+  server.send(200, "application/json", json);
+}
+
 void loop() {
+  // --- Reconexión WiFi automática ---
+  if (WiFi.status() != WL_CONNECTED) {
+    unsigned long now = millis();
+    if (now - lastWifiReconnectAttempt > WIFI_RECONNECT_INTERVAL) {
+      lastWifiReconnectAttempt = now;
+      Serial.println("{\"status\":\"wifi_reconnecting\",\"ssid\":\"" + String(WIFI_SSID) + "\"}");
+      WiFi.disconnect();
+      WiFi.begin(WIFI_SSID);
+      
+      // Esperar breve (3s max) sin bloquear demasiado el loop
+      int retries = 0;
+      while (WiFi.status() != WL_CONNECTED && retries < 6) {
+        delay(500);
+        retries++;
+      }
+      
+      if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("{\"status\":\"wifi_reconnected\",\"ip\":\"" + WiFi.localIP().toString() + "\"}");
+        registrationDone = false; // Forzar re-registro con nueva IP posible
+      }
+    }
+  }
+  
+  // --- Reintento de registro si falló previamente ---
+  if (WiFi.status() == WL_CONNECTED && !registrationDone) {
+    unsigned long now = millis();
+    if (now - lastRegistrationAttempt > REGISTRATION_RETRY_INTERVAL) {
+      registerWithOrangePi();
+    }
+  }
+
   // Procesar peticiones HTTP vía WiFi
   if (WiFi.status() == WL_CONNECTED) {
     server.handleClient();
@@ -280,6 +367,7 @@ void loop() {
       int state = input.substring(colon1 + 1).toInt();
       pinMode(DEFAULT_RELAY_PIN, OUTPUT);
       digitalWrite(DEFAULT_RELAY_PIN, state == 1 ? HIGH : LOW);
+      ledState = state;
       Serial.print("{\"status\":\"led_change\",\"state\":");
       Serial.print(state);
       Serial.println("}");

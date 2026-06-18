@@ -20,8 +20,13 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanIntentResult;
+import com.journeyapps.barcodescanner.ScanOptions;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -58,6 +63,9 @@ public class MainActivity extends AppCompatActivity {
     private long lastEventTimestamp = 0;
     private volatile boolean isResolvingHost = false;
     private final StringBuilder keyAccumulator = new StringBuilder();
+
+    // ZXing camera scanner launcher
+    private ActivityResultLauncher<ScanOptions> barcodeLauncher;
 
     // Current user data for parking
     private int currentUserId = -1;
@@ -114,6 +122,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Register ZXing barcode scanner launcher BEFORE any UI interaction
+        barcodeLauncher = registerForActivityResult(new ScanContract(), this::onScanResult);
+
         logoContainer = findViewById(R.id.logoContainer);
         welcomeContainer = findViewById(R.id.welcomeContainer);
         parkingContainer = findViewById(R.id.parkingContainer);
@@ -137,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Parking Idle buttons
         findViewById(R.id.btnParkingManualInput).setOnClickListener(v -> showManualInputDialog());
+        findViewById(R.id.btnParkingScanCamera).setOnClickListener(v -> launchCameraScanner());
         findViewById(R.id.btnParkingExitMode).setOnClickListener(v -> closeParkingInterface());
 
         // Root click for manual input (only when in logo state)
@@ -584,6 +596,54 @@ public class MainActivity extends AppCompatActivity {
         return super.dispatchKeyEvent(event);
     }
 
+    // ═══ CAMERA SCANNER (ZXing) ═══
+    private void launchCameraScanner() {
+        ScanOptions options = new ScanOptions();
+        options.setDesiredBarcodeFormats(ScanOptions.QR_CODE, ScanOptions.CODE_128, ScanOptions.CODE_39);
+        options.setPrompt("Escanea el código QR o el código de barras de la tarjeta GTR");
+        options.setCameraId(0);
+        options.setBeepEnabled(true);
+        options.setBarcodeImageEnabled(false);
+        options.setOrientationLocked(false);
+        barcodeLauncher.launch(options);
+    }
+
+    private void onScanResult(ScanIntentResult result) {
+        hideSystemUI(); // Restore fullscreen after camera activity
+        if (result.getContents() == null) {
+            Toast.makeText(this, "Escaneo cancelado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String scanned = result.getContents().trim().replace(" ", "").replace("-", "");
+        Log.i(TAG, "Scanned: " + scanned + " (length=" + scanned.length() + ")");
+
+        // Extract 16 digits from the scanned content
+        String cardNumber = extractCardNumber(scanned);
+        if (cardNumber != null) {
+            Toast.makeText(this, "Tarjeta detectada: " + formatCard(cardNumber), Toast.LENGTH_SHORT).show();
+            submitCardNumber(cardNumber);
+        } else {
+            Toast.makeText(this, "Código no reconocido. Se esperan 16 dígitos.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private String extractCardNumber(String raw) {
+        // If it's exactly 16 digits, use it directly
+        if (raw.length() == 16 && raw.matches("\\d{16}")) return raw;
+        // Try to find 16 consecutive digits in the scanned text
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(\\d{16})").matcher(raw);
+        if (m.find()) return m.group(1);
+        // If it's all digits but not 16, still reject
+        return null;
+    }
+
+    private String formatCard(String digits) {
+        if (digits.length() != 16) return digits;
+        return digits.substring(0, 4) + " " + digits.substring(4, 8) + " "
+                + digits.substring(8, 12) + " " + digits.substring(12, 16);
+    }
+
     private void showManualInputDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Escanear Tarjeta");
@@ -599,7 +659,7 @@ public class MainActivity extends AppCompatActivity {
         container.addView(input);
         builder.setView(container);
 
-        builder.setPositiveButton("Simular", (dialog, which) -> {
+        builder.setPositiveButton("Enviar", (dialog, which) -> {
             String cardNumber = input.getText().toString().trim().replace(" ", "").replace("-", "");
             if (cardNumber.length() == 16) submitCardNumber(cardNumber);
             else Toast.makeText(this, "El número debe tener 16 dígitos", Toast.LENGTH_SHORT).show();

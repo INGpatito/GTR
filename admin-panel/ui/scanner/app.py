@@ -53,6 +53,7 @@ class MemberScanner(ctk.CTk):
         self._current_vehicles = None
         self._current_activity = None
         self._current_card_num = None
+        self._last_android_scan_ts = 0
 
         # ── Layout ──
         self.grid_columnconfigure(0, weight=0)
@@ -253,6 +254,7 @@ class MemberScanner(ctk.CTk):
             on_close=self._close_profile,
             on_approve_request=self._approve_parking_request,
             on_reject_request=self._reject_parking_request,
+            on_free_spot=self._free_spot,
             pending_requests=pending_requests,
             parking_spots=parking_spots,
         )
@@ -304,6 +306,28 @@ class MemberScanner(ctk.CTk):
         """Check-Out — muestra el selector de spots para asignar o liberar."""
         self._fetch_and_show(uid, show_spots=True)
 
+    def _free_spot(self, spot_id: int) -> None:
+        """Libera manualmente un spot desde el mapa."""
+        def _do():
+            try:
+                result = parking_service.free_spot(spot_id)
+                if result:
+                    self.esp32.open_gate(pin=2, duration_ms=2000)
+                    self.after(0, lambda: [
+                        messagebox.showinfo("Spot Liberado", "El espacio ha sido liberado."),
+                        self._fetch_and_show(self.current_member_id, show_spots=True)
+                        if self.current_member_id else None,
+                    ])
+                else:
+                    self.after(0, lambda: messagebox.showerror(
+                        "Error", "No se pudo liberar el espacio."
+                    ))
+            except Exception as exc:
+                self.after(0, lambda: messagebox.showerror("Error DB", str(exc)))
+
+        import threading
+        threading.Thread(target=_do, daemon=True).start()
+
     def _close_profile(self) -> None:
         """Cierra el perfil y vuelve a la pantalla de bienvenida."""
         self.current_member_id = None
@@ -318,9 +342,9 @@ class MemberScanner(ctk.CTk):
     # ══════════════════════════════════════════════════
     #  PARKING REQUESTS — APPROVE / REJECT
     # ══════════════════════════════════════════════════
-    def _approve_parking_request(self, request_id: int, spot_id: int = None) -> None:
+    def _approve_parking_request(self, request_id: int, request_type: str, spot_id: int = None) -> None:
         """Aprueba una solicitud de parking. Si es check_in y no hay spot, muestra selector."""
-        if spot_id is None:
+        if request_type == "check_in" and spot_id is None:
             # Necesitamos mostrar el selector de spots
             # Re-render con spots visibles
             if self.current_member_id:
@@ -394,6 +418,19 @@ class MemberScanner(ctk.CTk):
             except Exception:
                 pass  # DB no disponible
 
+            try:
+                import utils.mock_server as _mock
+                with _mock._android_scan_lock:
+                    latest_scan = _mock.latest_android_card_scan
+                    
+                if latest_scan and latest_scan["timestamp"] > self._last_android_scan_ts:
+                    self._last_android_scan_ts = latest_scan["timestamp"]
+                    scan_member_id = latest_scan["member_id"]
+                    if self.current_member_id != scan_member_id:
+                        self.after(0, lambda: self._fetch_and_show(scan_member_id))
+            except Exception as e:
+                print(f"[DEBUG] Error checking android scans: {e}")
+
         threading.Thread(target=_poll, daemon=True).start()
         # Programar siguiente consulta rápida
         self.after(self._PARKING_POLL_MS, self._check_parking_requests)
@@ -417,6 +454,7 @@ class MemberScanner(ctk.CTk):
             on_close=self._close_profile,
             on_approve_request=self._approve_parking_request,
             on_reject_request=self._reject_parking_request,
+            on_free_spot=self._free_spot,
             pending_requests=pending_requests,
             parking_spots=spots,
         )

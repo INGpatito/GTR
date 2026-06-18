@@ -355,7 +355,7 @@
                     </p>
                     <div class="control-group">
                         <button class="btn-control" id="btn-mode-auto" onclick="setMode('auto')">
-                            <span>🤖 Conmutación Automática</span>
+                            <span>🤖 Conmutación Mixta</span>
                         </button>
                         <button class="btn-control" id="btn-mode-wifi" onclick="setMode('manual-wifi')">
                             <span>🏠 Forzar Modo WiFi Casa</span>
@@ -421,7 +421,7 @@
                     // Update Mode badge
                     const badgeContainer = document.getElementById("mode-badge");
                     if (data.auto_mode) {
-                        badgeContainer.innerHTML = '<span class="badge badge-success">🤖 Automático</span>';
+                        badgeContainer.innerHTML = '<span class="badge badge-success">🤖 Mixto</span>';
                         updateActiveButton('auto');
                     } else if (data.hotspot_active) {
                         badgeContainer.innerHTML = '<span class="badge badge-danger">📡 Manual Hotspot</span>';

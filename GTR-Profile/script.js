@@ -473,22 +473,34 @@
      CARD FLIP & QR GENERATION
      ══════════════════════════════════════════════════ */
   const btnFlipCard = document.getElementById("btnFlipCard");
-  let qrGenerated = false;
+  let _pendingQRCard = null;
 
-  function generateQR(cardNum) {
-    if (qrGenerated || !cardNum) return;
+  function generateQR(cardNumValue) {
+    if (!cardNumValue) return;
     const qrEl = document.getElementById("qrCode");
-    if (!qrEl || typeof QRCode === "undefined") return;
+    if (!qrEl) return;
+
+    // If QRCode library isn't loaded yet, save for retry
+    if (typeof QRCode === "undefined") {
+      _pendingQRCard = cardNumValue;
+      // Retry after a short delay (library might still be loading)
+      setTimeout(() => {
+        if (_pendingQRCard) generateQR(_pendingQRCard);
+      }, 500);
+      return;
+    }
+
+    // Clear previous QR code if any
     qrEl.innerHTML = "";
     new QRCode(qrEl, {
-      text: cardNum.replace(/\s/g, ""),
+      text: cardNumValue.replace(/\s/g, ""),
       width: 120,
       height: 120,
       colorDark: "#111",
       colorLight: "#ffffff",
       correctLevel: QRCode.CorrectLevel.H
     });
-    qrGenerated = true;
+    _pendingQRCard = null;
   }
 
   if (btnFlipCard && cardWrapper) {

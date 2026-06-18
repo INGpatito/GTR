@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 
 const BLOCKED_MACS_FILE = path.join(__dirname, "../blocked_macs.json");
+const WIFI_IFACE = "wlan0";
 
 // Helper to load blocked MACs
 function getBlockedMacs() {
@@ -52,10 +53,10 @@ router.get("/status", async (req, res) => {
             return { name, device };
         });
 
-        const hotspotActive = activeConnections.some(c => c.name === "HotspotLocal" && c.device === "wlxb0487a953496");
+        const hotspotActive = activeConnections.some(c => c.name === "HotspotLocal" && c.device === WIFI_IFACE);
         
         let currentSSID = "Ninguno";
-        const wifiActive = activeConnections.find(c => c.device === "wlxb0487a953496" && c.name !== "HotspotLocal");
+        const wifiActive = activeConnections.find(c => c.device === WIFI_IFACE && c.name !== "HotspotLocal");
         if (hotspotActive) {
             currentSSID = "GTR (Hotspot Activo)";
         } else if (wifiActive) {
@@ -65,7 +66,7 @@ router.get("/status", async (req, res) => {
         // Get IP of hotspot if active
         let hotspotIP = "10.42.0.1";
         if (hotspotActive) {
-            const ipCheck = await runSudo("ip -4 addr show dev wlxb0487a953496");
+            const ipCheck = await runSudo(`ip -4 addr show dev ${WIFI_IFACE}`);
             const match = ipCheck.stdout.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
             if (match) {
                 hotspotIP = match[1];
@@ -128,7 +129,7 @@ router.get("/clients", async (req, res) => {
             const [name, device] = line.split(":");
             return { name, device };
         });
-        const hotspotActive = activeConnections.some(c => c.name === "HotspotLocal" && c.device === "wlxb0487a953496");
+        const hotspotActive = activeConnections.some(c => c.name === "HotspotLocal" && c.device === WIFI_IFACE);
 
         // If hotspot is down, there are by definition 0 clients connected to the GTR Hotspot
         if (!hotspotActive) {
@@ -137,7 +138,7 @@ router.get("/clients", async (req, res) => {
 
         // Get hotspot IP prefix to filter clients on the hotspot network
         let prefix = "10.42.0.";
-        const ipCheck = await runSudo("ip -4 addr show dev wlxb0487a953496");
+        const ipCheck = await runSudo(`ip -4 addr show dev ${WIFI_IFACE}`);
         const match = ipCheck.stdout.match(/inet\s+(\d+\.\d+\.\d+\.\d+)/);
         if (match) {
             const parts = match[1].split(".");
@@ -167,7 +168,7 @@ router.get("/clients", async (req, res) => {
 
                 // Filter only devices connected to the TP-Link WiFi adapter (hotspot)
                 // and skip invalid MACs (like 00:00:00:00:00:00) and ensure they are on the hotspot subnet prefix
-                if (device === "wlxb0487a953496" && mac !== "00:00:00:00:00:00" && flags !== "0x0" && ip.startsWith(prefix)) {
+                if (device === WIFI_IFACE && mac !== "00:00:00:00:00:00" && flags !== "0x0" && ip.startsWith(prefix)) {
                     const isBlocked = blockedMacs.includes(mac);
                     clients.push({
                         ip,

@@ -18,9 +18,10 @@ const authRoutes = require("./routes/auth");
 const reservationsRoutes = require("./routes/reservations");
 const usersRoutes = require("./routes/users");
 const vehiclesRoutes = require("./routes/vehicles");
-const networkRoutes = require("./routes/network");
+const networkRoutes    = require("./routes/network");
 const scanEventsRoutes = require("./routes/scanEvents");
-const parkingRoutes = require("./routes/parking");
+const parkingRoutes    = require("./routes/parking");
+const esp32Routes      = require("./routes/esp32");
 
 const PORT = process.env.PORT || 3000;
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "";
@@ -105,7 +106,18 @@ app.use("/api/user", usersRoutes);
 app.use("/api/user/:id/vehicles", vehiclesRoutes);
 app.use("/api/network", networkRoutes);
 app.use("/api/scan-event", scanEventsRoutes);
-app.use("/api/parking", parkingRoutes);
+app.use("/api/parking",    parkingRoutes);
+app.use("/api/esp32",      esp32Routes);
+
+// ── Panel ESP32 (archivo estático) ─────────────────
+app.get("/esp32-panel", (_req, res) => {
+  const panelPath = path.join(__dirname, "..", "esp32-panel.html");
+  if (require("fs").existsSync(panelPath)) {
+    res.sendFile(panelPath);
+  } else {
+    res.status(404).send("esp32-panel.html no encontrado en la raíz del proyecto.");
+  }
+});
 
 // ── 404 catch-all ──────────────────────────────────
 app.use((_req, res) => {

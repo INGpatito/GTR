@@ -39,6 +39,9 @@ dependencies {
     // OkHttp for polling scan events from backend
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
+    // ZXing for camera QR/barcode scanning
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

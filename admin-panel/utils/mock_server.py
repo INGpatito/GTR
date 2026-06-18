@@ -3,6 +3,8 @@ import json
 import time
 import threading
 import re
+import os
+import requests as http_requests
 
 # Guardamos el último evento de escaneo en memoria (compartido e hilo seguro)
 _latest_event_lock = threading.Lock()
@@ -12,6 +14,22 @@ latest_scan_event = None
 _parking_lock = threading.Lock()
 _pending_parking_requests = []
 _next_request_id = 1
+
+# Evento de escaneo proveniente de la app Android para el scanner de escritorio
+_android_scan_lock = threading.Lock()
+latest_android_card_scan = None
+
+# ── Estado global de la ESP32 (thread-safe) ──
+_esp32_lock = threading.Lock()
+_esp32_state = {
+    "ip": None,
+    "registered_at": None,
+    "last_heartbeat": None,
+    "last_latency_ms": None,
+    "info": None,          # Último /api/info de la ESP32
+    "command_log": [],     # Últimos 50 comandos enviados
+}
+
 
 
 class GtrMockServer(http.server.BaseHTTPRequestHandler):
@@ -62,6 +80,15 @@ class GtrMockServer(http.server.BaseHTTPRequestHandler):
         elif self.path.startswith("/api/parking/request/") and self.path.endswith("/status"):
             self._handle_get_request_status()
 
+        elif self.path == "/api/esp32/status":
+            self._handle_esp32_status()
+
+        elif self.path == "/api/esp32/heartbeat":
+            self._handle_esp32_heartbeat()
+
+        elif self.path == "/esp32-panel":
+            self._serve_esp32_panel()
+
         else:
             self.send_response(404)
             self.end_headers()
@@ -97,8 +124,19 @@ class GtrMockServer(http.server.BaseHTTPRequestHandler):
                 data = self._read_body()
                 esp_ip = data.get("ip", "")
                 if esp_ip:
-                    from utils.esp32_controller import ESP32Controller
-                    ESP32Controller.get_instance().set_wifi_ip(esp_ip)
+                    # Actualizar estado global de ESP32
+                    with _esp32_lock:
+                        _esp32_state["ip"] = esp_ip
+                        _esp32_state["registered_at"] = time.time()
+                        _esp32_state["last_heartbeat"] = time.time()
+
+                    # También actualizar el ESP32Controller si existe
+                    try:
+                        from utils.esp32_controller import ESP32Controller
+                        ESP32Controller.get_instance().set_wifi_ip(esp_ip)
+                    except Exception:
+                        pass
+
                     print(f"[MOCK-SERVER] ESP32 registrada vía WiFi en IP: {esp_ip}")
                     self._send_json({"success": True})
                 else:
@@ -110,6 +148,9 @@ class GtrMockServer(http.server.BaseHTTPRequestHandler):
 
         elif self.path.startswith("/api/parking/checkout/"):
             self._handle_checkout_spot()
+
+        elif self.path == "/api/esp32/command":
+            self._handle_esp32_command()
 
         else:
             self.send_response(404)
@@ -172,6 +213,14 @@ class GtrMockServer(http.server.BaseHTTPRequestHandler):
                     "member_name": member_name,
                     "timestamp": int(time.time() * 1000)
                 }
+                
+            if member_id:
+                global latest_android_card_scan
+                with _android_scan_lock:
+                    latest_android_card_scan = {
+                        "member_id": member_id,
+                        "timestamp": time.time()
+                    }
 
             print(f"[MOCK-SERVER] Evento via tarjeta recibido: {member_name}")
 
@@ -393,6 +442,171 @@ class GtrMockServer(http.server.BaseHTTPRequestHandler):
         except Exception as e:
             print(f"[MOCK-SERVER] DB error freeing spot: {e}")
         self._send_json({"success": False}, 500)
+
+    # ── ESP32 Handlers ────────────────────────────────
+
+    def _handle_esp32_status(self):
+        """Retorna el estado actual de la ESP32 registrada."""
+        with _esp32_lock:
+            state_copy = dict(_esp32_state)
+            state_copy["command_log"] = list(_esp32_state["command_log"][-20:])  # últimos 20
+
+        connected = False
+        if state_copy["ip"] and state_copy["last_heartbeat"]:
+            age = time.time() - state_copy["last_heartbeat"]
+            connected = age < 30  # Si el heartbeat tiene menos de 30s, está conectada
+
+        resp = {
+            "success": True,
+            "esp32": {
+                "ip": state_copy["ip"],
+                "connected": connected,
+                "registered_at": state_copy["registered_at"],
+                "last_heartbeat": state_copy["last_heartbeat"],
+                "last_latency_ms": state_copy["last_latency_ms"],
+                "info": state_copy["info"],
+                "command_log": state_copy["command_log"],
+            }
+        }
+        self._send_json(resp)
+
+    def _handle_esp32_heartbeat(self):
+        """Hace ping HTTP a la ESP32 y mide la latencia."""
+        with _esp32_lock:
+            esp_ip = _esp32_state["ip"]
+
+        if not esp_ip:
+            self._send_json({"success": False, "error": "ESP32 no registrada. Esperando conexión..."})
+            return
+
+        try:
+            start = time.time()
+            r = http_requests.get(f"http://{esp_ip}/api/heartbeat", timeout=3)
+            latency = round((time.time() - start) * 1000, 1)
+
+            if r.status_code == 200:
+                data = r.json()
+                with _esp32_lock:
+                    _esp32_state["last_heartbeat"] = time.time()
+                    _esp32_state["last_latency_ms"] = latency
+
+                # También traer /api/info para datos completos
+                try:
+                    info_r = http_requests.get(f"http://{esp_ip}/api/info", timeout=3)
+                    if info_r.status_code == 200:
+                        with _esp32_lock:
+                            _esp32_state["info"] = info_r.json()
+                except Exception:
+                    pass
+
+                self._send_json({
+                    "success": True,
+                    "alive": True,
+                    "latency_ms": latency,
+                    "esp32_data": data
+                })
+            else:
+                self._send_json({"success": False, "error": f"HTTP {r.status_code}"})
+        except Exception as e:
+            with _esp32_lock:
+                _esp32_state["last_heartbeat"] = None
+                _esp32_state["last_latency_ms"] = None
+            self._send_json({"success": False, "error": str(e)})
+
+    def _handle_esp32_command(self):
+        """Proxy: recibe un comando del panel y lo reenvía a la ESP32 vía HTTP."""
+        with _esp32_lock:
+            esp_ip = _esp32_state["ip"]
+
+        if not esp_ip:
+            self._send_json({"success": False, "error": "ESP32 no registrada"}, 503)
+            return
+
+        try:
+            data = self._read_body()
+            command = data.get("command", "")
+            params = data.get("params", {})
+
+            log_entry = {
+                "command": command,
+                "params": params,
+                "timestamp": time.time(),
+                "status": "pending"
+            }
+
+            url = None
+            if command == "open_gate":
+                pin = params.get("pin", 2)
+                duration = params.get("duration", 2000)
+                url = f"http://{esp_ip}/api/gate?pin={pin}&duration={duration}"
+            elif command == "led_on":
+                url = f"http://{esp_ip}/api/led?state=1"
+            elif command == "led_off":
+                url = f"http://{esp_ip}/api/led?state=0"
+            elif command == "ping":
+                url = f"http://{esp_ip}/api/status"
+            else:
+                log_entry["status"] = "error"
+                log_entry["response"] = "Comando desconocido"
+                with _esp32_lock:
+                    _esp32_state["command_log"].append(log_entry)
+                    if len(_esp32_state["command_log"]) > 50:
+                        _esp32_state["command_log"] = _esp32_state["command_log"][-50:]
+                self._send_json({"success": False, "error": "Comando desconocido"}, 400)
+                return
+
+            start = time.time()
+            r = http_requests.get(url, timeout=5)
+            latency = round((time.time() - start) * 1000, 1)
+
+            if r.status_code == 200:
+                log_entry["status"] = "success"
+                log_entry["response"] = r.text.strip()
+                log_entry["latency_ms"] = latency
+
+                with _esp32_lock:
+                    _esp32_state["last_heartbeat"] = time.time()
+                    _esp32_state["last_latency_ms"] = latency
+            else:
+                log_entry["status"] = "error"
+                log_entry["response"] = f"HTTP {r.status_code}"
+
+            with _esp32_lock:
+                _esp32_state["command_log"].append(log_entry)
+                if len(_esp32_state["command_log"]) > 50:
+                    _esp32_state["command_log"] = _esp32_state["command_log"][-50:]
+
+            self._send_json({
+                "success": True,
+                "latency_ms": latency,
+                "esp32_response": r.text.strip()
+            })
+
+        except Exception as e:
+            print(f"[MOCK-SERVER] Error enviando comando a ESP32: {e}")
+            self._send_json({"success": False, "error": str(e)}, 500)
+
+    def _serve_esp32_panel(self):
+        """Sirve el archivo HTML del panel ESP32."""
+        # Buscar el archivo en la raíz del proyecto
+        panel_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "esp32-panel.html"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "esp32-panel.html"),
+        ]
+        for panel_path in panel_paths:
+            if os.path.exists(panel_path):
+                with open(panel_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(content.encode("utf-8"))
+                return
+
+        self.send_response(404)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"esp32-panel.html not found")
 
 
 def start_mock_server_background(port: int = 3000):

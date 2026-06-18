@@ -118,22 +118,20 @@
                 android:paddingTop="60dp"
                 android:visibility="visible">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🅿️"
-                    android:textSize="80sp"
-                    android:layout_marginBottom="24dp" />
+                <ImageView
+                    android:layout_width="300dp"
+                    android:layout_height="100dp"
+                    android:src="@drawable/gtr_logo"
+                    android:layout_marginBottom="16dp"
+                    android:contentDescription="GTR Logo" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="GTR PARKING"
+                    android:text="◆"
                     android:textColor="@color/gold"
-                    android:textSize="28sp"
-                    android:textStyle="bold"
-                    android:letterSpacing="0.2"
-                    android:fontFamily="sans-serif-medium" />
+                    android:textSize="36sp"
+                    android:layout_marginBottom="8dp" />
 
                 <View
                     android:layout_width="100dp"
@@ -151,7 +149,7 @@
                     android:gravity="center"
                     android:fontFamily="sans-serif-light" />
 
-                <!-- Manual Input & Exit buttons -->
+                <!-- Manual Input, Camera Scan & Exit buttons -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -169,6 +167,22 @@
                         android:textSize="12sp"
                         android:gravity="center"
                         android:background="@color/card_bg"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_marginEnd="12dp" />
+
+                    <TextView
+                        android:id="@+id/btnParkingScanCamera"
+                        android:layout_width="wrap_content"
+                        android:layout_height="44dp"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:text="📷  ESCANEAR"
+                        android:textColor="@color/dark_bg"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:background="@color/gold"
                         android:clickable="true"
                         android:focusable="true"
                         android:layout_marginEnd="12dp" />
