@@ -1,5 +1,5 @@
 /**
- * Parking GTR — ESP32 Hardware Bridge Firmware (WiFi + Serial)
+ * Parking GTR — 332 Hardware Bridge Firmware (WiFi + Serial)
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * 
  * Modos de conexión soportados de forma simultánea:
