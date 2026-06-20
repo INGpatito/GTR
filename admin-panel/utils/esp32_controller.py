@@ -102,47 +102,74 @@ class ESP32Controller:
                 pass
         return available_ports
 
+    def _check_wifi_alive(self):
+        """Verifica si la ESP32 responde por WiFi (HTTP heartbeat)."""
+        if not self.wifi_ip:
+            return False
+        try:
+            r = requests.get(f"http://{self.wifi_ip}/api/heartbeat", timeout=2.5)
+            if r.status_code == 200:
+                return True
+        except Exception:
+            pass
+        return False
+
     def _connection_loop(self):
-        """Bucle de conexión y reconexión automática serial en segundo plano."""
-        print("[ESP32] Iniciando bucle de monitoreo serial...")
+        """Bucle de conexión y reconexión automática (WiFi + Serial) en segundo plano."""
+        print("[ESP32] Iniciando bucle de monitoreo (WiFi + Serial)...")
+        wifi_check_counter = 0
         while self.running:
-            if not self.connected:
+            # ── Canal 1: Verificar conexión WiFi ──
+            # Cada ~5 iteraciones (~15s cuando desconectado) hacer health-check WiFi
+            wifi_check_counter += 1
+            if self.wifi_ip and (wifi_check_counter >= 5 or not self.connected):
+                wifi_check_counter = 0
+                wifi_alive = self._check_wifi_alive()
+                if wifi_alive and not self.connected:
+                    self.connected = True
+                    self.mock_mode = False
+                    print(f"[ESP32] ¡Conexión WiFi verificada! IP: {self.wifi_ip}")
+                elif not wifi_alive and self.connected and not self.ser:
+                    # Solo marcar desconectado si no hay serial activo
+                    print(f"[ESP32] WiFi sin respuesta desde {self.wifi_ip}. Reintentando...")
+                    self.connected = False
+
+            # ── Canal 2: Conexión Serial ──
+            if not self.connected or not self.ser:
                 if serial is None:
-                    if self.mock_mode:
-                        # Si no hay pyserial pero tenemos WiFi, no molestamos con logs de simulación
-                        if not self.wifi_ip:
-                            print("[ESP32] Pyserial no instalado y no hay IP configurada. Ejecutando en modo SIMULADO.")
+                    if self.mock_mode and not self.wifi_ip:
+                        print("[ESP32] Pyserial no instalado y no hay IP configurada. Ejecutando en modo SIMULADO.")
                         time.sleep(5)
                         continue
-                
-                ports = self._find_serial_ports()
-                if ports:
-                    self.port = ports[0]
-                    print(f"[ESP32] Puerto serial encontrado: {self.port}. Intentando conectar...")
-                    try:
-                        self.ser = serial.Serial(
-                            port=self.port,
-                            baudrate=self.baudrate,
-                            timeout=1.0,
-                            write_timeout=2.0
-                        )
-                        time.sleep(2)  # Reinicio físico de ESP32
-                        self.connected = True
-                        self.mock_mode = False
-                        print(f"[ESP32] ¡Conexión serial exitosa en {self.port}!")
-                        
-                        self.ser.reset_input_buffer()
-                        self.ser.reset_output_buffer()
-                    except Exception as e:
-                        print(f"[ESP32] Error abriendo puerto serial {self.port}: {e}")
-                        self.connected = False
-                        self.ser = None
-                else:
-                    if not self.mock_mode and not self.wifi_ip:
-                        print("[ESP32] Sin puerto serial y sin WiFi. Modo SIMULADO activo.")
-                        self.mock_mode = True
-                    
-            if self.connected and self.ser:
+                elif not self.ser:
+                    ports = self._find_serial_ports()
+                    if ports:
+                        self.port = ports[0]
+                        print(f"[ESP32] Puerto serial encontrado: {self.port}. Intentando conectar...")
+                        try:
+                            self.ser = serial.Serial(
+                                port=self.port,
+                                baudrate=self.baudrate,
+                                timeout=1.0,
+                                write_timeout=2.0
+                            )
+                            time.sleep(2)  # Reinicio físico de ESP32
+                            self.connected = True
+                            self.mock_mode = False
+                            print(f"[ESP32] ¡Conexión serial exitosa en {self.port}!")
+                            
+                            self.ser.reset_input_buffer()
+                            self.ser.reset_output_buffer()
+                        except Exception as e:
+                            print(f"[ESP32] Error abriendo puerto serial {self.port}: {e}")
+                            self.ser = None
+                    elif not self.connected and not self.wifi_ip:
+                        if not self.mock_mode:
+                            print("[ESP32] Sin puerto serial y sin WiFi. Modo SIMULADO activo.")
+                            self.mock_mode = True
+
+            # ── Leer datos del Serial si está activo ──
+            if self.ser:
                 try:
                     if self.ser.in_waiting > 0:
                         line = self.ser.readline().decode('utf-8', errors='ignore').strip()
@@ -150,7 +177,7 @@ class ESP32Controller:
                             self._handle_response(line)
                 except Exception as e:
                     print(f"[ESP32] Conexión serial perdida: {e}")
-                    self.connected = False
+                    self.connected = False if not self.wifi_ip else self.connected
                     if self.ser:
                         try:
                             self.ser.close()
@@ -159,6 +186,16 @@ class ESP32Controller:
                         self.ser = None
             
             time.sleep(0.1 if self.connected else 3.0)
+
+    def get_status(self):
+        """Retorna un diccionario con el estado actual del controlador para diagnóstico."""
+        return {
+            "connected": self.connected,
+            "mock_mode": self.mock_mode,
+            "wifi_ip": self.wifi_ip,
+            "serial_port": self.port if self.ser else None,
+            "serial_connected": self.ser is not None,
+        }
 
     def _handle_response(self, line):
         """Procesa y parsea las respuestas recibidas de la ESP32."""

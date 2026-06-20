@@ -20,11 +20,18 @@
 #include <HTTPClient.h>
 
 // --- Configuración de Red WiFi ---
+// Modo 1: Red del hogar (Totalplay 2.4GHz) — para desarrollo
+// IMPORTANTE: ESP32 solo soporta 2.4GHz, NO 5GHz
+// #define WIFI_SSID "Totalplay-ACA8"  // Red 2.4GHz (la 5G no funciona con ESP32)
+// #define WIFI_PASSWORD "ACA8E8A3hKKAEAxD"  // WPA-PSK
+
+// Modo 2: Hotspot GTR (Orange Pi AP) — para producción
 #define WIFI_SSID "GTR"  // Red abierta (sin contraseña)
 
 // --- Servidor de Registro en la Orange Pi ---
-// 10.42.0.1 es la IP por defecto de la Orange Pi en su modo Hotspot Local.
-#define REGISTRATION_URL "http://10.42.0.1:3001/api/esp32/register"
+// WiFi normal: 192.168.100.61:3000 (backend Node.js con PM2)
+// Hotspot GTR: 10.42.0.1:3000
+#define REGISTRATION_URL "http://10.42.0.1:3000/api/esp32/register"
 
 // Pin del relevador / LED por defecto
 #define DEFAULT_RELAY_PIN 2
@@ -90,7 +97,14 @@ void setupWiFi() {
   Serial.print(WIFI_SSID);
   Serial.println("\"}");
   
-  WiFi.begin(WIFI_SSID);  // Red abierta, sin contraseña
+  WiFi.mode(WIFI_STA); // Forzar modo Estación (cliente), evita crear su propia red
+  WiFi.disconnect(true); // Borrar credenciales previas cacheadas
+  delay(100);
+  #ifdef WIFI_PASSWORD
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);  // Red con contraseña WPA
+  #else
+    WiFi.begin(WIFI_SSID);  // Red abierta (sin contraseña)
+  #endif
   
   // Esperar conexión con timeout de 10 segundos
   int retries = 0;
@@ -267,7 +281,11 @@ void loop() {
       lastWifiReconnectAttempt = now;
       Serial.println("{\"status\":\"wifi_reconnecting\",\"ssid\":\"" + String(WIFI_SSID) + "\"}");
       WiFi.disconnect();
-      WiFi.begin(WIFI_SSID);
+      #ifdef WIFI_PASSWORD
+        WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+      #else
+        WiFi.begin(WIFI_SSID);
+      #endif
       
       // Esperar breve (3s max) sin bloquear demasiado el loop
       int retries = 0;

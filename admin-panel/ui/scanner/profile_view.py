@@ -54,7 +54,7 @@ class ProfileView:
                on_checkin=None, on_checkout=None, on_close=None,
                on_show_spots=None, parking_spots=None,
                pending_requests=None, on_approve_request=None,
-               on_reject_request=None):
+               on_reject_request=None, on_free_spot=None):
         """Renderiza el perfil completo del socio.
 
         Args:

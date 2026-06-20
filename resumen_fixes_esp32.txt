@@ -1,0 +1,34 @@
+RESUMEN DE CORRECCIONES DE CONEXIÓN ESP32 - ORANGE PI
+=====================================================
+Fecha: 20-Jun-2026
+
+Se identificaron y corrigieron múltiples problemas que impedían que la ESP32 se comunicara correctamente con la Orange Pi y que el panel web reflejara su estado.
+
+1. PROBLEMA DE RED WIFI (5GHz vs 2.4GHz)
+----------------------------------------
+- Bug: La ESP32 estaba configurada para conectarse a la red "Totalplay-ACA8-5G". Las placas ESP32 no tienen hardware para soportar redes de 5GHz, por lo que nunca iba a poder conectarse.
+- Solución: Se cambió el SSID en el firmware (`esp32_bridge.ino`) a la red de 2.4GHz del mismo router: "Totalplay-ACA8".
+- Adicional: Se agregó la contraseña WPA-PSK ("ACA8E8A3hKKAEAxD") a la configuración y se modificó el código de `WiFi.begin()` para usarla tanto en el arranque como en la reconexión.
+
+2. RUTA DE REGISTRO INCORRECTA (Puerto y Host)
+----------------------------------------------
+- Bug: El firmware estaba hardcodeado para registrarse en el hotspot interno de la Orange Pi (`http://10.42.0.1:3001`), pero la Orange Pi estaba conectada a la red WiFi normal del hogar y el servidor real corre en otro puerto.
+- Solución: Se actualizó `REGISTRATION_URL` en el firmware para que apunte a la IP de la Orange Pi en la red local y al puerto del backend de producción (`http://192.168.100.61:3000/api/esp32/register`).
+
+3. EL PANEL WEB APUNTABA AL PUERTO EQUIVOCADO
+---------------------------------------------
+- Bug: Las variables de entorno y los textos de ayuda en `esp32-panel.html` apuntaban al puerto 3001 (usado por el mock server de desarrollo), mientras que el backend real (Node.js vía PM2) con las rutas de la ESP32 corre en el puerto 3000.
+- Solución: Se corrigió `DEFAULT_API` en `esp32-panel.html` para usar `http://192.168.100.61:3000` y se actualizaron los textos informativos.
+
+4. CONTROLADOR PYTHON NO REFLEJABA CONEXIÓN WIFI
+------------------------------------------------
+- Bug: El script `esp32_controller.py` comprobaba el estado de la conexión (`connected = True`) únicamente si encontraba un puerto Serial USB activo. Si la conexión era solo por WiFi, el sistema seguía marcando "Modo Simulado" como activo.
+- Solución: Se agregó la función `_check_wifi_alive()` al controlador. Ahora, el bucle de conexión hace un ping HTTP (`/api/heartbeat`) periódico a la IP de la ESP32. Si responde, marca la conexión como exitosa y desactiva el modo simulado, permitiendo que la UI refleje la conexión real.
+
+5. DIAGNÓSTICO DEL SERVIDOR (Orange Pi)
+---------------------------------------
+- Hallazgo: Al revisar los servicios en la Orange Pi, se confirmó que el Hotspot GTR estaba inactivo y el mock server de Python no estaba corriendo. Sin embargo, se confirmó que el backend principal de Node.js (corriendo bajo PM2) SÍ incluye las rutas necesarias para la ESP32 (`/api/esp32/register`, `/api/esp32/status`, etc.) en el puerto 3000, validando la decisión de enrutar el tráfico hacia allí.
+
+Siguientes pasos recomendados:
+- Asegurarse de que el firmware actualizado ya esté flasheado en la ESP32.
+- Monitorear el puerto Serial (115200 baudios) al encender la ESP32 para verificar que obtiene IP y se registra exitosamente.

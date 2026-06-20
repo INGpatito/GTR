@@ -107,9 +107,9 @@
                     <div class="card-title">🌐 Acceso al Panel</div>
                     <div class="net-box">
                         <strong style="color:var(--text)">Desde la red GTR (AP):</strong><br>
-                        <code>http://10.42.0.1:3001/esp32-panel</code><br><br>
+                        <code>http://192.168.100.61:3000/esp32-panel</code><br><br>
                         <strong style="color:var(--text)">Desde Tailscale (VPN):</strong><br>
-                        <code>http://100.89.43.30:3001/esp32-panel</code>
+                        <code>http://100.89.43.30:3000/esp32-panel</code>
                     </div>
                 </div>
             </div>
@@ -167,7 +167,7 @@
         // Cuando el panel se sirve desde la OrangePi, '' (mismo origen) es suficiente.
         // Desde otra máquina, usa la IP de la OrangePi: http://10.42.0.1:3000
         const DEFAULT_API = window.location.origin.includes('file:') || window.location.origin === 'null'
-            ? 'http://10.42.0.1:3000'
+            ? 'http://192.168.100.61:3000'
             : '';
 
         let API = localStorage.getItem('gtr_api_server') || DEFAULT_API;
@@ -181,9 +181,9 @@
             const current = API || window.location.origin;
             const newUrl = prompt(
                 '🔌 Ingresa la URL base del servidor GTR:\n\n' +
-                '• Red GTR (AP):     http://10.42.0.1:3000\n' +
+                '• WiFi LAN:         http://192.168.100.61:3000\n' +
                 '• Tailscale (VPN):  http://100.89.43.30:3000\n' +
-                '• LAN local:        http://192.168.100.61:3000\n' +
+                '• Red GTR (AP):     http://10.42.0.1:3000\n' +
                 '• Mismo origen:     (deja vacío)',
                 current
             );

@@ -496,9 +496,9 @@
       text: cardNumValue.replace(/\s/g, ""),
       width: 120,
       height: 120,
-      colorDark: "#111",
+      colorDark: "#111111",
       colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.H
+      correctLevel: QRCode.CorrectLevel.M
     });
     _pendingQRCard = null;
   }
