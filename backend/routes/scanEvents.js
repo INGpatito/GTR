@@ -80,8 +80,18 @@ router.post("/card", async (req, res) => {
       timestamp: Date.now(),
     };
 
+    const vehiclesResult = await pool.query(
+      "SELECT id, nickname, vehicle AS vehicle_type, brand, model, year, color, plate, is_primary FROM user_vehicles WHERE user_id = $1 ORDER BY is_primary DESC, created_at ASC",
+      [matchedUser.id]
+    );
+
     console.log(`📡 Scan event triggered via card number lookup: ${lastScanEvent.member_name}`);
-    res.json({ success: true, member_name: lastScanEvent.member_name, member_id: lastScanEvent.member_id });
+    res.json({ 
+      success: true, 
+      member_name: lastScanEvent.member_name, 
+      member_id: lastScanEvent.member_id,
+      vehicles: vehiclesResult.rows 
+    });
   } catch (err) {
     console.error("Error resolving card number:", err);
     res.status(500).json({ success: false, errors: ["Error interno del servidor.", err.message] });
