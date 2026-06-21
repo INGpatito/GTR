@@ -25,13 +25,14 @@ let lastScanEvent = null;
  * Body: { member_name: "Juan Pérez" }
  */
 router.post("/", requireAdminKey, (req, res) => {
-  const { member_name } = req.body;
+  const { member_name, member_id } = req.body;
   if (!member_name || typeof member_name !== "string") {
     return res.status(400).json({ success: false, errors: ["member_name is required."] });
   }
 
   lastScanEvent = {
     member_name: member_name.trim(),
+    member_id: member_id || null,
     timestamp: Date.now(),
   };
 
@@ -75,14 +76,15 @@ router.post("/card", async (req, res) => {
 
     lastScanEvent = {
       member_name: matchedUser.full_name,
+      member_id: matchedUser.id,
       timestamp: Date.now(),
     };
 
     console.log(`📡 Scan event triggered via card number lookup: ${lastScanEvent.member_name}`);
-    res.json({ success: true, member_name: lastScanEvent.member_name });
+    res.json({ success: true, member_name: lastScanEvent.member_name, member_id: lastScanEvent.member_id });
   } catch (err) {
     console.error("Error resolving card number:", err);
-    res.status(500).json({ success: false, errors: ["Error interno del servidor."] });
+    res.status(500).json({ success: false, errors: ["Error interno del servidor.", err.message] });
   }
 });
 

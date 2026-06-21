@@ -40,7 +40,7 @@ class MemberScanner(ctk.CTk):
         print_startup_banner("Member Scanner")
 
         # Iniciar servidor mock provisional para sincronización con Android
-        start_mock_server_background(3001)
+        start_mock_server_background(3002)
 
         self.title("Parking GTR — Member Scanner")
         self.geometry("1100x720")
@@ -54,6 +54,7 @@ class MemberScanner(ctk.CTk):
         self._current_activity = None
         self._current_card_num = None
         self._last_android_scan_ts = 0
+        self._last_remote_scan_ts = 0
 
         # ── Layout ──
         self.grid_columnconfigure(0, weight=0)
@@ -430,6 +431,28 @@ class MemberScanner(ctk.CTk):
                         self.after(0, lambda: self._fetch_and_show(scan_member_id))
             except Exception as e:
                 print(f"[DEBUG] Error checking android scans: {e}")
+
+            # Poll real Node.js backend for scan events
+            try:
+                import urllib.request
+                import json
+                from config.settings import API_BASE_URL
+                url = f"{API_BASE_URL}/api/scan-event"
+                req = urllib.request.Request(url, method="GET")
+                with urllib.request.urlopen(req, timeout=1) as resp:
+                    if resp.status == 200:
+                        data = json.loads(resp.read().decode('utf-8'))
+                        if data.get("success") and data.get("event"):
+                            event = data["event"]
+                            if "member_id" in event and event["member_id"]:
+                                ts = event.get("timestamp", 0)
+                                if ts > self._last_remote_scan_ts:
+                                    self._last_remote_scan_ts = ts
+                                    scan_member_id = event["member_id"]
+                                    if self.current_member_id != scan_member_id:
+                                        self.after(0, lambda: self._fetch_and_show(scan_member_id))
+            except Exception as e:
+                pass
 
         threading.Thread(target=_poll, daemon=True).start()
         # Programar siguiente consulta rápida
