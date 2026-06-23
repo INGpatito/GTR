@@ -636,8 +636,8 @@ public class MainActivity extends AppCompatActivity {
                             row.setOrientation(LinearLayout.HORIZONTAL);
                             
                             for (int i = 0; i < spots.length(); i++) {
-                                JSONObject spot = spots.getJSONObject(i);
-                                if (spot.optInt("floor") == floor) {
+                                JSONObject spot = spots.optJSONObject(i);
+                                if (spot != null && spot.optInt("floor") == floor) {
                                     int spotId = spot.optInt("id");
                                     String label = spot.optString("spot_label");
                                     String status = spot.optString("status");
