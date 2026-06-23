@@ -2,7 +2,8 @@
 Parking GTR — Parking Service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Operaciones sobre las tablas ``parking_spots`` y ``parking_requests``.
-Gestiona los 24 espacios de estacionamiento divididos en 3 pisos.
+Gestiona los 24 espacios de estacionamiento divididos en 3 pisos
+y el helipuerto (floor=0).
 """
 
 from core.database import db_cursor
@@ -36,11 +37,7 @@ def get_all_spots() -> list[tuple]:
 
 
 def get_spots_by_floor(floor: int) -> list[tuple]:
-    """Obtiene los spots de un piso específico.
-
-    Returns:
-        Lista de tuplas con misma estructura que get_all_spots().
-    """
+    """Obtiene los spots de un piso específico."""
     with db_cursor() as cur:
         cur.execute("""
             SELECT ps.id, ps.spot_number, ps.floor, ps.spot_label, ps.status,
@@ -57,11 +54,7 @@ def get_spots_by_floor(floor: int) -> list[tuple]:
 
 
 def get_available_spots(floor: int = None) -> list[tuple]:
-    """Obtiene los spots disponibles, opcionalmente filtrados por piso.
-
-    Returns:
-        Lista de tuplas (id, spot_number, floor, spot_label).
-    """
+    """Obtiene los spots disponibles, opcionalmente filtrados por piso."""
     with db_cursor() as cur:
         if floor:
             cur.execute("""
@@ -81,11 +74,7 @@ def get_available_spots(floor: int = None) -> list[tuple]:
 
 
 def occupy_spot(spot_id: int, user_id: int, vehicle_id: int = None) -> bool:
-    """Ocupa un spot de estacionamiento.
-
-    Returns:
-        True si se ocupó exitosamente.
-    """
+    """Ocupa un spot de estacionamiento."""
     with db_cursor() as cur:
         cur.execute("""
             UPDATE parking_spots
@@ -99,11 +88,7 @@ def occupy_spot(spot_id: int, user_id: int, vehicle_id: int = None) -> bool:
 
 
 def free_spot(spot_id: int) -> bool:
-    """Libera un spot de estacionamiento.
-
-    Returns:
-        True si se liberó exitosamente.
-    """
+    """Libera un spot de estacionamiento."""
     with db_cursor() as cur:
         cur.execute("""
             UPDATE parking_spots
@@ -117,11 +102,7 @@ def free_spot(spot_id: int) -> bool:
 
 
 def free_user_spots(user_id: int) -> int:
-    """Libera todos los spots ocupados por un usuario.
-
-    Returns:
-        Cantidad de spots liberados.
-    """
+    """Libera todos los spots ocupados por un usuario."""
     with db_cursor() as cur:
         cur.execute("""
             UPDATE parking_spots
@@ -135,11 +116,7 @@ def free_user_spots(user_id: int) -> int:
 
 
 def get_user_occupied_spots(user_id: int) -> list[tuple]:
-    """Obtiene los spots ocupados por un usuario.
-
-    Returns:
-        Lista de tuplas (spot_id, spot_label, floor, vehicle_nickname, plate).
-    """
+    """Obtiene los spots ocupados por un usuario."""
     with db_cursor() as cur:
         cur.execute("""
             SELECT ps.id, ps.spot_label, ps.floor,
@@ -153,17 +130,69 @@ def get_user_occupied_spots(user_id: int) -> list[tuple]:
 
 
 # ══════════════════════════════════════════════════════
+#  HELIPORT
+# ══════════════════════════════════════════════════════
+
+def get_heliport_status() -> tuple | None:
+    """Obtiene el estado del helipuerto (floor=0, HELI-01).
+
+    Returns:
+        Tupla (id, spot_label, status, occupied_by_user_id, occupied_at, user_name) o None.
+    """
+    with db_cursor() as cur:
+        cur.execute("""
+            SELECT ps.id, ps.spot_label, ps.status,
+                   ps.occupied_by_user_id, ps.occupied_at,
+                   u.full_name AS user_name
+            FROM parking_spots ps
+            LEFT JOIN users u ON ps.occupied_by_user_id = u.id
+            WHERE ps.floor = 0 AND ps.spot_label = 'HELI-01'
+            LIMIT 1
+        """)
+        return cur.fetchone()
+
+
+def reserve_heliport(user_id: int) -> bool:
+    """Reserva el helipuerto para un usuario.
+
+    Returns:
+        True si se reservó exitosamente.
+    """
+    with db_cursor() as cur:
+        cur.execute("""
+            UPDATE parking_spots
+            SET status = 'occupied',
+                occupied_by_user_id = %s,
+                occupied_at = NOW()
+            WHERE floor = 0 AND spot_label = 'HELI-01' AND status = 'available'
+        """, (user_id,))
+        return cur.rowcount > 0
+
+
+def free_heliport() -> bool:
+    """Libera el helipuerto.
+
+    Returns:
+        True si se liberó exitosamente.
+    """
+    with db_cursor() as cur:
+        cur.execute("""
+            UPDATE parking_spots
+            SET status = 'available',
+                occupied_by_user_id = NULL,
+                occupied_at = NULL
+            WHERE floor = 0 AND spot_label = 'HELI-01'
+        """)
+        return cur.rowcount > 0
+
+
+# ══════════════════════════════════════════════════════
 #  PARKING REQUESTS
 # ══════════════════════════════════════════════════════
 
 def create_request(user_id: int, vehicle_id: int, request_type: str) -> tuple:
-    """Crea una solicitud de parking y cancela las anteriores pendientes.
-
-    Returns:
-        Tupla con los datos de la solicitud creada.
-    """
+    """Crea una solicitud de parking y cancela las anteriores pendientes."""
     with db_cursor() as cur:
-        # Cancelar solicitudes pendientes previas
         cur.execute(
             "UPDATE parking_requests SET status = 'rejected' WHERE user_id = %s AND status = 'pending'",
             (user_id,),
@@ -177,12 +206,7 @@ def create_request(user_id: int, vehicle_id: int, request_type: str) -> tuple:
 
 
 def get_pending_requests() -> list[tuple]:
-    """Obtiene todas las solicitudes pendientes.
-
-    Returns:
-        Lista de tuplas (id, user_id, vehicle_id, request_type, status, created_at,
-                         full_name, email, vehicle_nickname, brand, model, plate, vehicle_type).
-    """
+    """Obtiene todas las solicitudes pendientes (incluyendo heliport)."""
     with db_cursor() as cur:
         cur.execute("""
             SELECT pr.id, pr.user_id, pr.vehicle_id, pr.request_type, pr.status, pr.created_at,
@@ -200,14 +224,15 @@ def get_pending_requests() -> list[tuple]:
 def approve_request(request_id: int, spot_id: int = None) -> bool:
     """Aprueba una solicitud de parking.
 
-    Para check_in: ocupa el spot indicado.
+    Para check_in: simplemente marca como 'approved' sin asignar spot.
+                   El usuario elegirá el spot desde Android.
     Para check_out: libera los spots del usuario.
+    Para heliport: ocupa el helipuerto.
 
     Returns:
         True si se aprobó exitosamente.
     """
     with db_cursor() as cur:
-        # Obtener la solicitud
         cur.execute(
             "SELECT user_id, vehicle_id, request_type FROM parking_requests WHERE id = %s AND status = 'pending'",
             (request_id,),
@@ -219,46 +244,48 @@ def approve_request(request_id: int, spot_id: int = None) -> bool:
         user_id, vehicle_id, request_type = row
 
         if request_type == "check_in":
-            if not spot_id:
-                return False
-            # Verificar disponibilidad
+            # Approve without assigning spot — user picks from Android
             cur.execute(
-                "SELECT id FROM parking_spots WHERE id = %s AND status = 'available'",
-                (spot_id,),
+                "UPDATE parking_requests SET status = 'approved' WHERE id = %s",
+                (request_id,),
             )
-            if not cur.fetchone():
-                return False
-            # Ocupar el spot
-            cur.execute("""
-                UPDATE parking_spots
-                SET status = 'occupied', occupied_by_user_id = %s,
-                    occupied_by_vehicle_id = %s, occupied_at = NOW()
-                WHERE id = %s
-            """, (user_id, vehicle_id, spot_id))
 
         elif request_type == "check_out":
-            # Liberar spots del usuario
+            # Free the user's occupied spots
             cur.execute("""
                 UPDATE parking_spots
                 SET status = 'available', occupied_by_user_id = NULL,
                     occupied_by_vehicle_id = NULL, occupied_at = NULL
                 WHERE occupied_by_user_id = %s AND status = 'occupied'
             """, (user_id,))
+            cur.execute(
+                "UPDATE parking_requests SET status = 'approved' WHERE id = %s",
+                (request_id,),
+            )
 
-        # Actualizar solicitud
-        cur.execute(
-            "UPDATE parking_requests SET status = 'approved', spot_id = %s WHERE id = %s",
-            (spot_id, request_id),
-        )
+        elif request_type == "heliport":
+            # Reserve the heliport
+            cur.execute("""
+                UPDATE parking_spots
+                SET status = 'occupied', occupied_by_user_id = %s, occupied_at = NOW()
+                WHERE floor = 0 AND spot_label = 'HELI-01' AND status = 'available'
+            """, (user_id,))
+            if cur.rowcount == 0:
+                return False
+            # Get heliport spot id
+            cur.execute("SELECT id FROM parking_spots WHERE floor = 0 AND spot_label = 'HELI-01'")
+            heli_row = cur.fetchone()
+            heli_id = heli_row[0] if heli_row else None
+            cur.execute(
+                "UPDATE parking_requests SET status = 'approved', spot_id = %s WHERE id = %s",
+                (heli_id, request_id),
+            )
+
         return True
 
 
 def reject_request(request_id: int) -> bool:
-    """Rechaza una solicitud de parking.
-
-    Returns:
-        True si se rechazó exitosamente.
-    """
+    """Rechaza una solicitud de parking."""
     with db_cursor() as cur:
         cur.execute(
             "UPDATE parking_requests SET status = 'rejected' WHERE id = %s AND status = 'pending'",
@@ -268,11 +295,7 @@ def reject_request(request_id: int) -> bool:
 
 
 def get_request_status(user_id: int) -> tuple | None:
-    """Obtiene el estado de la última solicitud de un usuario.
-
-    Returns:
-        Tupla (id, request_type, status, spot_id, created_at) o None.
-    """
+    """Obtiene el estado de la última solicitud de un usuario."""
     with db_cursor() as cur:
         cur.execute("""
             SELECT id, request_type, status, spot_id, created_at

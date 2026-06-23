@@ -337,6 +337,21 @@
                         android:focusable="true" />
                 </LinearLayout>
 
+                <!-- Heliport Button -->
+                <TextView
+                    android:id="@+id/btnHeliport"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    android:text="🚁  RESERVAR HELIPUERTO"
+                    android:textColor="@color/white"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:background="@color/card_bg"
+                    android:clickable="true"
+                    android:focusable="true" />
+
                 <!-- Request Status Indicator -->
                 <LinearLayout
                     android:id="@+id/parkingRequestStatus"
@@ -356,6 +371,16 @@
                         android:textSize="14sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+
+                <!-- Spot Selector (shown after check_in approved) -->
+                <LinearLayout
+                    android:id="@+id/spotSelectorContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:orientation="vertical"
+                    android:visibility="gone" />
+
             </LinearLayout>
 
         </LinearLayout>

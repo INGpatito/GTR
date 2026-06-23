@@ -296,8 +296,18 @@ class ProfileView:
             veh_model = req[10] or ""
             veh_plate = req[11] or "—"
 
-            type_label = "🅿️ INGRESAR" if req_type == "check_in" else "🚪 RETIRAR"
-            type_color = GREEN if req_type == "check_in" else AMBER
+            if req_type == "check_in":
+                type_label = "🅿️ INGRESAR"
+                type_color = GREEN
+            elif req_type == "check_out":
+                type_label = "🚪 RETIRAR"
+                type_color = AMBER
+            elif req_type == "heliport":
+                type_label = "🚁 HELIPUERTO"
+                type_color = "#3498db"
+            else:
+                type_label = req_type.upper()
+                type_color = MUTED
 
             req_frame = ctk.CTkFrame(frame, fg_color="#252525", corner_radius=8)
             req_frame.pack(fill="x", padx=16, pady=5)

@@ -344,21 +344,25 @@ class MemberScanner(ctk.CTk):
     #  PARKING REQUESTS — APPROVE / REJECT
     # ══════════════════════════════════════════════════
     def _approve_parking_request(self, request_id: int, request_type: str, spot_id: int = None) -> None:
-        """Aprueba una solicitud de parking. Si es check_in y no hay spot, muestra selector."""
-        if request_type == "check_in" and spot_id is None:
-            # Necesitamos mostrar el selector de spots
-            # Re-render con spots visibles
-            if self.current_member_id:
-                self._fetch_and_show(self.current_member_id, show_spots=True)
-            return
+        """Aprueba una solicitud de parking.
 
+        check_in: Aprueba sin asignar spot — el usuario lo elige desde Android.
+        check_out: Aprueba y libera los spots del usuario.
+        heliport: Aprueba y reserva el helipuerto.
+        """
         def _do():
             try:
                 result = parking_service.approve_request(request_id, spot_id)
                 if result:
                     self.esp32.open_gate(pin=2, duration_ms=2000)
+                    type_labels = {
+                        "check_in": "Ingreso aprobado. El socio elegirá su espacio desde la app.",
+                        "check_out": "Retiro aprobado. Espacios liberados.",
+                        "heliport": "Helipuerto reservado exitosamente.",
+                    }
+                    msg = type_labels.get(request_type, "Solicitud aprobada.")
                     self.after(0, lambda: [
-                        messagebox.showinfo("Aprobado", "Solicitud de parking aprobada."),
+                        messagebox.showinfo("Aprobado", msg),
                         self._fetch_and_show(self.current_member_id, show_spots=True)
                         if self.current_member_id else None,
                     ])

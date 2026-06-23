@@ -5,15 +5,15 @@
 
 -- ── PARKING SPOTS TABLE (24 spots, 3 floors, 8 per floor) ──
 CREATE TABLE IF NOT EXISTS parking_spots (
-  id                  SERIAL PRIMARY KEY,
-  spot_number       NOT NULL,
-  status              VARCHAR(20)  DEFAULT 'available',
-  occupied_by_user_id    INTEGER   REFERENCES users(id) ON DELETE SET NULL,
-  occupied_by_vehicle_id INTEGER   REFERENCES user_vehicles(id) ON DELETE SET NULL,
-  occupied_at         TIMESTAMPTZ,
-  created_at          TIMESTAMPTZ  INTEGER      NOT NULL,
-  floor               INTEGER      NOT NULL,
-  spot_label          VARCHAR(10)    DEFAULT NOW()
+  id                     SERIAL PRIMARY KEY,
+  spot_number            INTEGER      NOT NULL,
+  floor                  INTEGER      NOT NULL,
+  spot_label             VARCHAR(10),
+  status                 VARCHAR(20)  DEFAULT 'available',
+  occupied_by_user_id    INTEGER      REFERENCES users(id) ON DELETE SET NULL,
+  occupied_by_vehicle_id INTEGER      REFERENCES user_vehicles(id) ON DELETE SET NULL,
+  occupied_at            TIMESTAMPTZ,
+  created_at             TIMESTAMPTZ  DEFAULT NOW()
 );
 
 -- Constraint: spot_number + floor must be unique
@@ -33,9 +33,9 @@ INSERT INTO parking_spots (spot_number, floor, spot_label) VALUES
   (5, 3, 'P3-05'), (6, 3, 'P3-06'), (7, 3, 'P3-07'), (8, 3, 'P3-08')
 ON CONFLICT DO NOTHING;
 
--- ── Placeholder: Helicóptero (floor=0, para implementación futura) ──
+-- ── Helipuerto (floor=0) ──
 INSERT INTO parking_spots (spot_number, floor, spot_label, status) VALUES
-  (1, 0, 'HELI-01', 'maintenance')
+  (1, 0, 'HELI-01', 'available')
 ON CONFLICT DO NOTHING;
 
 -- ── PARKING REQUESTS TABLE (Android → Admin communication) ──
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS parking_requests (
   id              SERIAL PRIMARY KEY,
   user_id         INTEGER      NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   vehicle_id      INTEGER      REFERENCES user_vehicles(id) ON DELETE SET NULL,
-  request_type    VARCHAR(10)  NOT NULL CHECK (request_type IN ('check_in', 'check_out')),
+  request_type    VARCHAR(20)  NOT NULL CHECK (request_type IN ('check_in', 'check_out', 'heliport')),
   status          VARCHAR(20)  DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'completed')),
   spot_id         INTEGER      REFERENCES parking_spots(id),
   created_at      TIMESTAMPTZ  DEFAULT NOW(),

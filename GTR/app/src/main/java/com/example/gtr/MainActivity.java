@@ -51,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
             "10.0.2.2", "192.168.100.47", "10.42.0.1",
             "192.168.100.16", "100.89.43.30", "192.168.100.61",
     };
-    private static final int API_PORT = 3001;
+    // API_PORT removed — host resolution tests 3001, 3000, 80 automatically
     private static final long POLL_INTERVAL_MS = 3000;
     private static final long WELCOME_DURATION_MS = 5000;
     private static final long REQUEST_POLL_MS = 4000;
@@ -72,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
     private String currentUserName = "";
     private List<VehicleInfo> currentVehicles = new ArrayList<>();
     private int selectedVehicleIndex = -1;
+    private String lastRequestType = "";
 
     // UI
     private LinearLayout logoContainer;
@@ -86,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView parkingNoVehicles;
     private LinearLayout parkingRequestStatus;
     private TextView parkingStatusText;
+    private LinearLayout spotSelectorContainer;
+    private TextView btnHeliport;
 
     // Polling
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -137,6 +140,8 @@ public class MainActivity extends AppCompatActivity {
         parkingNoVehicles = findViewById(R.id.parkingNoVehicles);
         parkingRequestStatus = findViewById(R.id.parkingRequestStatus);
         parkingStatusText = findViewById(R.id.parkingStatusText);
+        spotSelectorContainer = findViewById(R.id.spotSelectorContainer);
+        btnHeliport = findViewById(R.id.btnHeliport);
 
         hideSystemUI();
         showLogo();
@@ -145,6 +150,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnParkingEnter).setOnClickListener(v -> sendParkingRequest("check_in"));
         findViewById(R.id.btnParkingWithdraw).setOnClickListener(v -> sendParkingRequest("check_out"));
         findViewById(R.id.parkingCloseBtn).setOnClickListener(v -> resetParkingToIdle());
+        btnHeliport.setOnClickListener(v -> sendParkingRequest("heliport"));
 
         // Parking Idle buttons
         findViewById(R.id.btnParkingManualInput).setOnClickListener(v -> showManualInputDialog());
@@ -321,6 +327,8 @@ public class MainActivity extends AppCompatActivity {
             parkingIdleView.setVisibility(View.VISIBLE);
         }
         parkingRequestStatus.setVisibility(View.GONE);
+        spotSelectorContainer.setVisibility(View.GONE);
+        if (currentUserId > 0) loadHeliportStatus();
     }
 
     private void closeParkingInterface() {
@@ -329,6 +337,7 @@ public class MainActivity extends AppCompatActivity {
         currentUserName = "";
         currentVehicles.clear();
         selectedVehicleIndex = -1;
+        lastRequestType = "";
         stopRequestPolling();
 
         parkingContainer.animate().alpha(0f).setDuration(300)
@@ -344,11 +353,13 @@ public class MainActivity extends AppCompatActivity {
         currentUserName = "";
         currentVehicles.clear();
         selectedVehicleIndex = -1;
+        lastRequestType = "";
         stopRequestPolling();
 
         parkingActiveView.setVisibility(View.GONE);
         parkingIdleView.setVisibility(View.VISIBLE);
         parkingRequestStatus.setVisibility(View.GONE);
+        spotSelectorContainer.setVisibility(View.GONE);
     }
 
     private void renderVehiclesList() {
@@ -446,13 +457,16 @@ public class MainActivity extends AppCompatActivity {
     // ═══ PARKING REQUESTS ═══
     private void sendParkingRequest(String requestType) {
         if (currentUserId <= 0) return;
-        if (currentVehicles.isEmpty()) {
-            Toast.makeText(this, "No hay vehículos registrados", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (selectedVehicleIndex < 0) {
-            Toast.makeText(this, "Selecciona un vehículo primero", Toast.LENGTH_SHORT).show();
-            return;
+        // Heliport doesn't require vehicle selection
+        if (!requestType.equals("heliport")) {
+            if (currentVehicles.isEmpty()) {
+                Toast.makeText(this, "No hay vehículos registrados", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (selectedVehicleIndex < 0) {
+                Toast.makeText(this, "Selecciona un vehículo primero", Toast.LENGTH_SHORT).show();
+                return;
+            }
         }
         if (apiBaseUrl == null) {
             Toast.makeText(this, "API no disponible", Toast.LENGTH_SHORT).show();
@@ -460,16 +474,21 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        VehicleInfo vehicle = currentVehicles.get(selectedVehicleIndex);
+        lastRequestType = requestType;
+        int vehicleId = 0;
+        if (selectedVehicleIndex >= 0 && selectedVehicleIndex < currentVehicles.size()) {
+            vehicleId = currentVehicles.get(selectedVehicleIndex).vehicleId;
+        }
 
         JSONObject body = new JSONObject();
         try {
             body.put("user_id", currentUserId);
-            body.put("vehicle_id", vehicle.vehicleId);
+            body.put("vehicle_id", vehicleId);
             body.put("request_type", requestType);
         } catch (Exception e) { return; }
 
         parkingRequestStatus.setVisibility(View.VISIBLE);
+        spotSelectorContainer.setVisibility(View.GONE);
         parkingStatusText.setText("⏳ Enviando solicitud...");
         parkingStatusText.setTextColor(ContextCompat.getColor(this, R.color.amber_pending));
 
@@ -492,7 +511,13 @@ public class MainActivity extends AppCompatActivity {
                     JSONObject json = new JSONObject(respBody);
                     if (json.optBoolean("success")) {
                         runOnUiThread(() -> {
-                            String label = requestType.equals("check_in") ? "INGRESAR" : "RETIRAR";
+                            String label;
+                            switch (requestType) {
+                                case "check_in": label = "INGRESAR"; break;
+                                case "check_out": label = "RETIRAR"; break;
+                                case "heliport": label = "HELIPUERTO"; break;
+                                default: label = requestType.toUpperCase(); break;
+                            }
                             parkingStatusText.setText("⏳ Solicitud de " + label + " enviada.\nEsperando aprobación del administrador...");
                             parkingStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.amber_pending));
                             startRequestPolling();
@@ -548,11 +573,21 @@ public class MainActivity extends AppCompatActivity {
                     String status = req.optString("status", "");
 
                     if ("approved".equals(status)) {
+                        String reqType = req.optString("request_type", lastRequestType);
                         runOnUiThread(() -> {
-                            parkingStatusText.setText("✅ ¡Solicitud aprobada!");
-                            parkingStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.green_available));
                             stopRequestPolling();
-                            handler.postDelayed(() -> resetParkingToIdle(), 3000);
+                            if ("check_in".equals(reqType)) {
+                                parkingStatusText.setText("✅ ¡Ingreso aprobado! Selecciona tu espacio:");
+                                parkingStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.green_available));
+                                loadAndShowSpotSelector();
+                            } else {
+                                String msg = "heliport".equals(reqType)
+                                    ? "✅ ¡Helipuerto reservado!"
+                                    : "✅ ¡Retiro aprobado!";
+                                parkingStatusText.setText(msg);
+                                parkingStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.green_available));
+                                handler.postDelayed(() -> resetParkingToIdle(), 3000);
+                            }
                         });
                     } else if ("rejected".equals(status)) {
                         runOnUiThread(() -> {
@@ -570,7 +605,180 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+    // ═══ SPOT SELECTOR & HELIPORT ═══
+    private void loadAndShowSpotSelector() {
+        if (apiBaseUrl == null) return;
+        String url = apiBaseUrl + "/api/parking/spots";
+        httpClient.newCall(new Request.Builder().url(url).build()).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) {}
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    String body = response.body() != null ? response.body().string() : "";
+                    JSONObject json = new JSONObject(body);
+                    if (!json.optBoolean("success")) return;
+                    
+                    JSONArray spots = json.getJSONArray("spots");
+                    runOnUiThread(() -> {
+                        spotSelectorContainer.removeAllViews();
+                        spotSelectorContainer.setVisibility(View.VISIBLE);
+                        
+                        // Group spots by floor
+                        for (int floor = 1; floor <= 3; floor++) {
+                            TextView floorTitle = new TextView(MainActivity.this);
+                            floorTitle.setText("PISO " + floor);
+                            floorTitle.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.gold));
+                            floorTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+                            floorTitle.setPadding(0, 16, 0, 8);
+                            spotSelectorContainer.addView(floorTitle);
 
+                            LinearLayout row = new LinearLayout(MainActivity.this);
+                            row.setOrientation(LinearLayout.HORIZONTAL);
+                            
+                            for (int i = 0; i < spots.length(); i++) {
+                                JSONObject spot = spots.getJSONObject(i);
+                                if (spot.optInt("floor") == floor) {
+                                    int spotId = spot.optInt("id");
+                                    String label = spot.optString("spot_label");
+                                    String status = spot.optString("status");
+                                    
+                                    TextView btn = new TextView(MainActivity.this);
+                                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, 120, 1f);
+                                    params.setMargins(4, 4, 4, 4);
+                                    btn.setLayoutParams(params);
+                                    btn.setText(label);
+                                    btn.setGravity(android.view.Gravity.CENTER);
+                                    btn.setTextSize(12);
+                                    btn.setTypeface(null, android.graphics.Typeface.BOLD);
+                                    
+                                    if ("available".equals(status)) {
+                                        btn.setBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.green_available));
+                                        btn.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.black));
+                                        btn.setOnClickListener(v -> selectSpot(spotId, label));
+                                    } else {
+                                        btn.setBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.red_occupied));
+                                        btn.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.white));
+                                    }
+                                    row.addView(btn);
+                                    
+                                    // 4 spots per row visually
+                                    if (row.getChildCount() == 4) {
+                                        spotSelectorContainer.addView(row);
+                                        row = new LinearLayout(MainActivity.this);
+                                        row.setOrientation(LinearLayout.HORIZONTAL);
+                                    }
+                                }
+                            }
+                            if (row.getChildCount() > 0) {
+                                spotSelectorContainer.addView(row);
+                            }
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.e(TAG, "Error parsing spots", e);
+                } finally {
+                    response.close();
+                }
+            }
+        });
+    }
+
+    private void selectSpot(int spotId, String spotLabel) {
+        if (apiBaseUrl == null || currentUserId <= 0) return;
+        
+        int vehicleId = 0;
+        if (selectedVehicleIndex >= 0 && selectedVehicleIndex < currentVehicles.size()) {
+            vehicleId = currentVehicles.get(selectedVehicleIndex).vehicleId;
+        }
+
+        JSONObject body = new JSONObject();
+        try {
+            body.put("user_id", currentUserId);
+            body.put("vehicle_id", vehicleId);
+            body.put("spot_id", spotId);
+        } catch (Exception e) { return; }
+
+        parkingStatusText.setText("⏳ Confirmando espacio " + spotLabel + "...");
+        parkingStatusText.setTextColor(ContextCompat.getColor(this, R.color.amber_pending));
+        
+        // Hide spots while submitting
+        for (int i = 0; i < spotSelectorContainer.getChildCount(); i++) {
+            spotSelectorContainer.getChildAt(i).setEnabled(false);
+        }
+
+        String url = apiBaseUrl + "/api/parking/spot/select";
+        RequestBody reqBody = RequestBody.create(body.toString(), MediaType.parse("application/json"));
+
+        httpClient.newCall(new Request.Builder().url(url).post(reqBody).build()).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) {
+                runOnUiThread(() -> {
+                    parkingStatusText.setText("❌ Error de red al seleccionar espacio");
+                    parkingStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.red_occupied));
+                });
+            }
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    String respBody = response.body() != null ? response.body().string() : "";
+                    JSONObject json = new JSONObject(respBody);
+                    if (json.optBoolean("success")) {
+                        runOnUiThread(() -> {
+                            parkingStatusText.setText("✅ ¡Estacionado en " + spotLabel + "!");
+                            parkingStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.green_available));
+                            handler.postDelayed(() -> resetParkingToIdle(), 3000);
+                        });
+                    } else {
+                        runOnUiThread(() -> {
+                            parkingStatusText.setText("❌ Error: " + json.optJSONArray("errors").optString(0, ""));
+                            parkingStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.red_occupied));
+                            loadAndShowSpotSelector(); // reload
+                        });
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Error selecting spot", e);
+                } finally {
+                    response.close();
+                }
+            }
+        });
+    }
+
+    private void loadHeliportStatus() {
+        if (apiBaseUrl == null) return;
+        String url = apiBaseUrl + "/api/parking/heliport";
+        httpClient.newCall(new Request.Builder().url(url).build()).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) {}
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try {
+                    String body = response.body() != null ? response.body().string() : "";
+                    JSONObject json = new JSONObject(body);
+                    if (!json.optBoolean("success")) return;
+                    
+                    JSONObject heliport = json.getJSONObject("heliport");
+                    String status = heliport.optString("status");
+                    
+                    runOnUiThread(() -> {
+                        if ("available".equals(status)) {
+                            btnHeliport.setText("🚁  RESERVAR HELIPUERTO (DISPONIBLE)");
+                            btnHeliport.setBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.green_available));
+                            btnHeliport.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.black));
+                            btnHeliport.setEnabled(true);
+                        } else {
+                            btnHeliport.setText("🚁  HELIPUERTO OCUPADO");
+                            btnHeliport.setBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.red_occupied));
+                            btnHeliport.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.white));
+                            btnHeliport.setEnabled(false);
+                        }
+                    });
+                } catch (Exception e) {
+                    Log.e(TAG, "Error loading heliport status", e);
+                } finally {
+                    response.close();
+                }
+            }
+        });
+    }
     // ═══ MANUAL ENTRY & KEYBOARD SCANNER ═══
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
