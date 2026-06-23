@@ -55,6 +55,7 @@ class MemberScanner(ctk.CTk):
         self._current_card_num = None
         self._last_android_scan_ts = 0
         self._last_remote_scan_ts = 0
+        self._last_pending_req_id = None
 
         # ── Layout ──
         self.grid_columnconfigure(0, weight=0)
@@ -408,18 +409,21 @@ class MemberScanner(ctk.CTk):
             try:
                 pending = parking_service.get_pending_requests()
                 if pending:
-                    # Si hay solicitudes pendientes, obtener el user_id de la primera
+                    # Si hay solicitudes pendientes, obtener el ID y user_id de la primera
                     first_req = pending[0]
+                    req_id = first_req[0]
                     req_user_id = first_req[1]
 
-                    if self.current_member_id != req_user_id:
-                        # Cargar y abrir de inmediato la información de este socio mostrando spots
-                        self.after(0, lambda: self._fetch_and_show(req_user_id, show_spots=True))
-                    else:
-                        # Si ya está en pantalla, refrescar el panel y los spots con la info de la solicitud
-                        self.after(0, lambda: self._refresh_with_pending(pending))
+                    if req_id != self._last_pending_req_id:
+                        self._last_pending_req_id = req_id
+                        if self.current_member_id != req_user_id:
+                            # Cargar y abrir de inmediato la información de este socio mostrando spots
+                            self.after(0, lambda: self._fetch_and_show(req_user_id, show_spots=True))
+                        else:
+                            # Si ya está en pantalla, refrescar el panel con la info de la solicitud
+                            self.after(0, lambda: self._refresh_with_pending(pending))
                 else:
-                    pass
+                    self._last_pending_req_id = None
             except Exception:
                 pass  # DB no disponible
 
