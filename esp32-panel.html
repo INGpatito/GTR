@@ -101,6 +101,8 @@
                     <div class="status-row"><span class="status-label">Uptime</span><span class="status-val" id="s-up">—</span></div>
                     <div class="status-row"><span class="status-label">Memoria Libre</span><span class="status-val" id="s-mem">—</span></div>
                     <div class="status-row"><span class="status-label">LED Estado</span><span class="status-val" id="s-led">—</span></div>
+                    <div class="status-row"><span class="status-label">Entrada</span><span class="status-val" id="s-ent">—</span></div>
+                    <div class="status-row"><span class="status-label">Salida</span><span class="status-val" id="s-sal">—</span></div>
                 </div>
 
                 <div class="card">
@@ -118,25 +120,30 @@
             <div class="main">
                 <div class="card">
                     <div class="card-title">🎮 Controles de Hardware</div>
-                    <div class="ctrl-grid">
-                        <button class="btn-ctrl" id="btn-gate" onclick="sendCmd('open_gate')">
-                            <span class="icon">🚧</span>Abrir Pluma
+                    <div class="ctrl-grid" style="grid-template-columns: 1fr 1fr;">
+                        <button class="btn-ctrl" style="border-color: rgba(59,130,246,0.3)" onclick="sendCmd('e_abrir')">
+                            <span class="icon">🔼</span>Abrir Entrada
                         </button>
+                        <button class="btn-ctrl" style="border-color: rgba(59,130,246,0.3)" onclick="sendCmd('e_cerrar')">
+                            <span class="icon">🔽</span>Cerrar Entrada
+                        </button>
+                        <button class="btn-ctrl" style="border-color: rgba(245,158,11,0.3)" onclick="sendCmd('s_abrir')">
+                            <span class="icon">🔼</span>Abrir Salida
+                        </button>
+                        <button class="btn-ctrl" style="border-color: rgba(245,158,11,0.3)" onclick="sendCmd('s_cerrar')">
+                            <span class="icon">🔽</span>Cerrar Salida
+                        </button>
+                    </div>
+                    <div class="ctrl-grid" style="margin-top:0.75rem;">
                         <button class="btn-ctrl" id="btn-led" onclick="toggleLed()">
                             <span class="icon">💡</span><span id="led-label">Encender LED</span>
                         </button>
                         <button class="btn-ctrl" onclick="sendCmd('ping')">
                             <span class="icon">📡</span>Ping ESP32
                         </button>
-                        <button class="btn-ctrl" onclick="doHeartbeat()">
+                        <button class="btn-ctrl" onclick="doHeartbeat()" style="grid-column: span 2;">
                             <span class="icon">❤️</span>Heartbeat
                         </button>
-                    </div>
-                    <div class="param-row">
-                        <label>Pin GPIO:</label>
-                        <input type="number" id="gate-pin" value="2" min="0" max="39">
-                        <label>Duración (ms):</label>
-                        <input type="number" id="gate-dur" value="2000" min="100" max="30000" step="100">
                     </div>
                 </div>
 
@@ -251,6 +258,8 @@
                 document.getElementById('s-mem').textContent = info.free_heap ? `${(info.free_heap / 1024).toFixed(1)} KB` : '—';
                 const ls = info.led_state;
                 document.getElementById('s-led').innerHTML = ls === 1 ? '<span class="badge badge-ok">ON</span>' : '<span class="badge badge-err">OFF</span>';
+                document.getElementById('s-ent').innerHTML = info.entrada_abierta === true || info.entrada_abierta === "true" ? '<span class="badge badge-warn">ABIERTA</span>' : '<span class="badge badge-ok">CERRADA</span>';
+                document.getElementById('s-sal').innerHTML = info.salida_abierta === true || info.salida_abierta === "true" ? '<span class="badge badge-warn">ABIERTA</span>' : '<span class="badge badge-ok">CERRADA</span>';
                 ledOn = ls === 1;
                 updateLedBtn();
             }
@@ -300,12 +309,12 @@
 
         async function sendCmd(command) {
             const params = {};
-            if (command === 'open_gate') {
-                params.pin = parseInt(document.getElementById('gate-pin').value) || 2;
-                params.duration = parseInt(document.getElementById('gate-dur').value) || 2000;
-            }
 
-            const label = {open_gate: '🚧 Abrir Pluma', led_on: '💡 LED ON', led_off: '💡 LED OFF', ping: '📡 Ping'}[command] || command;
+            const label = {
+                e_abrir: '🔼 Abrir Entrada', e_cerrar: '🔽 Cerrar Entrada',
+                s_abrir: '🔼 Abrir Salida', s_cerrar: '🔽 Cerrar Salida',
+                led_on: '💡 LED ON', led_off: '💡 LED OFF', ping: '📡 Ping'
+            }[command] || command;
             log(`Enviando: ${label}...`, 'cmd');
 
             try {

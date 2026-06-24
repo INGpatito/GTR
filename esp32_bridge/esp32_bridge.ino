@@ -1,83 +1,127 @@
 /**
- * Parking GTR — 332 Hardware Bridge Firmware (WiFi + Serial)
- * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- * 
- * Modos de conexión soportados de forma simultánea:
- * 1. USB-Serial: 115200 baudios (JSON o comandos cortos de texto).
- * 2. WiFi: Se conecta a la red GTR (u otra configurable) y levanta un WebServer.
- * 
- * Endpoints HTTP expuestos (Puerto 80):
- * - GET http://<esp32_ip>/api/gate?pin=2&duration=2000    -> Abre la pluma/gate.
- * - GET http://<esp32_ip>/api/led?state=1                 -> Enciende el LED de prueba (GPIO 2).
- * - GET http://<esp32_ip>/api/led?state=0                 -> Apaga el LED de prueba (GPIO 2).
- * - GET http://<esp32_ip>/api/status                      -> Consulta el estado del ESP32.
- * - GET http://<esp32_ip>/api/heartbeat                   -> Health-check rápido.
- * - GET http://<esp32_ip>/api/info                        -> Info detallada (uptime, memoria, señal).
+ * Parking GTR — Dual Gate Hardware Bridge Firmware (WiFi + Serial)
  */
 
 #include <WiFi.h>
 #include <WebServer.h>
 #include <HTTPClient.h>
+#include <ESP32Servo.h>
 
 // --- Configuración de Red WiFi ---
-// Modo 1: Red del hogar (Totalplay 2.4GHz) — para desarrollo
-// IMPORTANTE: ESP32 solo soporta 2.4GHz, NO 5GHz
-// #define WIFI_SSID "Totalplay-ACA8"  // Red 2.4GHz (la 5G no funciona con ESP32)
-// #define WIFI_PASSWORD "ACA8E8A3hKKAEAxD"  // WPA-PSK
-
-// Modo 2: Hotspot GTR (Orange Pi AP) — para producción
-#define WIFI_SSID "GTR"  // Red abierta (sin contraseña)
+#define WIFI_SSID "GTR"
 
 // --- Servidor de Registro en la Orange Pi ---
-// WiFi normal: 192.168.100.61:3000 (backend Node.js con PM2)
-// Hotspot GTR: 10.42.0.1:3000
 #define REGISTRATION_URL "http://10.42.0.1:3000/api/esp32/register"
 
-// Pin del relevador / LED por defecto
+// Pin del LED de estado general
 #define DEFAULT_RELAY_PIN 2
 
 // Intervalos (ms)
-#define WIFI_RECONNECT_INTERVAL 15000   // Reintentar WiFi cada 15s si se pierde
-#define REGISTRATION_RETRY_INTERVAL 10000 // Reintentar registro cada 10s si falla
-#define HEARTBEAT_LOG_INTERVAL 60000    // Log de heartbeat cada 60s
+#define WIFI_RECONNECT_INTERVAL 15000
+#define REGISTRATION_RETRY_INTERVAL 10000
 
 WebServer server(80);
 
-// Estado global
+// --- OBJETOS SERVO ---
+Servo servoEntrada;
+Servo servoSalida;
+
+// --- CONFIGURACIÓN DE PINES ---
+const int pinServoEntrada  = 18; 
+const int pinServoSalida   = 19; 
+
+// Sensores de Entrada
+const int pinIREntradaAbrir   = 16;
+const int pinTriggerEntrada   = 4; 
+const int pinEchoEntrada      = 17;
+
+// Sensores de Salida
+const int pinTriggerSalida    = 5; 
+const int pinEchoSalida       = 12;
+const int pinIRSalidaCerrar   = 23;
+
+// --- CONFIGURACIÓN DE ÁNGULOS ---
+const int anguloEntradaCerrado = 180;
+const int anguloEntradaAbierto = 90;
+
+const int anguloSalidaCerrado  = 180;
+const int anguloSalidaAbierto  = 90;
+
+// --- VARIABLES DE ESTADO ---
+bool entradaAbierta = false;
+bool entradaPasando = false;
+
+bool salidaAbierta = false;
+bool salidaPasando = false;
+
+unsigned long ultimoEscaneo = 0;
+const int distanciaCorte = 10;
+
 unsigned long bootTime = 0;
 unsigned long lastWifiReconnectAttempt = 0;
 unsigned long lastRegistrationAttempt = 0;
 bool registrationDone = false;
 int ledState = 0;
 
-void executeOpenGate(int pin, int durationMs);
 void setupWiFi();
 void registerWithOrangePi();
 
-// Manejadores del Servidor Web
 void handleRoot();
-void handleGate();
+void handleEntradaAbrir();
+void handleEntradaCerrar();
+void handleSalidaAbrir();
+void handleSalidaCerrar();
 void handleLed();
 void handleStatus();
 void handleHeartbeat();
 void handleInfo();
 
+// Función auxiliar para leer la distancia
+long obtenerDistancia(int triggerPin, int echoPin) {
+  digitalWrite(triggerPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(triggerPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(triggerPin, LOW);
+  
+  long duracion = pulseIn(echoPin, HIGH, 30000);
+  long distancia = duracion * 0.034 / 2;
+  
+  if (distancia == 0) return 999;
+  return distancia;
+}
+
 void setup() {
   Serial.begin(115200);
   bootTime = millis();
   
-  // Configurar Pin del Relevador/LED
   pinMode(DEFAULT_RELAY_PIN, OUTPUT);
-  digitalWrite(DEFAULT_RELAY_PIN, LOW); // Apagado por defecto
+  digitalWrite(DEFAULT_RELAY_PIN, LOW);
+
+  // Inicializar Pines de Sensores
+  pinMode(pinIREntradaAbrir, INPUT);
+  pinMode(pinIRSalidaCerrar, INPUT);
+  pinMode(pinTriggerEntrada, OUTPUT);
+  pinMode(pinEchoEntrada, INPUT);
+  pinMode(pinTriggerSalida, OUTPUT);
+  pinMode(pinEchoSalida, INPUT);
+
+  // Inicializar Servos
+  servoEntrada.attach(pinServoEntrada);
+  servoSalida.attach(pinServoSalida);
+  servoEntrada.write(anguloEntradaCerrado);
+  servoSalida.write(anguloSalidaCerrado);
 
   Serial.println("{\"status\":\"booting\",\"device\":\"GTR-ESP32-Bridge\"}");
 
-  // Intentar conectar a WiFi
   setupWiFi();
 
-  // Configurar Rutas del Servidor HTTP
+  // Rutas HTTP
   server.on("/", HTTP_GET, handleRoot);
-  server.on("/api/gate", HTTP_GET, handleGate);
+  server.on("/api/entrada/abrir", HTTP_GET, handleEntradaAbrir);
+  server.on("/api/entrada/cerrar", HTTP_GET, handleEntradaCerrar);
+  server.on("/api/salida/abrir", HTTP_GET, handleSalidaAbrir);
+  server.on("/api/salida/cerrar", HTTP_GET, handleSalidaCerrar);
   server.on("/api/led", HTTP_GET, handleLed);
   server.on("/api/status", HTTP_GET, handleStatus);
   server.on("/api/heartbeat", HTTP_GET, handleHeartbeat);
@@ -86,7 +130,6 @@ void setup() {
   
   Serial.println("{\"status\":\"ready\",\"device\":\"GTR-ESP32-Bridge\"}");
   
-  // Registrar IP actual en el servidor de la Orange Pi
   if (WiFi.status() == WL_CONNECTED) {
     registerWithOrangePi();
   }
@@ -97,27 +140,25 @@ void setupWiFi() {
   Serial.print(WIFI_SSID);
   Serial.println("\"}");
   
-  WiFi.mode(WIFI_STA); // Forzar modo Estación (cliente), evita crear su propia red
-  WiFi.disconnect(true); // Borrar credenciales previas cacheadas
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect(true);
   delay(100);
+  
   #ifdef WIFI_PASSWORD
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);  // Red con contraseña WPA
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
   #else
-    WiFi.begin(WIFI_SSID);  // Red abierta (sin contraseña)
+    WiFi.begin(WIFI_SSID);
   #endif
   
-  // Esperar conexión con timeout de 10 segundos
   int retries = 0;
   bool toggleLed = false;
   while (WiFi.status() != WL_CONNECTED && retries < 20) {
     delay(500);
-    // Parpadear el LED durante la conexión
     digitalWrite(DEFAULT_RELAY_PIN, toggleLed ? HIGH : LOW);
     toggleLed = !toggleLed;
     retries++;
   }
   
-  // Asegurar que el LED regrese a apagado al terminar
   digitalWrite(DEFAULT_RELAY_PIN, LOW);
   ledState = 0;
   
@@ -128,7 +169,6 @@ void setupWiFi() {
     Serial.print(WIFI_SSID);
     Serial.println("\"}");
     
-    // Doble parpadeo rápido para indicar éxito de WiFi
     for (int i = 0; i < 2; i++) {
       digitalWrite(DEFAULT_RELAY_PIN, HIGH);
       delay(100);
@@ -148,7 +188,6 @@ void registerWithOrangePi() {
   http.addHeader("Content-Type", "application/json");
   
   String payload = "{\"ip\":\"" + WiFi.localIP().toString() + "\"}";
-  
   Serial.print("{\"status\":\"registering_ip\",\"url\":\"");
   Serial.print(REGISTRATION_URL);
   Serial.println("\"}");
@@ -172,89 +211,75 @@ void registerWithOrangePi() {
   lastRegistrationAttempt = millis();
 }
 
-void executeOpenGate(int pin, int durationMs) {
-  pinMode(pin, OUTPUT);
-  
-  // Activar barrera (relevador)
-  digitalWrite(pin, HIGH);
-  Serial.print("{\"status\":\"executing\",\"action\":\"open_gate\",\"pin\":");
-  Serial.print(pin);
-  Serial.print(",\"duration\":");
-  Serial.print(durationMs);
-  Serial.println("}");
-  
-  // Mantener activo
-  delay(durationMs);
-  
-  // Desactivar barrera
-  digitalWrite(pin, LOW);
-  Serial.print("{\"status\":\"success\",\"action\":\"close_gate\",\"pin\":");
-  Serial.print(pin);
-  Serial.println("}");
-}
-
-// --- Rutas del Servidor HTTP ---
+// --- Rutas ---
 
 void handleRoot() {
-  server.send(200, "text/plain", "GTR ESP32 Hardware Bridge is Active!");
+  server.send(200, "text/plain", "GTR ESP32 Dual Gate Bridge is Active!");
 }
 
-void handleGate() {
-  int pin = DEFAULT_RELAY_PIN;
-  int duration = 2000;
-  
-  if (server.hasArg("pin")) {
-    pin = server.arg("pin").toInt();
-  }
-  if (server.hasArg("duration")) {
-    duration = server.arg("duration").toInt();
-  }
-  
-  // Responder al cliente HTTP primero para no bloquear la conexión
-  String json = "{\"status\":\"success\",\"action\":\"open_gate\",\"pin\":" + String(pin) + ",\"duration\":" + String(duration) + "}";
+void handleEntradaAbrir() {
+  servoEntrada.write(anguloEntradaAbierto);
+  entradaAbierta = true;
+  String json = "{\"status\":\"success\",\"action\":\"entrada_abrir\"}";
   server.send(200, "application/json", json);
-  
-  // Ejecutar apertura física
-  executeOpenGate(pin, duration);
+  Serial.println(json);
+}
+
+void handleEntradaCerrar() {
+  servoEntrada.write(anguloEntradaCerrado);
+  entradaAbierta = false;
+  entradaPasando = false;
+  String json = "{\"status\":\"success\",\"action\":\"entrada_cerrar\"}";
+  server.send(200, "application/json", json);
+  Serial.println(json);
+}
+
+void handleSalidaAbrir() {
+  servoSalida.write(anguloSalidaAbierto);
+  salidaAbierta = true;
+  String json = "{\"status\":\"success\",\"action\":\"salida_abrir\"}";
+  server.send(200, "application/json", json);
+  Serial.println(json);
+}
+
+void handleSalidaCerrar() {
+  servoSalida.write(anguloSalidaCerrado);
+  salidaAbierta = false;
+  salidaPasando = false;
+  String json = "{\"status\":\"success\",\"action\":\"salida_cerrar\"}";
+  server.send(200, "application/json", json);
+  Serial.println(json);
 }
 
 void handleLed() {
   int state = 0;
-  if (server.hasArg("state")) {
-    state = server.arg("state").toInt();
-  }
-  
-  pinMode(DEFAULT_RELAY_PIN, OUTPUT);
+  if (server.hasArg("state")) state = server.arg("state").toInt();
   digitalWrite(DEFAULT_RELAY_PIN, state == 1 ? HIGH : LOW);
   ledState = state;
-  
   String json = "{\"status\":\"success\",\"led_state\":" + String(state) + "}";
   server.send(200, "application/json", json);
-  
-  Serial.print("{\"status\":\"led_change\",\"state\":");
-  Serial.print(state);
-  Serial.println("}");
+  Serial.println(json);
 }
 
 void handleStatus() {
-  String json = "{\"device\":\"GTR-ESP32-Bridge\",\"wifi_connected\":true,\"ip\":\"" + WiFi.localIP().toString() + "\",\"signal_strength\":" + String(WiFi.RSSI()) + "}";
+  String json = "{\"device\":\"GTR-ESP32-Bridge\",\"wifi_connected\":true,\"ip\":\"" + WiFi.localIP().toString() + "\",\"signal_strength\":" + String(WiFi.RSSI());
+  json += ",\"entrada_abierta\":" + String(entradaAbierta ? "true" : "false");
+  json += ",\"salida_abierta\":" + String(salidaAbierta ? "true" : "false");
+  json += "}";
   server.send(200, "application/json", json);
 }
 
 void handleHeartbeat() {
-  // Health-check ultraligero — la Orange Pi lo usa para medir latencia
   String json = "{\"alive\":true,\"uptime_ms\":" + String(millis() - bootTime) + ",\"led_state\":" + String(ledState) + "}";
   server.send(200, "application/json", json);
 }
 
 void handleInfo() {
-  // Info detallada del ESP32
   unsigned long uptimeMs = millis() - bootTime;
   unsigned long uptimeSec = uptimeMs / 1000;
   unsigned long hours = uptimeSec / 3600;
   unsigned long minutes = (uptimeSec % 3600) / 60;
   unsigned long seconds = uptimeSec % 60;
-  
   String uptimeStr = String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s";
   
   String json = "{";
@@ -268,13 +293,15 @@ void handleInfo() {
   json += ",\"free_heap\":" + String(ESP.getFreeHeap());
   json += ",\"led_state\":" + String(ledState);
   json += ",\"registered\":" + String(registrationDone ? "true" : "false");
+  json += ",\"entrada_abierta\":" + String(entradaAbierta ? "true" : "false");
+  json += ",\"salida_abierta\":" + String(salidaAbierta ? "true" : "false");
   json += "}";
   
   server.send(200, "application/json", json);
 }
 
 void loop() {
-  // --- Reconexión WiFi automática ---
+  // 1. Reconexión WiFi
   if (WiFi.status() != WL_CONNECTED) {
     unsigned long now = millis();
     if (now - lastWifiReconnectAttempt > WIFI_RECONNECT_INTERVAL) {
@@ -287,7 +314,6 @@ void loop() {
         WiFi.begin(WIFI_SSID);
       #endif
       
-      // Esperar breve (3s max) sin bloquear demasiado el loop
       int retries = 0;
       while (WiFi.status() != WL_CONNECTED && retries < 6) {
         delay(500);
@@ -296,12 +322,12 @@ void loop() {
       
       if (WiFi.status() == WL_CONNECTED) {
         Serial.println("{\"status\":\"wifi_reconnected\",\"ip\":\"" + WiFi.localIP().toString() + "\"}");
-        registrationDone = false; // Forzar re-registro con nueva IP posible
+        registrationDone = false;
       }
     }
   }
   
-  // --- Reintento de registro si falló previamente ---
+  // 2. Reintento de registro
   if (WiFi.status() == WL_CONNECTED && !registrationDone) {
     unsigned long now = millis();
     if (now - lastRegistrationAttempt > REGISTRATION_RETRY_INTERVAL) {
@@ -309,94 +335,94 @@ void loop() {
     }
   }
 
-  // Procesar peticiones HTTP vía WiFi
+  // 3. Procesar peticiones HTTP
   if (WiFi.status() == WL_CONNECTED) {
     server.handleClient();
   }
 
-  // Procesar comandos vía USB Serial
+  // 4. Lógica de Sensores Automáticos
+  if (millis() - ultimoEscaneo > 80) {
+    ultimoEscaneo = millis();
+
+    // 🚗 CONTROL AUTOMÁTICO DE ENTRADA
+    if (!entradaAbierta) {
+      // Abre con el IR Externo
+      if (digitalRead(pinIREntradaAbrir) == LOW) { 
+        Serial.println("{\"status\":\"sensor\",\"msg\":\"IR Ext Entrada detectado. Abriendo...\"}");
+        servoEntrada.write(anguloEntradaAbierto);
+        entradaAbierta = true;
+      }
+    } else {
+      // Cierra con el Ultrasónico Interno
+      long distEntrada = obtenerDistancia(pinTriggerEntrada, pinEchoEntrada);
+      if (distEntrada < distanciaCorte) {
+        entradaPasando = true;
+      } 
+      else if (distEntrada >= distanciaCorte && entradaPasando) {
+        Serial.println("{\"status\":\"sensor\",\"msg\":\"Ultrasonico Entrada despejado. Cerrando...\"}");
+        delay(800);
+        servoEntrada.write(anguloEntradaCerrado);
+        entradaAbierta = false;
+        entradaPasando = false;
+      }
+    }
+
+    // 🚙 CONTROL AUTOMÁTICO DE SALIDA
+    if (!salidaAbierta) {
+      // Abre con el Ultrasónico Interno
+      long distSalida = obtenerDistancia(pinTriggerSalida, pinEchoSalida);
+      if (distSalida < distanciaCorte) {
+        Serial.println("{\"status\":\"sensor\",\"msg\":\"Ultrasonico Salida detectado. Abriendo...\"}");
+        servoSalida.write(anguloSalidaAbierto);
+        salidaAbierta = true;
+      }
+    } else {
+      // Cierra con el IR Externo
+      if (digitalRead(pinIRSalidaCerrar) == LOW) {
+        salidaPasando = true;
+      } 
+      else if (digitalRead(pinIRSalidaCerrar) == HIGH && salidaPasando) {
+        Serial.println("{\"status\":\"sensor\",\"msg\":\"IR Ext Salida despejado. Cerrando...\"}");
+        delay(800);
+        servoSalida.write(anguloSalidaCerrado);
+        salidaAbierta = false;
+        salidaPasando = false;
+      }
+    }
+  }
+
+  // 5. Comandos Serial
   if (Serial.available() > 0) {
     String input = Serial.readStringUntil('\n');
     input.trim();
-    
     if (input.length() == 0) return;
     
-    // Parser JSON Simple
     if (input.startsWith("{\"") || input.startsWith("{")) {
       int cmdIndex = input.indexOf("\"command\"");
-      int pinIndex = input.indexOf("\"pin\"");
-      int durIndex = input.indexOf("\"duration\"");
-      
       if (cmdIndex != -1) {
         int startQuote = input.indexOf(':', cmdIndex);
         int valStart = input.indexOf('"', startQuote);
         int valEnd = input.indexOf('"', valStart + 1);
         String command = input.substring(valStart + 1, valEnd);
         
-        int pin = DEFAULT_RELAY_PIN;
-        if (pinIndex != -1) {
-          int startPinVal = input.indexOf(':', pinIndex) + 1;
-          while (isspace(input[startPinVal]) || input[startPinVal] == ' ') startPinVal++;
-          int endPinVal = startPinVal;
-          while (isdigit(input[endPinVal])) endPinVal++;
-          pin = input.substring(startPinVal, endPinVal).toInt();
-        }
-        
-        int duration = 2000;
-        if (durIndex != -1) {
-          int startDurVal = input.indexOf(':', durIndex) + 1;
-          while (isspace(input[startDurVal]) || input[startDurVal] == ' ') startDurVal++;
-          int endDurVal = startDurVal;
-          while (isdigit(input[endDurVal])) endDurVal++;
-          duration = input.substring(startDurVal, endDurVal).toInt();
-        }
-        
-        if (command == "open_gate") {
-          executeOpenGate(pin, duration);
-        } else if (command == "ping") {
-          Serial.println("{\"status\":\"pong\"}");
-        } else {
-          Serial.print("{\"status\":\"error\",\"message\":\"unknown_command\",\"command\":\"");
-          Serial.print(command);
-          Serial.println("\"}");
-        }
-      } else {
-        Serial.println("{\"status\":\"error\",\"message\":\"invalid_json\"}");
+        if (command == "e_abrir") handleEntradaAbrir();
+        else if (command == "e_cerrar") handleEntradaCerrar();
+        else if (command == "s_abrir") handleSalidaAbrir();
+        else if (command == "s_cerrar") handleSalidaCerrar();
+        else if (command == "ping") Serial.println("{\"status\":\"pong\"}");
+        else Serial.println("{\"status\":\"error\",\"message\":\"unknown_command\"}");
       }
-    } 
-    // Parser de Texto Simple
-    else if (input.startsWith("OPEN:") || input.startsWith("open:")) {
-      int colon1 = input.indexOf(':');
-      int colon2 = input.indexOf(':', colon1 + 1);
-      int pin = DEFAULT_RELAY_PIN;
-      int duration = 2000;
-      
-      if (colon2 != -1) {
-        pin = input.substring(colon1 + 1, colon2).toInt();
-        duration = input.substring(colon2 + 1).toInt();
-      } else {
-        duration = input.substring(colon1 + 1).toInt();
-      }
-      executeOpenGate(pin, duration);
-    } 
+    }
+    else if (input.startsWith("E_ABRIR") || input.startsWith("e_abrir")) handleEntradaAbrir();
+    else if (input.startsWith("E_CERRAR") || input.startsWith("e_cerrar")) handleEntradaCerrar();
+    else if (input.startsWith("S_ABRIR") || input.startsWith("s_abrir")) handleSalidaAbrir();
+    else if (input.startsWith("S_CERRAR") || input.startsWith("s_cerrar")) handleSalidaCerrar();
     else if (input.startsWith("LED:") || input.startsWith("led:")) {
-      // Comando LED simple vía Serial (LED:1 para encender, LED:0 para apagar)
-      int colon1 = input.indexOf(':');
-      int state = input.substring(colon1 + 1).toInt();
-      pinMode(DEFAULT_RELAY_PIN, OUTPUT);
+      int state = input.substring(input.indexOf(':') + 1).toInt();
       digitalWrite(DEFAULT_RELAY_PIN, state == 1 ? HIGH : LOW);
       ledState = state;
-      Serial.print("{\"status\":\"led_change\",\"state\":");
-      Serial.print(state);
-      Serial.println("}");
+      Serial.println("{\"status\":\"led_change\",\"state\":" + String(state) + "}");
     }
-    else if (input == "PING" || input == "ping") {
-      Serial.println("{\"status\":\"pong\"}");
-    } 
-    else {
-      Serial.print("{\"status\":\"error\",\"message\":\"invalid_format\",\"input\":\"");
-      Serial.print(input);
-      Serial.println("\"}");
-    }
+    else if (input == "PING" || input == "ping") Serial.println("{\"status\":\"pong\"}");
   }
 }

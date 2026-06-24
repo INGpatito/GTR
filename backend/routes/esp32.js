@@ -114,7 +114,10 @@ router.post("/command", async (req, res) => {
     const { command, params = {} } = req.body;
     let esp32Path = null;
 
-    if      (command === "open_gate") esp32Path = `/api/gate?pin=${params.pin||2}&duration=${params.duration||2000}`;
+    if      (command === "e_abrir")  esp32Path = "/api/entrada/abrir";
+    else if (command === "e_cerrar") esp32Path = "/api/entrada/cerrar";
+    else if (command === "s_abrir")  esp32Path = "/api/salida/abrir";
+    else if (command === "s_cerrar") esp32Path = "/api/salida/cerrar";
     else if (command === "led_on")   esp32Path = "/api/led?state=1";
     else if (command === "led_off")  esp32Path = "/api/led?state=0";
     else if (command === "ping")     esp32Path = "/api/status";
