@@ -93,6 +93,64 @@
             android:letterSpacing="0.4" />
     </LinearLayout>
 
+    <!-- ═══ FAREWELL STATE: Gracias por su visita + Name ═══ -->
+    <LinearLayout
+        android:id="@+id/farewellContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        android:alpha="0">
+
+        <!-- Gold diamond ornament -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="◆"
+            android:textColor="@color/gold_dark"
+            android:textSize="36sp"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/farewellLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/farewell_text"
+            android:textColor="@color/gold"
+            android:textSize="28sp"
+            android:letterSpacing="0.3"
+            android:fontFamily="sans-serif-light" />
+
+        <!-- Gold divider line -->
+        <View
+            android:layout_width="120dp"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:background="@color/gold_dark" />
+
+        <TextView
+            android:id="@+id/farewellNameText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/white"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:fontFamily="sans-serif-medium" />
+
+        <!-- Small GTR badge below the name -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="PARKING GTR"
+            android:textColor="@color/text_muted"
+            android:textSize="12sp"
+            android:letterSpacing="0.4" />
+    </LinearLayout>
+
     <!-- ═══ PARKING STATE: User Garage Interface ═══ -->
     <ScrollView
         android:id="@+id/parkingContainer"

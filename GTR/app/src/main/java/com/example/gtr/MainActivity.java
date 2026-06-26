@@ -89,6 +89,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView parkingStatusText;
     private LinearLayout spotSelectorContainer;
     private TextView btnHeliport;
+    private LinearLayout farewellContainer;
+    private TextView farewellNameText;
 
     // Polling
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -142,6 +144,8 @@ public class MainActivity extends AppCompatActivity {
         parkingStatusText = findViewById(R.id.parkingStatusText);
         spotSelectorContainer = findViewById(R.id.spotSelectorContainer);
         btnHeliport = findViewById(R.id.btnHeliport);
+        farewellContainer = findViewById(R.id.farewellContainer);
+        farewellNameText = findViewById(R.id.farewellNameText);
 
         hideSystemUI();
         showLogo();
@@ -239,11 +243,18 @@ public class MainActivity extends AppCompatActivity {
                     if (!json.optBoolean("success", false) || json.isNull("event")) return;
                     JSONObject event = json.getJSONObject("event");
                     String memberName = event.optString("member_name", "");
+                    String eventType = event.optString("event_type", "welcome");
                     long timestamp = event.optLong("timestamp", 0);
                     if (memberName.isEmpty() || timestamp == lastEventTimestamp) return;
                     lastEventTimestamp = timestamp;
-                    Log.i(TAG, "Scan event received: " + memberName);
-                    runOnUiThread(() -> showWelcome(memberName));
+                    Log.i(TAG, "Scan event received: " + memberName + " (" + eventType + ")");
+                    runOnUiThread(() -> {
+                        if ("farewell".equals(eventType)) {
+                            showFarewell(memberName);
+                        } else {
+                            showWelcome(memberName);
+                        }
+                    });
                     clearScanEvent();
                 } catch (Exception e) {
                     Log.e(TAG, "Error parsing scan event", e);
@@ -268,10 +279,13 @@ public class MainActivity extends AppCompatActivity {
         isShowingParking = false;
         logoContainer.clearAnimation();
         welcomeContainer.clearAnimation();
+        farewellContainer.clearAnimation();
         logoContainer.setAlpha(1f);
         logoContainer.setVisibility(View.VISIBLE);
         welcomeContainer.setAlpha(0f);
         welcomeContainer.setVisibility(View.GONE);
+        farewellContainer.setAlpha(0f);
+        farewellContainer.setVisibility(View.GONE);
         parkingContainer.setAlpha(0f);
         parkingContainer.setVisibility(View.GONE);
     }
@@ -282,12 +296,15 @@ public class MainActivity extends AppCompatActivity {
         memberNameText.setText(memberName);
         logoContainer.animate().cancel();
         welcomeContainer.animate().cancel();
+        farewellContainer.animate().cancel();
 
         logoContainer.animate().alpha(0f).setDuration(400)
                 .withEndAction(() -> logoContainer.setVisibility(View.GONE)).start();
 
         parkingContainer.setVisibility(View.GONE);
         parkingContainer.setAlpha(0f);
+        farewellContainer.setVisibility(View.GONE);
+        farewellContainer.setAlpha(0f);
 
         welcomeContainer.setAlpha(0f);
         welcomeContainer.setVisibility(View.VISIBLE);
@@ -296,6 +313,36 @@ public class MainActivity extends AppCompatActivity {
         handler.postDelayed(() -> {
             welcomeContainer.animate().alpha(0f).setDuration(400)
                     .withEndAction(() -> welcomeContainer.setVisibility(View.GONE)).start();
+            logoContainer.setAlpha(0f);
+            logoContainer.setVisibility(View.VISIBLE);
+            logoContainer.animate().alpha(1f).setDuration(500).start();
+            isShowingWelcome = false;
+        }, WELCOME_DURATION_MS);
+    }
+
+    private void showFarewell(String memberName) {
+        isShowingWelcome = true; // reuse flag to block polling
+        isShowingParking = false;
+        farewellNameText.setText(memberName);
+        logoContainer.animate().cancel();
+        welcomeContainer.animate().cancel();
+        farewellContainer.animate().cancel();
+
+        logoContainer.animate().alpha(0f).setDuration(400)
+                .withEndAction(() -> logoContainer.setVisibility(View.GONE)).start();
+
+        parkingContainer.setVisibility(View.GONE);
+        parkingContainer.setAlpha(0f);
+        welcomeContainer.setVisibility(View.GONE);
+        welcomeContainer.setAlpha(0f);
+
+        farewellContainer.setAlpha(0f);
+        farewellContainer.setVisibility(View.VISIBLE);
+        farewellContainer.animate().alpha(1f).setDuration(500).start();
+
+        handler.postDelayed(() -> {
+            farewellContainer.animate().alpha(0f).setDuration(400)
+                    .withEndAction(() -> farewellContainer.setVisibility(View.GONE)).start();
             logoContainer.setAlpha(0f);
             logoContainer.setVisibility(View.VISIBLE);
             logoContainer.animate().alpha(1f).setDuration(500).start();

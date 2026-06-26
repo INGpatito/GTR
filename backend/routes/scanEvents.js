@@ -25,18 +25,23 @@ let lastScanEvent = null;
  * Body: { member_name: "Juan Pérez" }
  */
 router.post("/", requireAdminKey, (req, res) => {
-  const { member_name, member_id } = req.body;
+  const { member_name, member_id, event_type } = req.body;
   if (!member_name || typeof member_name !== "string") {
     return res.status(400).json({ success: false, errors: ["member_name is required."] });
   }
 
+  // event_type: "welcome" (check-in) | "farewell" (check-out) | default "welcome"
+  const validTypes = ["welcome", "farewell"];
+  const resolvedType = validTypes.includes(event_type) ? event_type : "welcome";
+
   lastScanEvent = {
     member_name: member_name.trim(),
     member_id: member_id || null,
+    event_type: resolvedType,
     timestamp: Date.now(),
   };
 
-  console.log(`📡 Scan event received: ${lastScanEvent.member_name}`);
+  console.log(`📡 Scan event received: ${lastScanEvent.member_name} (${resolvedType})`);
   res.json({ success: true, event: lastScanEvent });
 });
 
@@ -77,6 +82,7 @@ router.post("/card", async (req, res) => {
     lastScanEvent = {
       member_name: matchedUser.full_name,
       member_id: matchedUser.id,
+      event_type: "welcome",
       timestamp: Date.now(),
     };
 

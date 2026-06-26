@@ -23,4 +23,5 @@
     <string name="btn_cancel">Cancelar</string>
     <string name="btn_parking">🅿️ Parking</string>
     <string name="parking_scan_camera">ESCANEAR QR</string>
+    <string name="farewell_text">Gracias por su visita</string>
 </resources>

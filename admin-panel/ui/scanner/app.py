@@ -261,8 +261,13 @@ class MemberScanner(ctk.CTk):
             parking_spots=parking_spots,
         )
 
-    def _notify_scan_event(self, member_name: str) -> None:
-        """Sends scan event to backend and local mock server for Android display."""
+    def _notify_scan_event(self, member_name: str, event_type: str = "welcome") -> None:
+        """Sends scan event to backend and local mock server for Android display.
+        
+        Args:
+            member_name: Name of the member.
+            event_type: 'welcome' for check-in, 'farewell' for check-out.
+        """
         import time as _time
         from utils.mock_server import _latest_event_lock
         import utils.mock_server as _mock
@@ -271,15 +276,19 @@ class MemberScanner(ctk.CTk):
         with _latest_event_lock:
             _mock.latest_scan_event = {
                 "member_name": member_name,
+                "event_type": event_type,
                 "timestamp": int(_time.time() * 1000),
             }
-        print(f"[SCAN-EVENT] Evento local registrado: {member_name}")
+        print(f"[SCAN-EVENT] Evento local registrado: {member_name} ({event_type})")
 
         # 2. También intentar notificar al backend remoto (si existe)
         def _send():
             try:
                 url = f"{API_BASE_URL}/api/scan-event"
-                data = json.dumps({"member_name": member_name}).encode("utf-8")
+                data = json.dumps({
+                    "member_name": member_name,
+                    "event_type": event_type,
+                }).encode("utf-8")
                 req = urllib.request.Request(
                     url,
                     data=data,
@@ -290,7 +299,7 @@ class MemberScanner(ctk.CTk):
                     method="POST",
                 )
                 with urllib.request.urlopen(req, timeout=3) as resp:
-                    print(f"[SCAN-EVENT] Backend remoto notificado: {member_name} → {resp.status}")
+                    print(f"[SCAN-EVENT] Backend remoto notificado: {member_name} ({event_type}) → {resp.status}")
             except Exception as e:
                 # No es crítico si el backend remoto no está disponible
                 pass
@@ -356,12 +365,26 @@ class MemberScanner(ctk.CTk):
                 result = parking_service.approve_request(request_id, spot_id)
                 if result:
                     self.esp32.open_gate(pin=2, duration_ms=2000)
+
+                    # Get the member name for the Android display notification
+                    member_name = None
+                    if self._current_row:
+                        member_name = self._current_row[1]
+
                     type_labels = {
                         "check_in": "Ingreso aprobado. El socio elegirá su espacio desde la app.",
                         "check_out": "Retiro aprobado. Espacios liberados.",
                         "heliport": "Helipuerto reservado exitosamente.",
                     }
                     msg = type_labels.get(request_type, "Solicitud aprobada.")
+
+                    # Notify Android display with the correct event type
+                    if member_name:
+                        if request_type == "check_in":
+                            self._notify_scan_event(member_name, "welcome")
+                        elif request_type == "check_out":
+                            self._notify_scan_event(member_name, "farewell")
+
                     self.after(0, lambda: [
                         messagebox.showinfo("Aprobado", msg),
                         self._fetch_and_show(self.current_member_id, show_spots=True)

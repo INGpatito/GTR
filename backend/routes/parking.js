@@ -275,6 +275,33 @@ router.post("/spot/select", async (req, res) => {
       return res.status(400).json({ success: false, errors: ["Espacio no disponible."] });
     }
 
+    // ── Prevent duplicate assignment: if vehicle already occupies a spot, free it first ──
+    if (vehicle_id) {
+      const existingSpot = await pool.query(
+        `SELECT id, spot_label FROM parking_spots
+         WHERE occupied_by_vehicle_id = $1 AND status = 'occupied'`,
+        [vehicle_id]
+      );
+      if (existingSpot.rows.length > 0) {
+        const oldSpot = existingSpot.rows[0];
+        await pool.query(
+          `UPDATE parking_spots SET status = 'available', occupied_by_user_id = NULL,
+           occupied_by_vehicle_id = NULL, occupied_at = NULL
+           WHERE id = $1`,
+          [oldSpot.id]
+        );
+        console.log(`🔄 Vehicle ${vehicle_id} reassigned: freed old spot ${oldSpot.spot_label}`);
+      }
+    }
+
+    // Also free any spots already occupied by the same user (prevent user duplicates)
+    await pool.query(
+      `UPDATE parking_spots SET status = 'available', occupied_by_user_id = NULL,
+       occupied_by_vehicle_id = NULL, occupied_at = NULL
+       WHERE occupied_by_user_id = $1 AND status = 'occupied' AND id != $2`,
+      [user_id, spot_id]
+    );
+
     // Occupy the spot
     await pool.query(
       `UPDATE parking_spots SET status = 'occupied', occupied_by_user_id = $1,

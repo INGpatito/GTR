@@ -74,8 +74,24 @@ def get_available_spots(floor: int = None) -> list[tuple]:
 
 
 def occupy_spot(spot_id: int, user_id: int, vehicle_id: int = None) -> bool:
-    """Ocupa un spot de estacionamiento."""
+    """Ocupa un spot de estacionamiento.
+    
+    Si el vehículo ya ocupa otro spot, lo libera primero (reasignación).
+    """
     with db_cursor() as cur:
+        # Prevent duplicate assignment: free old spot if vehicle already parked
+        if vehicle_id:
+            cur.execute("""
+                UPDATE parking_spots
+                SET status = 'available',
+                    occupied_by_user_id = NULL,
+                    occupied_by_vehicle_id = NULL,
+                    occupied_at = NULL
+                WHERE occupied_by_vehicle_id = %s AND status = 'occupied' AND id != %s
+            """, (vehicle_id, spot_id))
+            if cur.rowcount > 0:
+                print(f"[PARKING] Vehículo {vehicle_id} reasignado: spot anterior liberado")
+
         cur.execute("""
             UPDATE parking_spots
             SET status = 'occupied',
