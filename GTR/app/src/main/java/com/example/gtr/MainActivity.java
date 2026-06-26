@@ -632,8 +632,15 @@ public class MainActivity extends AppCompatActivity {
                                     ? "✅ ¡Helipuerto reservado!"
                                     : "✅ ¡Retiro aprobado!";
                                 parkingStatusText.setText(msg);
-                                parkingStatusText.setTextColor(ContextCompat.getColor(MainActivity.this, R.color.green_available));
-                                handler.postDelayed(() -> resetParkingToIdle(), 3000);
+                                if ("check_out".equals(reqType)) {
+                                    String name = currentUserName;
+                                    handler.postDelayed(() -> {
+                                        closeParkingInterface();
+                                        showFarewell(name);
+                                    }, 2000);
+                                } else {
+                                    handler.postDelayed(() -> resetParkingToIdle(), 3000);
+                                }
                             }
                         });
                     } else if ("rejected".equals(status)) {

@@ -242,9 +242,6 @@ class MemberScanner(ctk.CTk):
         self._current_card_num = card_num
         play_chime()
 
-        # Notify Android display via backend API
-        self._notify_scan_event(full_name)
-
         self.sidebar.db_status.set_status(
             f"● GTR-{str(uid).zfill(4)} cargado", GREEN
         )
