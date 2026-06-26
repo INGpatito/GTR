@@ -51,7 +51,7 @@ class ProfileView:
         ).pack(pady=(12, 0))
 
     def render(self, row, vehicles, activity, card_num,
-               on_checkin=None, on_checkout=None, on_close=None,
+               on_checkin=None, on_checkout=None, on_close=None, on_force_close_tablet=None,
                on_show_spots=None, parking_spots=None,
                pending_requests=None, on_approve_request=None,
                on_reject_request=None, on_free_spot=None):
@@ -90,7 +90,7 @@ class ProfileView:
         # ── 2. INFO PERSONAL + BOTONES ──
         self._render_info_panel(
             scroll, uid, email, phone, service, status, created_at,
-            on_checkin, on_checkout, on_close,
+            on_checkin, on_checkout, on_close, on_force_close_tablet
         )
 
         # ── 3. GARAJE ──
@@ -162,7 +162,7 @@ class ProfileView:
         ).grid(row=0, column=2, sticky="ne", padx=(8, 0))
 
     def _render_info_panel(self, parent, uid, email, phone, service, status,
-                           created_at, on_checkin, on_checkout, on_close):
+                           created_at, on_checkin, on_checkout, on_close, on_force_close_tablet=None):
         frame = ctk.CTkFrame(parent, fg_color=PANEL_BG, corner_radius=12)
         frame.grid(row=1, column=0, padx=(0, 10), pady=(0, 16), sticky="nsew")
 
@@ -191,33 +191,50 @@ class ProfileView:
                 font=ctk.CTkFont("Helvetica", 12), anchor="w",
             ).pack(side="left")
 
-        # Botones — Skip + Check-Out + Cerrar
+        # Botones — Skip + Check-Out + Cerrar + Cerrar Tablet
         btn_row = ctk.CTkFrame(frame, fg_color="transparent")
         btn_row.pack(fill="x", padx=16, pady=(16, 16))
 
+        # First row of buttons
+        btn_row1 = ctk.CTkFrame(btn_row, fg_color="transparent")
+        btn_row1.pack(fill="x", pady=(0, 4))
+
         ctk.CTkButton(
-            btn_row, text="⏭  Skip",
+            btn_row1, text="⏭  Skip",
             height=36, corner_radius=8,
             fg_color="#333", hover_color="#444",
             font=ctk.CTkFont("Helvetica", 12),
             command=lambda: on_checkin(uid, status) if on_checkin else None,
-        ).pack(side="left", expand=True, fill="x", padx=(0, 4))
+        ).pack(side="left", expand=True, fill="x", padx=(0, 2))
 
         ctk.CTkButton(
-            btn_row, text="🚪  Check-Out",
+            btn_row1, text="🚪  Check-Out",
             height=36, corner_radius=8,
             fg_color=GREEN, hover_color=GREEN_HOVER, text_color="#000",
             font=ctk.CTkFont("Helvetica", 12, "bold"),
             command=lambda: on_checkout(uid) if on_checkout else None,
-        ).pack(side="left", expand=True, fill="x", padx=(4, 4))
+        ).pack(side="left", expand=True, fill="x", padx=(2, 0))
+
+        # Second row of buttons
+        btn_row2 = ctk.CTkFrame(btn_row, fg_color="transparent")
+        btn_row2.pack(fill="x", pady=(4, 0))
 
         ctk.CTkButton(
-            btn_row, text="✕  Cerrar",
+            btn_row2, text="✕  Cerrar Perfil",
             height=36, corner_radius=8,
             fg_color=RED, hover_color=RED_HOVER, text_color="#fff",
             font=ctk.CTkFont("Helvetica", 12, "bold"),
             command=lambda: on_close() if on_close else None,
-        ).pack(side="left", expand=True, fill="x", padx=(4, 0))
+        ).pack(side="left", expand=True, fill="x", padx=(0, 2))
+
+        if on_force_close_tablet:
+            ctk.CTkButton(
+                btn_row2, text="📱 Cerrar Tablet",
+                height=36, corner_radius=8,
+                fg_color="#8F7322", hover_color="#6F581A", text_color="#fff",
+                font=ctk.CTkFont("Helvetica", 12, "bold"),
+                command=on_force_close_tablet,
+            ).pack(side="left", expand=True, fill="x", padx=(2, 0))
 
     def _render_garage(self, parent, vehicles):
         frame = ctk.CTkFrame(parent, fg_color=PANEL_BG, corner_radius=12)

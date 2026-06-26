@@ -93,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
     private View btnParkingWithdraw;
     private LinearLayout farewellContainer;
     private TextView farewellNameText;
+    private boolean pendingFarewell = false;
 
     // Polling
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -236,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
 
     // ═══ POLLING SCAN EVENTS ═══
     private void pollScanEvent() {
-        if (isShowingWelcome || isShowingParking) return;
+        if (isShowingWelcome) return;
         String url = apiBaseUrl + "/api/scan-event";
         httpClient.newCall(new Request.Builder().url(url).build()).enqueue(new Callback() {
             @Override public void onFailure(Call call, IOException e) {}
@@ -254,10 +255,17 @@ public class MainActivity extends AppCompatActivity {
                     lastEventTimestamp = timestamp;
                     Log.i(TAG, "Scan event received: " + memberName + " (" + eventType + ")");
                     runOnUiThread(() -> {
-                        if ("farewell".equals(eventType)) {
-                            showFarewell(memberName);
-                        } else {
-                            showWelcome(memberName);
+                        if ("close_ui".equals(eventType)) {
+                            if (isShowingParking) {
+                                pendingFarewell = false; // abort farewell if admin forces close
+                                closeParkingInterface();
+                            }
+                        } else if (!isShowingParking) {
+                            if ("farewell".equals(eventType)) {
+                                showFarewell(memberName);
+                            } else {
+                                showWelcome(memberName);
+                            }
                         }
                     });
                     clearScanEvent();
@@ -398,6 +406,12 @@ public class MainActivity extends AppCompatActivity {
         logoContainer.setAlpha(0f);
         logoContainer.setVisibility(View.VISIBLE);
         logoContainer.animate().alpha(1f).setDuration(400).start();
+        
+        if (pendingFarewell) {
+            String name = currentUserName;
+            pendingFarewell = false;
+            handler.postDelayed(() -> showFarewell(name), 300);
+        }
     }
 
     private void resetParkingToIdle() {
@@ -638,14 +652,9 @@ public class MainActivity extends AppCompatActivity {
                                     : "✅ ¡Retiro aprobado!";
                                 parkingStatusText.setText(msg);
                                 if ("check_out".equals(reqType)) {
-                                    String name = currentUserName;
-                                    handler.postDelayed(() -> {
-                                        closeParkingInterface();
-                                        showFarewell(name);
-                                    }, 2000);
-                                } else {
-                                    handler.postDelayed(() -> resetParkingToIdle(), 3000);
+                                    pendingFarewell = true;
                                 }
+                                handler.postDelayed(() -> resetParkingToIdle(), 3000);
                             }
                         });
                     } else if ("rejected".equals(status)) {

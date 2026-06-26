@@ -101,6 +101,20 @@ router.post("/request", async (req, res) => {
   }
 
   try {
+    // ── Validation: Check if the specific vehicle is actually parked for check_out ──
+    if (request_type === "check_out" && vehicle_id) {
+      const checkSpot = await pool.query(
+        "SELECT id FROM parking_spots WHERE occupied_by_vehicle_id = $1 AND status = 'occupied'",
+        [vehicle_id]
+      );
+      if (checkSpot.rows.length === 0) {
+        return res.status(400).json({ 
+          success: false, 
+          errors: ["Este vehículo no se encuentra registrado dentro del estacionamiento."] 
+        });
+      }
+    }
+
     // Cancel any previous pending requests of the same type from this user
     await pool.query(
       `UPDATE parking_requests SET status = 'rejected' WHERE user_id = $1 AND status = 'pending'`,

@@ -251,12 +251,21 @@ class MemberScanner(ctk.CTk):
             on_checkin=self._skip,
             on_checkout=self._checkout,
             on_close=self._close_profile,
+            on_force_close_tablet=self._force_close_tablet,
             on_approve_request=self._approve_parking_request,
             on_reject_request=self._reject_parking_request,
             on_free_spot=self._free_spot,
             pending_requests=pending_requests,
             parking_spots=parking_spots,
         )
+
+    def _force_close_tablet(self) -> None:
+        """Sends a close_ui event to force the Android tablet to close the parking interface."""
+        if self._current_row:
+            member_name = self._current_row[1]
+            self._notify_scan_event(member_name, "close_ui")
+            from tkinter import messagebox
+            messagebox.showinfo("Comando Enviado", "Se envió la orden para cerrar la pantalla de la tablet.")
 
     def _notify_scan_event(self, member_name: str, event_type: str = "welcome") -> None:
         """Sends scan event to backend and local mock server for Android display.
