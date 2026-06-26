@@ -91,12 +91,19 @@ router.post("/card", async (req, res) => {
       [matchedUser.id]
     );
 
+    const spotsResult = await pool.query(
+      "SELECT id FROM parking_spots WHERE occupied_by_user_id = $1 AND status = 'occupied' LIMIT 1",
+      [matchedUser.id]
+    );
+    const hasParkedVehicle = spotsResult.rows.length > 0;
+
     console.log(`📡 Scan event triggered via card number lookup: ${lastScanEvent.member_name}`);
     res.json({ 
       success: true, 
       member_name: lastScanEvent.member_name, 
       member_id: lastScanEvent.member_id,
-      vehicles: vehiclesResult.rows 
+      vehicles: vehiclesResult.rows,
+      has_parked_vehicle: hasParkedVehicle
     });
   } catch (err) {
     console.error("Error resolving card number:", err);

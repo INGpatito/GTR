@@ -89,6 +89,8 @@ public class MainActivity extends AppCompatActivity {
     private TextView parkingStatusText;
     private LinearLayout spotSelectorContainer;
     private TextView btnHeliport;
+    private View btnParkingEnter;
+    private View btnParkingWithdraw;
     private LinearLayout farewellContainer;
     private TextView farewellNameText;
 
@@ -151,8 +153,11 @@ public class MainActivity extends AppCompatActivity {
         showLogo();
 
         // Parking buttons
-        findViewById(R.id.btnParkingEnter).setOnClickListener(v -> sendParkingRequest("check_in"));
-        findViewById(R.id.btnParkingWithdraw).setOnClickListener(v -> sendParkingRequest("check_out"));
+        btnParkingEnter = findViewById(R.id.btnParkingEnter);
+        btnParkingWithdraw = findViewById(R.id.btnParkingWithdraw);
+        
+        btnParkingEnter.setOnClickListener(v -> sendParkingRequest("check_in"));
+        btnParkingWithdraw.setOnClickListener(v -> sendParkingRequest("check_out"));
         findViewById(R.id.parkingCloseBtn).setOnClickListener(v -> resetParkingToIdle());
         btnHeliport.setOnClickListener(v -> sendParkingRequest("heliport"));
 
@@ -959,6 +964,7 @@ public class MainActivity extends AppCompatActivity {
                         JSONObject respJson = new JSONObject(responseBody);
                         String memberName = respJson.optString("member_name", "");
                         int memberId = respJson.optInt("member_id", -1);
+                        boolean hasParkedVehicle = respJson.optBoolean("has_parked_vehicle", false);
 
                         // Parse vehicles if available
                         List<VehicleInfo> vehicles = new ArrayList<>();
@@ -985,6 +991,24 @@ public class MainActivity extends AppCompatActivity {
                             currentUserName = memberName;
                             currentVehicles = vehicles;
                             selectedVehicleIndex = vehicles.isEmpty() ? -1 : 0;
+                            
+                            // Adjust button visibility/enabled state based on parking status
+                            if (hasParkedVehicle) {
+                                btnParkingWithdraw.setVisibility(View.VISIBLE);
+                                btnParkingWithdraw.setEnabled(true);
+                                btnParkingWithdraw.setAlpha(1.0f);
+                                
+                                btnParkingEnter.setEnabled(false);
+                                btnParkingEnter.setAlpha(0.3f); // Disabled look
+                            } else {
+                                btnParkingEnter.setVisibility(View.VISIBLE);
+                                btnParkingEnter.setEnabled(true);
+                                btnParkingEnter.setAlpha(1.0f);
+                                
+                                btnParkingWithdraw.setEnabled(false);
+                                btnParkingWithdraw.setAlpha(0.3f); // Disabled look
+                            }
+
                             if (isShowingParking) {
                                 showParkingInterface();
                             } else {
