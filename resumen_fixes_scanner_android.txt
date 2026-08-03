@@ -1,0 +1,18 @@
+# Resumen de Correcciones y Contexto del Proyecto: Sincronización Scanner-Android
+
+## 1. Problema de Conectividad a la Base de Datos (Node.js)
+- **Contexto previo:** El backend en `server.js` (Node.js) tenía la IP de la base de datos fija (`100.89.43.30`) y usaba un comando `ping` para validar la conexión en `pool.js`. Cuando el usuario se conectaba a la red `GTR` o cuando Tailscale bloqueaba los paquetes ICMP (ping), el backend asumía que la IP estaba muerta y cambiaba a `127.0.0.1`, provocando errores `500 Internal Server Error (Connection Timeout)`.
+- **Corrección:** Se implementó un "Auto-Resolver" TCP (mediante `net.createConnection` de Node.js) en `backend/db/pool.js`. Ahora el backend prueba la conexión a los puertos `5432` de los candidatos (`10.42.0.1`, `100.89.43.30`, `192.168.100.16`, `192.168.100.61`) y se enlaza dinámicamente al que responda correctamente.
+
+## 2. Sincronización Android <-> Desktop Scanner
+- **Contexto previo:** El escáner de escritorio en Python (`run_scanner.py`) solo escuchaba escaneos en su servidor "mock" interno. Por lo tanto, si la aplicación Android verificaba una tarjeta contra el servidor backend real (en la Orange Pi), el escáner de escritorio nunca se enteraba.
+- **Corrección:** Se añadió una rutina de "polling" (sondeo) remoto en `admin-panel/ui/scanner/app.py`. Ahora Python consulta cada segundo al backend (`/api/scan-event`) y si detecta un nuevo evento generado por el celular, lo lee y sincroniza su interfaz gráfica (mostrando el perfil del usuario).
+
+## 3. Fallo en la sección "Mi Garaje" en Android
+- **Contexto previo:** La App de Android Studio consumía la ruta `POST /api/scan-event/card` cuando se usaba la cámara para escanear el QR o se escribían los 16 dígitos manualmente. Esta ruta verificaba al socio pero NO devolvía la lista de vehículos en su respuesta JSON (`vArr` era nulo).
+- **Corrección:** Se modificó la ruta `/api/scan-event/card` en `backend/routes/scanEvents.js` para realizar una consulta SQL directa a la tabla `user_vehicles` (`SELECT id, nickname, vehicle AS vehicle_type, brand, model...`). El resultado se agregó al objeto JSON bajo la llave `"vehicles"`, permitiendo que la App de Android procese la información y despliegue las tarjetas interactivas de los autos para realizar "Check In" / "Check Out".
+
+## Notas Clave para Futuras Modificaciones:
+- **Flujo de Escaneo Desde PC:** `run_scanner.py` (Lector RFID físico) -> Encuentra socio localmente -> Dispara UI local -> Envía `POST /api/scan-event` al Backend -> Android App (vía polling `GET /api/scan-event`) detecta el evento y muestra "Bienvenido [Nombre]".
+- **Flujo de Escaneo Desde Android:** App Android (Cámara/Teclado) -> Envía `POST /api/scan-event/card` al Backend -> Backend verifica en BD y retorna Vehículos -> Android UI muestra "Mi Garaje" -> `run_scanner.py` (vía polling `GET /api/scan-event`) detecta el evento y muestra el perfil en pantalla.
+- **Entorno de Redes:** Cuando se usa la red Hotspot (`GTR`), la IP de la Orange Pi es siempre `10.42.0.1`. El Auto-Resolver tanto en Python como en Node.js detectará esta IP automáticamente. Asegurarse siempre de no dejar URLs locales (`localhost`) escritas de manera estática (hardcoded) en la configuración compartida si ambos entornos (`GTR` y `Tailscale`) van a usarse intercambiablemente.

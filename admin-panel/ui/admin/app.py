@@ -16,10 +16,11 @@ from tkinter import messagebox
 from config.theme import setup_ctk_theme, GREEN, RED, AMBER
 from core.crypto import generate_card_number
 from core.email_service import send_approval_email
-from services import reservation_service, member_service
+from services import reservation_service, member_service, parking_service
 from ui.admin.sidebar import AdminSidebar
 from ui.admin.activity_tab import ActivityTab
 from ui.admin.members_tab import MembersTab
+from ui.admin.parking_tab import ParkingTab
 from ui.admin.security_dialog import SecurityDialog
 
 # Configurar tema global
@@ -61,6 +62,7 @@ class ParkingAdmin(ctk.CTk):
         tabview.grid(row=0, column=0, sticky="nsew")
         tabview.add("Registro de Actividad")
         tabview.add("Directorio de Socios")
+        tabview.add("Estacionamiento")
 
         # ── Tabs ──
         self.activity_tab = ActivityTab(
@@ -74,6 +76,11 @@ class ParkingAdmin(ctk.CTk):
             on_delete_member=self._delete_member,
             on_security=self._prompt_security,
             on_change_membership=self._change_membership,
+        )
+
+        self.parking_tab = ParkingTab(
+            tabview.tab("Estacionamiento"),
+            on_free_spot=self._free_spot,
         )
 
         # ── Carga inicial ──
@@ -114,12 +121,24 @@ class ParkingAdmin(ctk.CTk):
                     (u[0], u[1], u[2], tier_display, u[4], status_display)
                 )
 
+            # Tab 3: Estacionamiento
+            self._load_parking_data()
+
             now = datetime.datetime.now().strftime("%H:%M:%S")
             self.sidebar.status.set_status(f"Estado: Listo ({now})", GREEN)
 
         except Exception as exc:
             self.sidebar.status.set_status("Estado: Error de DB", RED)
             messagebox.showerror("Error de Conexión", f"No se pudo conectar.\n{exc}")
+
+    def _load_parking_data(self) -> None:
+        """Carga los datos de estacionamiento y los muestra en el tab."""
+        try:
+            all_spots = parking_service.get_all_spots()
+            heliport = parking_service.get_heliport_status()
+            self.parking_tab.populate(all_spots, heliport)
+        except Exception as exc:
+            print(f"Error cargando datos de estacionamiento: {exc}")
 
     # ══════════════════════════════════════════════════
     #  MEMBER DETAILS (por user_id)
@@ -201,6 +220,32 @@ class ParkingAdmin(ctk.CTk):
                 messagebox.showwarning("Atención", "No se encontró el socio.")
         except Exception as exc:
             messagebox.showerror("Error SQL", f"No se pudo actualizar.\n{exc}")
+
+    # ══════════════════════════════════════════════════
+    #  PARKING ACTIONS
+    # ══════════════════════════════════════════════════
+    def _free_spot(self, spot_id: int, spot_label: str, user_name: str) -> None:
+        """Libera un espacio de estacionamiento ocupado."""
+        if not messagebox.askyesno(
+            "Confirmar Liberación de Espacio",
+            f"¿Estás seguro de liberar el espacio {spot_label}?\n\n"
+            f"Ocupado por: {user_name}\n\n"
+            "El espacio quedará disponible inmediatamente.",
+        ):
+            return
+
+        try:
+            success = parking_service.free_spot(spot_id)
+            if success:
+                messagebox.showinfo(
+                    "Éxito",
+                    f"Espacio {spot_label} liberado exitosamente.",
+                )
+                self._load_parking_data()
+            else:
+                messagebox.showwarning("Atención", "No se pudo liberar el espacio.")
+        except Exception as exc:
+            messagebox.showerror("Error SQL", f"No se pudo liberar el espacio.\n{exc}")
 
     # ══════════════════════════════════════════════════
     #  ACTIONS
